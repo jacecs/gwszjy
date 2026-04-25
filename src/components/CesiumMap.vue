@@ -119,15 +119,15 @@ async function initCesium() {
     scene.screenSpaceCameraController.inertia = 0.9
 
     // Add a marker at the main location
-    viewer.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(120.07, 32.18, 50),
-      point: {
-        pixelSize: 12,
-        color: Cesium.Color.RED,
-        outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 2
-      }
-    })
+    // viewer.entities.add({
+    //   position: Cesium.Cartesian3.fromDegrees(120.07, 32.18, 50),
+    //   point: {
+    //     pixelSize: 12,
+    //     color: Cesium.Color.RED,
+    //     outlineColor: Cesium.Color.WHITE,
+    //     outlineWidth: 2
+    //   }
+    // })
 
     ViewerEvents.init(viewer)
     // setViewer(viewer)

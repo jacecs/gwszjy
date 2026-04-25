@@ -114,7 +114,7 @@ async function initThree() {
   labelRenderer.domElement.style.pointerEvents = 'none'; // 让鼠标事件穿透，不影响 Three.js 点击
   labelRenderer.domElement.style.zIndex = 99; // 让鼠标事件穿透，不影响 Three.js 点击
   document.body.appendChild(labelRenderer.domElement);
-  initSky(scene)
+  // initSky(scene)
   animate()
 
   // Initialize with overview mode

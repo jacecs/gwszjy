@@ -211,22 +211,56 @@ const menus = [
           lon: "120.097",
           lat: "32.250"
         },
-        gltfs: [{
-          id: "监控农田",
-          url: './static/glb/场景/监控农田.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 20,
-        }
+        gltfs: [
+          {
+            id: "监控农田",
+            // url: './static/glb/场景/监控农田.glb',
+            url: './static/glb/农田1.glb',
+            x: 0,
+            y: 0,
+            z: 0,
+            scale: 100,
+          },
+
+          {
+            id: "视频监控器",
+            url: './static/glb/单独模型/视频监控器.glb',
+            x: 5,
+            y: 0,
+            z: 5,
+            scale: 0.5,
+          },
+
+          {
+            id: "虫情测报仪",
+            url: './static/glb/单独模型/虫情测报仪.glb',
+            x: 5,
+            y: 0,
+            z: 0,
+            scale: 0.5,
+          },
+          {
+            id: "电线杆",
+            url: './static/glb/单独模型/配电箱+电线杆.glb',
+            x: 10,
+            y: 0,
+            z: 0,
+            scale: 0.5,
+          },
+
         ],
 
+        threeCamera: {
+          x: 6,
+          y: 20,
+          z: -20,
+        },
         camera: {
-          "lon": 120.09368,
-          "lat": 32.24505,
-          "height": 262,
+          "lon": 120.04952,
+          "lat": 32.26108,
+          "height": 793,
           "heading": 0,
-          "pitch": -45,
+          "pitch": -51,
           "roll": 0
         }
       },
@@ -285,21 +319,59 @@ const menus = [
         id: 'Farm2',
         name: '试验田2',
         icon: '🌱',
-        gltfs: [{
-          id: "农田2",
-          url: './static/glb/农田2.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 8
-        }],
+        position: {
+          lon: "120.097",
+          lat: "32.250"
+        },
+        gltfs: [
+          {
+            id: "试验田2",
+            url: './static/glb/农田2.glb',
+            x: 0,
+            y: 0,
+            z: 0,
+            scale: 20
+          },
+          {
+            id: "视频监控器",
+            url: './static/glb/单独模型/视频监控器.glb',
+            x: 10,
+            y: 0,
+            z: -20,
+            scale: 5,
+          },
+
+          {
+            id: "虫情测报仪",
+            url: './static/glb/单独模型/虫情测报仪.glb',
+            x: -20,
+            y: 0,
+            z: 0,
+            scale: 5,
+          },
+          {
+            id: "电线杆",
+            url: './static/glb/单独模型/配电箱+电线杆.glb',
+            x: 10,
+            y: 0,
+            z: 0,
+            scale: 5,
+          },
+
+
+        ],
+        threeCamera: {
+          x: 5,
+          y: 150,
+          z: -155,
+        },
         camera: {
-          heading: 170.8,
-          height: 609.6,
-          lat: 32.2521,
-          lon: 120.08871,
-          pitch: -46.6,
-          roll: 0,
+          "lon": 120.04952,
+          "lat": 32.26108,
+          "height": 793,
+          "heading": 0,
+          "pitch": -51,
+          "roll": 0
         }
       },
       {
@@ -318,6 +390,11 @@ const menus = [
           z: 0,
           scale: 6
         }],
+        threeCamera: {
+          x: -280,
+          y: 540,
+          z: 830,
+        },
         camera: {
           "lon": 120.02888,
           "lat": 32.2571,
@@ -342,6 +419,11 @@ const menus = [
           z: 0,
           scale: 1
         }],
+        threeCamera: {
+          x: 0,
+          y: 44,
+          z: 90,
+        },
         camera: {
           "lon": 120.02888,
           "lat": 32.2571,
@@ -366,21 +448,55 @@ const menus = [
           lon: "120.089928",
           lat: "32.244513"
         },
-        gltfs: [{
-          id: "试验田3",
-          url: './static/glb/农田.glb',
+        gltfs: [
+          {
+            id: "试验田3",
+            url: './static/glb/农田3.glb',
+            x: 0,
+            y: 0,
+            z: 0,
+            scale: 20
+          },
+
+          {
+            id: "视频监控器",
+            url: './static/glb/单独模型/视频监控器.glb',
+            x: 5,
+            y: 0,
+            z: -5,
+            scale: 1,
+          },
+
+          {
+            id: "虫情测报仪",
+            url: './static/glb/单独模型/虫情测报仪.glb',
+            x: 5,
+            y: 0,
+            z: 0,
+            scale: 1,
+          },
+          {
+            id: "电线杆",
+            url: './static/glb/单独模型/配电箱+电线杆.glb',
+            x: 10,
+            y: 0,
+            z: 0,
+            scale: 0.5,
+          },
+
+        ],
+        threeCamera: {
           x: 0,
-          y: 0,
-          z: 0,
-          scale: 8
-        }],
+          y: 26,
+          z: -27,
+        },
         camera: {
-          "lon": 120.02888,
-          "lat": 32.2571,
-          "height": 100.1,
-          "heading": 155.1,
-          "pitch": -33.1,
-          "roll": 0.1
+          "lon": 120.04952,
+          "lat": 32.26108,
+          "height": 793,
+          "heading": 0,
+          "pitch": -51,
+          "roll": 0
         }
       },
       {
@@ -393,12 +509,17 @@ const menus = [
         },
         gltfs: [{
           id: "试验田3",
-          url: './static/glb/场景/厂房3.glb',
+          url: './static/glb/厂房3.glb',
           x: 0,
           y: 0,
           z: 0,
           scale: 1
         }],
+        threeCamera: {
+          x: -20,
+          y: 180,
+          z: 260,
+        },
         camera: {
           "lon": 120.02888,
           "lat": 32.2571,
@@ -422,12 +543,12 @@ const menus = [
           x: 0,
           y: 0,
           z: 0,
-          scale: 0.2
+          scale:1
         }],
         threeCamera: {
-          x: 0,
-          y: 0,
-          z: 0,
+          x: -62,
+          y: 50,
+          z: 63,
         },
         camera: {
           "lon": 120.02888,
@@ -474,6 +595,10 @@ const productionData = reactive([
 ])
 
 function switchMode(mode, obj) {
+  if (obj.children && obj.children.length) {
+    return 
+  }
+
   currentMode.value = mode
   showPopup.value = false
 
@@ -590,6 +715,28 @@ function initThreeJS(status) {
 
 function cesiumClick(obj) {
   console.log('cesiumClick', obj)
+  if ( obj.type == 'model_click' ) {
+    const id = obj.id
+    const menu = getMenuObjById(id)
+    switchMode(id, menu)
+  }
+}
+
+function getMenuObjById(id) {
+  for (const menu of menus) {
+    // 检查当前层级
+    if (menu.id === id) {
+      return menu
+    }
+    // 检查子菜单
+    if (menu.children && menu.children.length > 0) {
+      const found = menu.children.find(child => child.id === id)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
 }
 
 onUnmounted(() => {

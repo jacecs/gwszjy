@@ -21,8 +21,8 @@ const props = defineProps({
     default: () => [
       {
         url: "./static/glb/场景/厂房1.glb",
-        name: "厂房1",
-        id: "厂房1",
+        label: "厂房1",
+        id: "Workshop",
         lon: 120.08935,
         lat: 32.24715,
         height: 10,
@@ -57,12 +57,12 @@ const props = defineProps({
       // },
       {
         url: "./static/glb/场景/监控农田.glb",
-        name: "农田",
-        id: "农田",
-        lon: 121.08935,
-        lat: 32.24715,
+        label: "监控农田",
+        id: "Farm",
+        lon: 120.0492,
+        lat: 32.2657,
         height: 0,
-        scale: 1,
+        scale: 47.5,
         heading: 88,
         pitch: 0,
         roll: 0
@@ -93,8 +93,8 @@ const props = defineProps({
       // },
       {
         url: "./static/glb/厂房21.glb",
-        name: "厂房21",
-        id: "厂房21",
+        label: "厂房2",
+        id: "Workshop2",
         lon: 120.02965,
         lat: 32.255789,
         height: 0,
@@ -107,7 +107,7 @@ const props = defineProps({
       
       {
         url: "./static/glb/场景/泵站.glb",
-        name: "农田",
+        label: "农田",
         id: "农田",
         lon: 121.08935,
         lat: 32.24715,
@@ -202,7 +202,10 @@ function init() {
   ]
   for (let index = 0; index < props.gltfs.length; index++) {
     const gltf = props.gltfs[index];
+
     renderGlb(gltf)
+
+    // renderLabel(gltf)
   }
 }
 
@@ -228,6 +231,28 @@ function renderGlb(gltf) {
         uri: gltf.url,
         color: new Cesium.Color(1.2, 1.2, 1.2, 1.0), // 增加RGB值来提亮
         scale: gltf.scale,
+      },
+      label: {
+        text: gltf.label || gltf.name, // 显示名称
+        font: '14pt Source Han Sans CN, Microsoft YaHei, sans-serif', // 字体
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE, // 填充并描边
+        fillColor: Cesium.Color.WHITE, // 文字颜色
+        outlineColor: Cesium.Color.BLACK, // 描边颜色
+        outlineWidth: 2, // 描边宽度
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM, // 垂直对齐方式：底部对齐到位置点
+        horizontalOrigin: Cesium.HorizontalOrigin.CENTER, // 水平对齐方式：居中
+        pixelOffset: new Cesium.Cartesian2(0, -10), // 像素偏移，向上微调
+       
+        disableDepthTestDistance: Number.POSITIVE_INFINITY, // 始终显示在最上层，不被地形遮挡
+        showBackground: false, // 是否显示背景框
+        backgroundColor: Cesium.Color.fromCssColorString('rgba(0, 0, 0, 0.6)'),
+        backgroundPadding: new Cesium.Cartesian2(10, 5)
+      },
+      point: {
+        pixelSize: 12,
+        color: Cesium.Color.RED,
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2
       }
     });
     modelEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr)
@@ -236,6 +261,11 @@ function renderGlb(gltf) {
     // viewer.flyTo(modelEntity)
   }
 }
+
+function renderLabel(gltf) {
+
+}
+
 //  点击事件
 function onClick(click) {
   var pickedObject = viewer.scene.pick(click.position);

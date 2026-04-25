@@ -62,6 +62,7 @@ dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5
 loader.setDRACOLoader(dracoLoader);
 let model = null;
 let mixers = []
+let pageModels = markRaw([])
 let label
 const modelUrl = computed(() => {
   const map = {
@@ -74,6 +75,7 @@ const modelUrl = computed(() => {
 })
 watch(() => props.data, (newMode) => {
   if (newMode) {
+    remove()
     init(newMode)
   }
 },
@@ -115,6 +117,38 @@ function remove() {
     label = null
   }
   console.log('remove', model)
+
+
+
+  if (pageModels && pageModels.length) {
+    for (let index = 0; index < pageModels.length; index++) {
+      const model = pageModels[index];
+      
+      const modelScene = model.scene;
+
+      if (modelScene) {
+        scene.remove(modelScene);
+
+        // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
+        modelScene.traverse((object) => {
+          if (object.geometry) {
+            object.geometry.dispose();
+          }
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(material => material.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+      }
+    }
+  }
+
+  pageModels = markRaw([])
+
+
   if (model) {
     const modelScene = model.scene;
 
@@ -146,8 +180,6 @@ function onClick(item) {
 }
 
 function init(obj) {
-  remove()// 移除所有对象
-
   centerAt(obj.threeCamera)
   renderModel(obj)
 }
@@ -172,7 +204,8 @@ async function renderModel(obj) {
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
-      model = markRaw(GLOBAL[key])
+      const model = markRaw(GLOBAL[key])
+      pageModels.push(model)
       scene.add(GLOBAL[key].scene);
       // 可以对模型进行操作
       GLOBAL[key].scene.scale.set(gltf.scale, gltf.scale, gltf.scale);

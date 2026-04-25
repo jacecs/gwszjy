@@ -51,6 +51,7 @@ dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5
 loader.setDRACOLoader(dracoLoader);
 let model = null;
 let mixers = []
+let pageModels = markRaw([])
 
 let flowLines = markRaw([])
 
@@ -65,6 +66,7 @@ const config = reactive({
 
 watch(() => props.data, (newMode) => {
   if (newMode) {
+    remove()
     init(newMode)
   }
 },
@@ -113,29 +115,33 @@ function remove() {
     label.removeFromParent()
     label = null
   }
-  if (model) {
-    const modelScene = model.scene;
+  if (pageModels && pageModels.length) {
+    for (let index = 0; index < pageModels.length; index++) {
+      const model = pageModels[index];
+      
+      const modelScene = model.scene;
 
-    if (modelScene) {
-      scene.remove(modelScene);
+      if (modelScene) {
+        scene.remove(modelScene);
 
-      // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
-      modelScene.traverse((object) => {
-        if (object.geometry) {
-          object.geometry.dispose();
-        }
-        if (object.material) {
-          if (Array.isArray(object.material)) {
-            object.material.forEach(material => material.dispose());
-          } else {
-            object.material.dispose();
+        // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
+        modelScene.traverse((object) => {
+          if (object.geometry) {
+            object.geometry.dispose();
           }
-        }
-      });
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(material => material.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+      }
     }
-    model = null;
   }
-  console.log('remove', model)
+
+  pageModels = markRaw([])
 
 }
 
@@ -175,8 +181,9 @@ async function renderModel(obj) {
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
-      model = markRaw(GLOBAL[key])
+      const model = markRaw(GLOBAL[key])
       scene.add(GLOBAL[key].scene);
+      pageModels.push(model)
       // 可以对模型进行操作
       GLOBAL[key].scene.scale.set(gltf.scale, gltf.scale, gltf.scale);
       GLOBAL[key].scene.position.set(gltf.x, gltf.y, gltf.z);
@@ -234,13 +241,25 @@ async function showTooltip(model, point) {
 
   const tooltip = document.createElement('div');
   tooltip.className = 'tooltip';
-  // const list = await loadData()
+  const list = await loadData()
   tooltip.innerHTML = `
       <div class="js-tooltip" style="padding: 10px; pointer-events: none; color: #000; font-size: 16px; display: inline-block;transform: translate(-50%, -100%);background: #ffffff">
         <div class="modal-name" >
         ${model.name}
       </div>
       <div class="main-modal-info">
+        `
+        +
+         list.map(item => {
+          return `<div class="modal-info" style="display: flex; justify-content: space-between;">
+          <div class="modal-info-name" style="width: 60px">${item.name}：</div>
+          <div class="modal-info-value">${item.value}</div>
+        </div>`
+        }).join('')
+
+        +
+        
+        `
       </div>
       </div>
       `;
@@ -255,10 +274,10 @@ async function showTooltip(model, point) {
 
 function loadData() {
   return new Promise(resolve => {
-    resolve({
-      "编号": "厂房",
-      "参数1": "0.00",
-    })
+    resolve([{
+      "name": "测点",
+      "value": "0.00",
+    }])
     // getModalInfo().then(res => {
     //   resolve(res)
     //   return res
