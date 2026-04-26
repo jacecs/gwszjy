@@ -565,7 +565,7 @@ function switchMode(mode, obj) {
 }
 
 function handleMapClick({ lon, lat }) {
-  currentCoords.value = `${lat}°N, ${lon}°E`
+  currentCoords.value = `${lon}°E, ${lat}°N`
 }
 
 function handlePopup(data) {
