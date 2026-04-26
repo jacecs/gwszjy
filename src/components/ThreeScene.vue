@@ -97,9 +97,10 @@ async function initThree() {
   dirLight.position.set(100, 200, 100)
   scene.add(dirLight)
 
-  const dirLight2 = new THREE.DirectionalLight(0x88ffcc, 0.3)
-  dirLight2.position.set(-50, 100, -50)
-  scene.add(dirLight2)
+  // const dirLight2 = new THREE.DirectionalLight(0x88ffcc, 0.3)
+  // dirLight2.position.set(-50, 100, -50)
+  // scene.add(dirLight2)
+  initLight(scene)
 
   window.addEventListener('resize', onResize)
   renderer.domElement.addEventListener('click', onMouseClick)
@@ -114,7 +115,7 @@ async function initThree() {
   labelRenderer.domElement.style.pointerEvents = 'none'; // 让鼠标事件穿透，不影响 Three.js 点击
   labelRenderer.domElement.style.zIndex = 99; // 让鼠标事件穿透，不影响 Three.js 点击
   document.body.appendChild(labelRenderer.domElement);
-  // initSky(scene)
+  initSky(scene)
   animate()
 
   // Initialize with overview mode
@@ -135,6 +136,8 @@ async function initThree() {
   emit('initSuccess', true)
 }
 
+
+// 天空图
 function initSky  (scene) {
     // 1. 加载天空盒纹理
   const loader = new THREE.CubeTextureLoader();
@@ -147,6 +150,61 @@ function initSky  (scene) {
       './static/img/sky/sky.back.jpg'     // 后面
   ]);
   scene.background = texture;
+}
+
+// 增加光源
+function initLight (scene) {
+
+  // // --- 原有光照 ---
+  // const ambientLight = new THREE.AmbientLight(0xffffff, 0.6) // 稍微降低环境光，让方向光更明显
+  // scene.add(ambientLight)
+
+  // // --- 新增：四周光源布局 ---
+  
+  // // 1. 主光源 (模拟太阳，右上方)
+  // const mainDirLight = new THREE.DirectionalLight(0xffffff, 1.0)
+  // mainDirLight.position.set(100, 200, 100)
+  // mainDirLight.castShadow = true // 如果后续需要阴影，可开启
+  // scene.add(mainDirLight)
+
+  // // 2. 补光 1 (左侧，平衡右侧阴影)
+  // const leftLight = new THREE.DirectionalLight(0xffffff, 0.5)
+  // leftLight.position.set(-100, 100, 0)
+  // scene.add(leftLight)
+
+  // // 3. 补光 2 (后方，照亮背面)
+  // const backLight = new THREE.DirectionalLight(0xffffff, 0.4)
+  // backLight.position.set(0, 100, -100)
+  // scene.add(backLight)
+
+  // // 4. 顶部柔光 (模拟天光，减少顶部死黑)
+  // const topLight = new THREE.DirectionalLight(0xffffff, 0.3)
+  // topLight.position.set(0, 300, 0)
+  // scene.add(topLight)
+    // 1. 环境光：基础保底亮度，提高强度
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7) // 从 0.6 提升到 1.2
+  scene.add(ambientLight)
+
+  // 2. 半球光：模拟天空散射光，让背光面不再死黑（非常有效）
+  // 参数：天空颜色, 地面颜色, 强度
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7)
+  hemiLight.position.set(0, 200, 0)
+  scene.add(hemiLight)
+
+  // 3. 主方向光：模拟太阳，大幅增强强度
+  const mainDirLight = new THREE.DirectionalLight(0xffffff, 0.7) // 从 1.0 提升到 2.5
+  mainDirLight.position.set(100, 200, 100)
+  mainDirLight.castShadow = false // 暂时关闭阴影以提升性能且避免阴影过黑
+  scene.add(mainDirLight)
+
+  // 4. 补光：照亮侧面和背面
+  const leftLight = new THREE.DirectionalLight(0xffffff, 0.7)
+  leftLight.position.set(-100, 100, 0)
+  scene.add(leftLight)
+
+  const backLight = new THREE.DirectionalLight(0xffffff, 0.7)
+  backLight.position.set(0, 100, -100)
+  scene.add(backLight)
 }
 
 

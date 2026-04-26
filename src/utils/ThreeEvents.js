@@ -36,12 +36,13 @@ class ThreeEvents {
           // intersectObjects 返回一个按距离排序的相交数组
           const intersects = raycaster.intersectObjects(scene.children);
           console.log('坐标信息:', intersects[0]?.point);
+          console.log('点击物体信息:', intersects);
           // 5. 处理交互结果
           if (intersects.length > 0) {
             // intersects 是距离相机最近的相交物体
             const tmp = intersects.find(it => it.object.visible)
             // intersects 是距离相机最近的相交物体
-              console.log('点击了物体:', intersects);
+             console.log('点击最近物体信息:', tmp);
               this._events['LEFT_CLICK'].forEach(fn => fn(tmp))
           } else {
             // 如果没有点击到任何物体，可以将立方体恢复为绿色

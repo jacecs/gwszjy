@@ -150,7 +150,8 @@ function remove() {
 
 function onClick(item) {
   if (item) {
-    const label = showTooltip(item.object, item.point)
+    const object = item.object // item.object.parent ?? item.object
+    const label = showTooltip(object, item.point)
   }
 }
 
@@ -177,7 +178,7 @@ async function renderModel(obj) {
       console.log('模型', obj)
       if (!GLOBAL[key]) {
         const modal = await appStore.loadGLBModal(loader, gltf.url)
-        // modal.id = key
+        modal.modelId = gltf.id
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
@@ -190,6 +191,10 @@ async function renderModel(obj) {
     }
   }
 }
+function getModelById(id) {
+  return pageModels.find(item => item.modelId === id)
+}
+
 
 function getGlb(id) {
   return GLOBAL[id] ?? null
@@ -429,201 +434,6 @@ function create1() {
 
 
 }
-
-const linePoints = reactive([
-  {
-    points: [
-      {
-        x: 140,
-        y: -8,
-        z: 155
-      },
-      {
-        x: 140,
-        y: 6,
-        z: 155
-      },
-      {
-        x: 140,
-        y: 6,
-        z: 175
-      },
-
-      {
-        x: 105,
-        y: 6,
-        z: 178
-      }
-    ],
-    name: 'line1'
-  },
-  {
-    points:
-      [
-        {
-          x: 190,
-          y: -8,
-          z: 155
-        },
-        {
-          x: 190,
-          y: 6,
-          z: 155
-        },
-        {
-          x: 190,
-          y: 6,
-          z: 170
-        },
-
-        {
-          x: 150,
-          y: 6,
-          z: 173
-        }
-      ],
-    name: 'line2'
-  },
-  {
-    points: [
-      {
-        x: 243,
-        y: -8,
-        z: 145
-      },
-      {
-        x: 243,
-        y: 6,
-        z: 145
-      },
-      {
-        x: 245,
-        y: 6,
-        z: 165
-      },
-
-      {
-        x: 200,
-        y: 6,
-        z: 170
-      }
-    ],
-    name: 'line3'
-  },
-
-  {
-    points: [
-      {
-        x: 245,
-        y: 6,
-        z: 165
-      },
-
-      {
-        x: 265,
-        y: 6,
-        z: 163
-      }
-    ],
-    name: 'line31',
-    dashCount: 4
-  },
-  {
-    points: [
-      {
-        x: 128,
-        y: -8,
-        z: 130
-      },
-      {
-        x: 128,
-        y: 4,
-        z: 130
-      },
-      {
-        x: 125,
-        y: 4,
-        z: 110
-      },
-
-      {
-        x: 110,
-        y: 4,
-        z: 111.5
-      }
-    ],
-    name: 'line4',
-    dashCount: 8
-  },
-  {
-    points: [
-      {
-        x: 125,
-        y: 4,
-        z: 110
-      },
-
-      {
-        x: 160,
-        y: 4,
-        z: 106.5
-      }
-    ],
-    name: 'line41',
-    dashCount: 4
-  },
-  {
-    points: [{
-      x: 230,
-      y: -8,
-      z: 100
-    },
-    {
-      x: 230,
-      y: 4,
-      z: 100
-    },
-
-    {
-      x: 160,
-      y: 4,
-      z: 106.5
-    }],
-    name: 'line5'
-  },
-])
-
-function createLine() {
-
-  // 1. 定义路径点 (比如从 A 点到 B 点到 C 点)
-
-  for (let index = 0; index < linePoints.length; index++) {
-    const lp = linePoints[index];
-
-    const points = lp.points.map(it => new THREE.Vector3(it.x, it.y, it.z))
-
-    // 2. 实例化流动线
-    const line = new FlowLine(points, {
-      color: 0xff0000,     // 青色流光
-      radius: 1.0,         // 管道粗细
-      speed: 3.0,          // 流动速度 (数值越大越快)
-      dashCount: lp.dashCount ?? 10,       // 流光的段数 (密度)
-      showBaseLine: false   // 是否显示底层管道
-    });
-
-
-    flowLines.push(line)
-
-    console.log(flowLines)
-
-    // 3. 添加到场景
-    scene.add(line);
-  }
-
-
-}
-
-
 
 // --- 4. 动画循环 ---
 const clock = new THREE.Clock();

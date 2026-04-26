@@ -15,10 +15,12 @@
     </div>
   </div> -->
 
-  <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
-    <input type="checkbox" v-model="inStatus" @change="changeStatus" />
-    内部场景
-  </label>
+  <template v-if="gltfStatus">
+    <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
+      <input type="checkbox" v-model="inStatus" @change="changeStatus" />
+      内部场景
+    </label>
+  </template>
 </template>
 
 <script setup>
@@ -51,6 +53,8 @@ const props = defineProps({
     default: () => ({})
   }
 })
+
+const gltfStatus = ref(false);
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
@@ -201,6 +205,7 @@ async function renderModel(obj) {
       console.log('模型', obj)
       if (!GLOBAL[key]) {
         const modal = await appStore.loadGLBModal(loader, gltf.url)
+        modal.modelId = gltf.id
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
@@ -214,6 +219,11 @@ async function renderModel(obj) {
   }
 
 }
+
+function getModelById(id) {
+  return pageModels.find(item => item.modelId === id)
+}
+
 
 // 进入到内部
 function changeStatus(value) {
@@ -234,8 +244,6 @@ function changeStatus(value) {
     // const focusPoint = 
     flyTo(targetPos, targetLookAt)
 
-    // // 模型加载成功后触发
-    // createLine()
   }
 }
 
@@ -308,29 +316,6 @@ function loadData() {
       "编号": "厂房",
       "参数1": "0.00",
     })
-    // getModalInfo().then(res => {
-    //   resolve(res)
-    //   return res
-    // }).catch(() => {
-    //   resolve({
-    //     "样品编号": "YZ02-01",
-    //     "Mad (%)": "0.00",
-    //     "Stad (%)": "0.00",
-    //     "std (%)": "0.00",
-    //     "Vad (%)": "0.00",
-    //     "Vd (%)": "0.00",
-    //     "Aad (%)": "0.00",
-    //     "Ad (%)": "0.00",
-    //     "Qb,ad (MJ/kg)": "28.236",
-    //     "Qgr,ad (MJ/kg)": "28.057",
-    //     "Qgr,d (MJ/kg)": "28.86",
-    //     "Cad (%)": "0.00",
-    //     "Cd (%)": "0.00",
-    //     "Had (%)": "0.00",
-    //     "Nad (%)": "0.00",
-    //     "Nd (%)": "0.00"
-    //   })
-    // })
   })
 }
 

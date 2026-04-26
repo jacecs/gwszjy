@@ -54,13 +54,13 @@ const emit = defineEmits(['configChange'])
 const config = reactive({ 
   // name: "农田",
   // id: "农田",
-        lon: 120.051080,
-        lat: 32.264890,
-        height: 0,
-        scale: 1,
-        heading: 88,
-        pitch: 0,
-        roll: 0,
+  lon: 120.0973,
+  lat: 32.2517,
+  height: 0,
+  scale: 1.8,
+  heading: 89,
+  pitch: 0,
+  roll: 0,
   show: true
  })
 

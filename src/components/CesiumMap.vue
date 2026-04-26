@@ -134,11 +134,11 @@ async function initCesium() {
     GLOBAL.viewer = viewer
     emit('initSuccess', true)
     const loc = {
-      "lon": 120.08807,
-      "lat": 32.21126,
-      "height": 3740.9,
+      "lon": 120.06647,
+      "lat": 32.18264,
+      "height": 9700.3,
       "heading": 0,
-      "pitch": -45,
+      "pitch": -50,
       "roll": 0
     }
     viewer.camera.flyTo({

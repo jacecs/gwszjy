@@ -22,7 +22,11 @@
         </div>
       </div>
       <div class="top-info">
+
         <div class="info-pill">
+          <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
+        </div>
+        <!-- <div class="info-pill">
           <span class="status-dot"></span>
           <span>系统在线</span>
         </div>
@@ -33,7 +37,7 @@
         <div class="info-pill">
           <span>🌤</span>
           <span>晴 26°C</span>
-        </div>
+        </div> -->
       </div>
     </header>
 
@@ -54,8 +58,9 @@
 
       <!-- 右侧数据抽屉 -->
       <aside class="drawer-panel right-drawer" :class="{ collapsed: !rightDrawerOpen }">
-        <DevicePanel title="⚙️ 设备状态" :devices="devices" />
-        <DataPanel title="📊 产量统计" :data="productionData" />
+        <DevicePanel title="⚙️ 气象监测" :devices="devices" />
+        <DataPanel title="📊 墒情数据" :data="productionData" />
+        <DataPanel title="📊 虫情监测" :data="productionData1" />
       </aside>
 
       <!-- 右侧抽屉开关 -->
@@ -64,7 +69,7 @@
       </button>
 
       <!-- 控制按钮区域 -->
-      <div class="control-bar">
+      <!-- <div class="control-bar">
         <button class="control-btn" @click="toggleAllDrawers">
           <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
         </button>
@@ -72,7 +77,7 @@
           <input type="checkbox" v-model="showThreeJS" />
           <span class="toggle-text">🌐 3D</span>
         </label>
-      </div>
+      </div> -->
 
       <div class="scene-viewport">
         <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
@@ -194,16 +199,16 @@ const menus = [
       lat: "32.18"
     },
     camera: {
-      "lon": 120.08807,
-      "lat": 32.21126,
-      "height": 3740.9,
+      "lon": 120.06647,
+      "lat": 32.18264,
+      "height": 9700.3,
       "heading": 0,
-      "pitch": -45,
+      "pitch": -50,
       "roll": 0
-    }
+  }
   },
   {
-    id: 'nongtian1', name: '农田1', icon: '🌱',
+    id: 'nongtian1', name: '农场1', icon: '🌱',
     children: [
       {
         id: 'Farm', name: '试验田', icon: '🌱',
@@ -214,54 +219,28 @@ const menus = [
         gltfs: [
           {
             id: "监控农田",
-            // url: './static/glb/场景/监控农田.glb',
-            url: './static/glb/农田1.glb',
+            url: './static/glb/泵站与农田设备(1).glb',
             x: 0,
             y: 0,
             z: 0,
-            scale: 100,
+            scale: 1,
           },
-
-          {
-            id: "视频监控器",
-            url: './static/glb/单独模型/视频监控器.glb',
-            x: 5,
-            y: 0,
-            z: 5,
-            scale: 0.5,
-          },
-
-          {
-            id: "虫情测报仪",
-            url: './static/glb/单独模型/虫情测报仪.glb',
-            x: 5,
-            y: 0,
-            z: 0,
-            scale: 0.5,
-          },
-          {
-            id: "电线杆",
-            url: './static/glb/单独模型/配电箱+电线杆.glb',
-            x: 10,
-            y: 0,
-            z: 0,
-            scale: 0.5,
-          },
-
         ],
-
         threeCamera: {
-          x: 6,
-          y: 20,
-          z: -20,
+          x: 0,
+          y: 50,
+          z: 18,
+          tx: -11,
+          ty: 1.8,
+          tz: -50,
         },
         camera: {
-          "lon": 120.04952,
-          "lat": 32.26108,
-          "height": 793,
-          "heading": 0,
-          "pitch": -51,
-          "roll": 0
+            "lon": 120.09665,
+            "lat": 32.24846,
+            "height": 576.3,
+            "heading": 0,
+            "pitch": -50,
+            "roll": 0
         }
       },
       {
@@ -271,13 +250,21 @@ const menus = [
           lat: "32.244513"
         },
         gltfs: [{
-          id: "烘干车间",
-          url: './static/glb/厂房1.glb',
+          id: "changfang1",
+          url: './static/glb/场景/厂房1.glb',
           x: 0,
           y: 0,
           z: 0,
           scale: 1
         }],
+        threeCamera: {
+          x: 200,
+          y: 200,
+          z: -300,
+          tx: 200,
+          ty: 0,
+          tz: 0,
+        },
         camera: {
           "lon": 120.09002,
           "lat": 32.2522,
@@ -288,19 +275,27 @@ const menus = [
         }
       },
       {
-        id: 'Warehouse', name: '仓库', icon: '📦',
+        id: 'Workshop2', name: '仓库', icon: '📦',
         position: {
           lon: "120.089928",
           lat: "32.244513"
         },
         gltfs: [{
           id: "仓库",
-          url: './static/glb/仓库1.glb',
+          url: './static/glb/场景/厂房1.glb',
           x: 0,
           y: 0,
           z: 0,
           scale: 1
         }],
+        threeCamera: {
+          x: -120,
+          y: 112,
+          z: -250,
+          tx: -5,
+          ty: 0,
+          tz: 0,
+        },
         camera: {
           heading: 170.8,
           height: 609.6,
@@ -313,7 +308,7 @@ const menus = [
     ]
   },
   {
-    id: 'nongtian2', name: '农田2', icon: '🌱',
+    id: 'nongtian2', name: '农场2', icon: '🌱',
     children: [
       {
         id: 'Farm2',
@@ -332,32 +327,7 @@ const menus = [
             z: 0,
             scale: 20
           },
-          {
-            id: "视频监控器",
-            url: './static/glb/单独模型/视频监控器.glb',
-            x: 10,
-            y: 0,
-            z: -20,
-            scale: 5,
-          },
-
-          {
-            id: "虫情测报仪",
-            url: './static/glb/单独模型/虫情测报仪.glb',
-            x: -20,
-            y: 0,
-            z: 0,
-            scale: 5,
-          },
-          {
-            id: "电线杆",
-            url: './static/glb/单独模型/配电箱+电线杆.glb',
-            x: 10,
-            y: 0,
-            z: 0,
-            scale: 5,
-          },
-
+        
 
         ],
         threeCamera: {
@@ -375,37 +345,6 @@ const menus = [
         }
       },
       {
-        id: 'Workshop2',
-        name: '烘干车间',
-        icon: '🏭',
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [{
-          id: "厂房21",
-          url: './static/glb/厂房21.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 6
-        }],
-        threeCamera: {
-          x: -280,
-          y: 540,
-          z: 830,
-        },
-        camera: {
-          "lon": 120.02888,
-          "lat": 32.2571,
-          "height": 100.1,
-          "heading": 155.1,
-          "pitch": -33.1,
-          "roll": 0.1
-        }
-
-      },
-      {
         id: 'Warehouse2', name: '仓库', icon: '📦',
         position: {
           lon: "120.089928",
@@ -413,31 +352,34 @@ const menus = [
         },
         gltfs: [{
           id: "仓库2",
-          url: './static/glb/仓库2.glb',
+          url: './static/glb/厂房2.glb',
           x: 0,
           y: 0,
           z: 0,
           scale: 1
         }],
         threeCamera: {
-          x: 0,
-          y: 44,
-          z: 90,
+          x: 61,
+          y: 140,
+          z: -52,
+          tx: 60,
+          ty:21,
+          tz:-340
         },
         camera: {
-          "lon": 120.02888,
-          "lat": 32.2571,
-          "height": 100.1,
-          "heading": 155.1,
-          "pitch": -33.1,
-          "roll": 0.1
+            "lon": 120.03035,
+            "lat": 32.25911,
+            "height": 216.3,
+            "heading": 185.4,
+            "pitch": -30.9,
+            "roll": 0
         }
       }
     ]
   },
   {
     id: 'nongtian3',
-    name: '农田3',
+    name: '农场3',
     icon: '🌱',
     children: [
       {
@@ -456,32 +398,6 @@ const menus = [
             y: 0,
             z: 0,
             scale: 20
-          },
-
-          {
-            id: "视频监控器",
-            url: './static/glb/单独模型/视频监控器.glb',
-            x: 5,
-            y: 0,
-            z: -5,
-            scale: 1,
-          },
-
-          {
-            id: "虫情测报仪",
-            url: './static/glb/单独模型/虫情测报仪.glb',
-            x: 5,
-            y: 0,
-            z: 0,
-            scale: 1,
-          },
-          {
-            id: "电线杆",
-            url: './static/glb/单独模型/配电箱+电线杆.glb',
-            x: 10,
-            y: 0,
-            z: 0,
-            scale: 0.5,
           },
 
         ],
@@ -508,57 +424,57 @@ const menus = [
           lat: "32.244513"
         },
         gltfs: [{
-          id: "试验田3",
-          url: './static/glb/厂房3.glb',
+          id: "changfang3",
+          url: './static/glb/厂房3-有底图.glb',
           x: 0,
           y: 0,
           z: 0,
           scale: 1
         }],
         threeCamera: {
-          x: -20,
-          y: 180,
-          z: 260,
+          x: 10,
+          y: 550,
+          z: 1020,
         },
         camera: {
-          "lon": 120.02888,
-          "lat": 32.2571,
-          "height": 100.1,
-          "heading": 155.1,
-          "pitch": -33.1,
-          "roll": 0.1
+            "lon": 120.01718,
+            "lat": 32.25422,
+            "height": 290.9,
+            "heading": 0,
+            "pitch": -50,
+            "roll": 0
         }
       },
-      {
-        id: 'Warehouse3', 
-        name: '仓库3', 
-        icon: '📦',
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs:[{
-          id: "仓库3",
-          url: './static/glb/仓库3.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale:1
-        }],
-        threeCamera: {
-          x: -62,
-          y: 50,
-          z: 63,
-        },
-        camera: {
-          "lon": 120.02888,
-          "lat": 32.2571,
-          "height": 100.1,
-          "heading": 155.1,
-          "pitch": -33.1,
-          "roll": 0.1
-        }
-      }
+      // {
+      //   id: 'Warehouse3', 
+      //   name: '仓库3', 
+      //   icon: '📦',
+      //   position: {
+      //     lon: "120.089928",
+      //     lat: "32.244513"
+      //   },
+      //   gltfs:[{
+      //     id: "仓库3",
+      //     url: './static/glb/仓库3.glb',
+      //     x: 0,
+      //     y: 0,
+      //     z: 0,
+      //     scale:1
+      //   }],
+      //   threeCamera: {
+      //     x: -62,
+      //     y: 50,
+      //     z: 63,
+      //   },
+      //   camera: {
+      //     "lon": 120.02888,
+      //     "lat": 32.2571,
+      //     "height": 100.1,
+      //     "heading": 155.1,
+      //     "pitch": -33.1,
+      //     "roll": 0.1
+      //   }
+      // }
     ]
   },
 ]
@@ -567,9 +483,9 @@ const currentLocation = ref('泰兴市新街镇叶垛家利')
 const currentCoords = ref('32.18°N, 120.07°E')
 
 const envData = reactive([
-  { label: '土壤温度', value: '25.3', unit: '°C', status: '正常', chart: [60, 75, 65, 80, 70, 85, 78] },
+  { label: '温度', value: '16.75', unit: '°C', status: '正常', chart: [15, 16, 16.4, 16.2, 15, 15.5, 15.4] },
   { label: '空气湿度', value: '68', unit: '%', status: '正常', chart: [55, 60, 58, 65, 70, 68, 72] },
-  { label: '光照强度', value: '45800', unit: 'lux', status: '充足', chart: [90, 85, 92, 88, 95, 91, 93] }
+  { label: '光照强度', value: '83909', unit: 'lux', status: '充足', chart: [90, 85, 92, 88, 95, 91, 93] }
 ])
 
 const soilData = reactive([
@@ -580,18 +496,23 @@ const soilData = reactive([
 ])
 
 const devices = reactive([
-  { name: '🌾 智能灌溉系统', status: 'online', text: '运行中' },
-  { name: '🌡 通风控制', status: 'online', text: '运行中' },
-  { name: '💡 补光灯控', status: 'warning', text: '节能' },
-  { name: '🔥 烘干机组 #1', status: 'online', text: '运行中' },
-  { name: '🔥 烘干机组 #2', status: 'offline', text: '停机' }
+  { name: '气压', text: '102.37KPa' },
+  { name: '电源', text: '14.2V' },
+  { name: '信号强度', text: '31dBm' },
+  { name: '风速', text: '0.5m/s' },
+  { name: '累计雨量', text: '105.8m' },
+  { name: '风向', text: '180°' },
+  { name: '总辐射', text: '6.62HW/m2' }
 ])
 
 const productionData = reactive([
-  { label: '今日采收', value: '1,280', unit: 'kg' },
-  { label: '本周累计', value: '8,450', unit: 'kg', chart: [45, 55, 50, 70, 65, 80, 60] },
-  { label: '本月累计', value: '32,580', unit: 'kg' },
-  { label: '年度目标', value: '68', unit: '%', status: '68%' }
+  { label: '土壤温度', value: '10.89', unit: '°C' },
+  { label: '土壤湿度', value: '26.57', unit: '%', },
+])
+const productionData1 = reactive([
+  { label: '臭蝽', value: '574', unit: '个', },
+  { label: '蝼蛄', value: '105', unit: '个' },
+  { label: '金龟子', value: '67', unit: '个' }
 ])
 
 function switchMode(mode, obj) {
@@ -629,8 +550,6 @@ function switchMode(mode, obj) {
 
   // 定位
   if (obj && obj.camera && GLOBAL.viewer) {
-
-
     const camera = obj.camera
     GLOBAL.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(camera.lon, camera.lat, camera.height),
@@ -639,7 +558,7 @@ function switchMode(mode, obj) {
         pitch: Cesium.Math.toRadians(camera.pitch),
         roll: camera.roll
       },
-      duration: 1.5
+      duration: 1
     })
   }
 
@@ -718,7 +637,8 @@ function cesiumClick(obj) {
   if ( obj.type == 'model_click' ) {
     const id = obj.id
     const menu = getMenuObjById(id)
-    switchMode(id, menu)
+    
+    // switchMode(id, menu)
   }
 }
 

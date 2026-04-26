@@ -1,11 +1,25 @@
 <template>
 
-  <!-- <button style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px" @click="changeStatus">
-  </button> -->
-  <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
-    <input type="checkbox" v-model="inStatus" @change="changeStatus" />
-    内部场景
-  </label>
+  <!-- <div style="position: fixed; left: 300px; top: 100px;z-index: 9999; padding: 5px">
+    <h3>🛠️ 流动线 调试器</h3>
+    <div v-for="(item, key) in linePoints" :key="key" class="control-group">
+      <label>点号 {{ item.name }}</label>
+
+      <div v-for="(val, i) in item.points" :key="i">
+        <input type="number" v-model.number="val.x" :step="1" @input="updateModel">
+        <input type="number" v-model.number="val.y" :step="1" @input="updateModel">
+        <input type="number" v-model.number="val.z" :step="1" @input="updateModel">
+      </div>
+
+        <input type="number" v-model.number="item.dashCount" :step="1" @input="updateModel">
+    </div>
+  </div> -->
+  <template v-if="gltfStatus && ['Workshop','Workshop3'].includes(currentModel.id) ">
+    <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
+      <input type="checkbox" v-model="inStatus" @change="changeStatus" />
+      内部场景
+    </label>
+  </template>
 </template>
 
 <script setup>
@@ -41,6 +55,8 @@ const props = defineProps({
 
 
 const inStatus = ref(false)
+const gltfStatus = ref(false)
+const currentModel = ref(null)
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
@@ -65,6 +81,10 @@ const modelUrl = computed(() => {
 })
 watch(() => props.data, (newMode) => {
   if (newMode) {
+    gltfStatus.value = false
+    currentModel.value = newMode
+
+    console.log(111111, newMode)
     remove()
     init(newMode)
   }
@@ -165,55 +185,103 @@ async function renderModel(obj) {
       console.log('模型', obj)
       if (!GLOBAL[key]) {
         const modal = await appStore.loadGLBModal(loader, gltf.url)
+        modal.modelId = gltf.id
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
-      const model = markRaw(GLOBAL[key]) // 定义当前模型
+      const tmp = markRaw(GLOBAL[key]) // 定义当前模型
       scene.add(GLOBAL[key].scene);
-
-      pageModels.push(model)
+      if (index = 0) {
+        model = tmp
+      }
+      pageModels.push(GLOBAL[key])
       // 可以对模型进行操作
       GLOBAL[key].scene.scale.set(gltf.scale, gltf.scale, gltf.scale);
       GLOBAL[key].scene.position.set(gltf.x, gltf.y, gltf.z);
     }
-  }
 
+    gltfStatus.value = true
+  }
+}
+
+function getModelById(id) {
+  return pageModels.find(item => item.modelId === id)
 }
 
 // 进入到内部
 function changeStatus(e) {
-  if (model) {
-    const value = inStatus.value
-    console.log(inStatus.value, e)
-    const outList = ['太阳能', '太阳能002', '厂房', , '厂房001']
-    for (let index = 0; index < outList.length; index++) {
-      const name = outList[index];
-      let obj
-      obj = getModal(model.scene, name)
-      obj && obj.traverse((child) => { child.visible = !value });
-      obj && (obj.visible = !value)
+  console.log(1111111, props.data )
+  if (props.data.id == 'Workshop') {
+
+    const model = getModelById('changfang1')
+    if (model) {
+      const value = inStatus.value
+      console.log(inStatus.value, e)
+      const outList = ['太阳能', '太阳能002', '厂房', , '厂房001']
+      for (let index = 0; index < outList.length; index++) {
+        const name = outList[index];
+        let obj
+        obj = getModal(model.scene, name)
+        obj && obj.traverse((child) => { child.visible = !value });
+        obj && (obj.visible = !value)
+      }
+
+      if (value) {
+        // 定位
+        const targetPos = new THREE.Vector3(90, 220, -10)
+        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
+
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        // 模型加载成功后触发
+        removeLine()
+        createLine()
+      } else {
+        // 定位
+        const targetPos = new THREE.Vector3(56, 500, -400)
+        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
+
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        removeLine()
+      }
+
     }
+  } else if (props.data.id == 'Workshop3') {
+    const model = getModelById('changfang3')
+    if (model) {
+      const value = inStatus.value
+      console.log(inStatus.value, e)
+      const outList = ['002', '002039', , 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036']
+      for (let index = 0; index < outList.length; index++) {
+        const name = outList[index];
+        let obj
+        obj = getModal(model.scene, name)
+        obj && obj.traverse((child) => { child.visible = !value });
+        obj && (obj.visible = !value)
+      }
 
-    if (value) {
-      // 定位
-      const targetPos = new THREE.Vector3(90, 220, -10)
-      const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
+      if (value) {
+        // 定位
+        const targetPos = new THREE.Vector3(-50, 305, 105)
+        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
 
-      // const focusPoint = 
-      flyTo(targetPos, targetLookAt)
-      // 模型加载成功后触发
-      removeLine()
-      createLine()
-    } else {
-      // 定位
-      const targetPos = new THREE.Vector3(56, 500, -400)
-      const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        // 模型加载成功后触发
+        removeLine()
+        createLine()
+      } else {
+        // 定位
+        const targetPos = new THREE.Vector3(10, 550, 1020)
+        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
 
-      // const focusPoint = 
-      flyTo(targetPos, targetLookAt)
-      removeLine()
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        removeLine()
+      }
+
     }
-
   }
 }
 
@@ -404,60 +472,31 @@ function create1() {
   // 3. 添加到场景
   scene.add(line);
 
-  return
-
-
-  // 1. 定义路径点 (比如从 A 点到 B 点到 C 点)
-
-  for (let index = 0; index < linePoints.length; index++) {
-    const tmpPoints = linePoints[index];
-
-    const points = tmpPoints.map(it => new THREE.Vector3(it.x, it.y, it.z))
-
-    // 2. 实例化流动线
-    const line = new FlowLine(points, {
-      color: 0xff0000,     // 青色流光
-      radius: 1.0,         // 管道粗细
-      speed: 3.0,          // 流动速度 (数值越大越快)
-      dashCount: 10,       // 流光的段数 (密度)
-      showBaseLine: false   // 是否显示底层管道
-    });
-
-
-    flowLines.push(line)
-
-    console.log(flowLines)
-
-    // 3. 添加到场景
-    scene.add(line);
-  }
-
-
 }
 
-const linePoints = reactive([
+let linePoints = reactive([
   {
     points: [
       {
-        x: 140,
-        y: -8,
-        z: 155
+        x: 205,
+        y: 6,
+        z: 190
       },
       {
-        x: 140,
-        y: 6,
-        z: 155
+        x: 205,
+        y: 50,
+        z: 190
       },
       {
-        x: 140,
-        y: 6,
-        z: 175
+        x: 245,
+        y: 50,
+        z: 165
       },
 
       {
-        x: 105,
-        y: 6,
-        z: 178
+        x: 295,
+        y: 50,
+        z: 240
       }
     ],
     name: 'line1'
@@ -466,25 +505,25 @@ const linePoints = reactive([
     points:
       [
         {
-          x: 190,
-          y: -8,
-          z: 155
+          x: 145,
+          y: 6,
+          z: 75
         },
         {
-          x: 190,
-          y: 6,
-          z: 155
+          x: 145,
+          y: 50,
+          z: 75
         },
         {
-          x: 190,
-          y: 6,
-          z: 170
+          x: 175,
+          y: 50,
+          z: 55
         },
 
         {
-          x: 150,
-          y: 6,
-          z: 173
+          x: 245,
+          y: 50,
+          z: 165
         }
       ],
     name: 'line2'
@@ -492,115 +531,283 @@ const linePoints = reactive([
   {
     points: [
       {
-        x: 243,
-        y: -8,
-        z: 145
+        x: 75,
+        y: 6,
+        z: -30
       },
       {
-        x: 243,
-        y: 6,
-        z: 145
+        x: 75,
+        y: 50,
+        z: -30
       },
       {
-        x: 245,
-        y: 6,
-        z: 165
+        x: 105,
+        y: 50,
+        z: -50
       },
 
       {
-        x: 200,
-        y: 6,
-        z: 170
+        x: 175,
+        y: 50,
+        z: 55
       }
     ],
     name: 'line3'
   },
 
-  {
-    points: [
-      {
-        x: 245,
-        y: 6,
-        z: 165
-      },
-
-      {
-        x: 265,
-        y: 6,
-        z: 163
-      }
-    ],
-    name: 'line31',
-    dashCount: 4
-  },
-  {
-    points: [
-      {
-        x: 128,
-        y: -8,
-        z: 130
-      },
-      {
-        x: 128,
-        y: 4,
-        z: 130
-      },
-      {
-        x: 125,
-        y: 4,
-        z: 110
-      },
-
-      {
-        x: 110,
-        y: 4,
-        z: 111.5
-      }
-    ],
-    name: 'line4',
-    dashCount: 8
-  },
-  {
-    points: [
-      {
-        x: 125,
-        y: 4,
-        z: 110
-      },
-
-      {
-        x: 160,
-        y: 4,
-        z: 106.5
-      }
-    ],
-    name: 'line41',
-    dashCount: 4
-  },
-  {
-    points: [{
-      x: 230,
-      y: -8,
-      z: 100
-    },
-    {
-      x: 230,
-      y: 4,
-      z: 100
-    },
-
-    {
-      x: 160,
-      y: 4,
-      z: 106.5
-    }],
-    name: 'line5'
-  },
 ])
 
 function createLine() {
 
   // 1. 定义路径点 (比如从 A 点到 B 点到 C 点)
+  // let linePoints
+  if (props.data.id == 'Workshop') {
+    linePoints = [
+      {
+        points: [
+          {
+            x: 140,
+            y: -8,
+            z: 155
+          },
+          {
+            x: 140,
+            y: 6,
+            z: 155
+          },
+          {
+            x: 140,
+            y: 6,
+            z: 175
+          },
+
+          {
+            x: 105,
+            y: 6,
+            z: 178
+          }
+        ],
+        name: 'line1'
+      },
+      {
+        points:
+          [
+            {
+              x: 190,
+              y: -8,
+              z: 155
+            },
+            {
+              x: 190,
+              y: 6,
+              z: 155
+            },
+            {
+              x: 190,
+              y: 6,
+              z: 170
+            },
+
+            {
+              x: 150,
+              y: 6,
+              z: 173
+            }
+          ],
+        name: 'line2'
+      },
+      {
+        points: [
+          {
+            x: 243,
+            y: -8,
+            z: 145
+          },
+          {
+            x: 243,
+            y: 6,
+            z: 145
+          },
+          {
+            x: 245,
+            y: 6,
+            z: 165
+          },
+
+          {
+            x: 200,
+            y: 6,
+            z: 170
+          }
+        ],
+        name: 'line3'
+      },
+
+      {
+        points: [
+          {
+            x: 245,
+            y: 6,
+            z: 165
+          },
+
+          {
+            x: 265,
+            y: 6,
+            z: 163
+          }
+        ],
+        name: 'line31',
+        dashCount: 4
+      },
+      {
+        points: [
+          {
+            x: 128,
+            y: -8,
+            z: 130
+          },
+          {
+            x: 128,
+            y: 4,
+            z: 130
+          },
+          {
+            x: 125,
+            y: 4,
+            z: 110
+          },
+
+          {
+            x: 110,
+            y: 4,
+            z: 111.5
+          }
+        ],
+        name: 'line4',
+        dashCount: 8
+      },
+      {
+        points: [
+          {
+            x: 125,
+            y: 4,
+            z: 110
+          },
+
+          {
+            x: 160,
+            y: 4,
+            z: 106.5
+          }
+        ],
+        name: 'line41',
+        dashCount: 4
+      },
+      {
+        points: [{
+          x: 230,
+          y: -8,
+          z: 100
+        },
+        {
+          x: 230,
+          y: 4,
+          z: 100
+        },
+
+        {
+          x: 160,
+          y: 4,
+          z: 106.5
+        }],
+        name: 'line5'
+      },
+    ]
+  } else if (props.data.id == 'Workshop3') {
+    linePoints =  [
+  {
+    points: [
+      {
+        x: 205,
+        y: 6,
+        z: 190
+      },
+      {
+        x: 205,
+        y: 50,
+        z: 190
+      },
+      {
+        x: 245,
+        y: 50,
+        z: 165
+      },
+
+      {
+        x: 295,
+        y: 50,
+        z: 240
+      }
+    ],
+    name: 'line1'
+  },
+  {
+    points:
+      [
+        {
+          x: 145,
+          y: 6,
+          z: 75
+        },
+        {
+          x: 145,
+          y: 50,
+          z: 75
+        },
+        {
+          x: 175,
+          y: 50,
+          z: 55
+        },
+
+        {
+          x: 245,
+          y: 50,
+          z: 165
+        }
+      ],
+    name: 'line2'
+  },
+  {
+    points: [
+      {
+        x: 75,
+        y: 6,
+        z: -30
+      },
+      {
+        x: 75,
+        y: 50,
+        z: -30
+      },
+      {
+        x: 105,
+        y: 50,
+        z: -50
+      },
+
+      {
+        x: 175,
+        y: 50,
+        z: 55
+      }
+    ],
+    name: 'line3'
+  },
+
+]
+  }
 
   for (let index = 0; index < linePoints.length; index++) {
     const lp = linePoints[index];
@@ -627,10 +834,6 @@ function createLine() {
 
 
 }
-
-
-
-
 
 
 // --- 4. 动画循环 ---

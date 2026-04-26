@@ -9,9 +9,8 @@
 import { reactive, ref, onMounted, onUnmounted, watch, getCurrentInstance } from 'vue'
 import ModelDebugger from './../ModelDebugger.vue'
 import ViewerEvents from '@/utils/ViewerEvents.js'
-// const instance = getCurrentInstance();
-// const viewer = instance.appContext.config.globalProperties.$viewer;
 import GLOBAL from '@/utils/GLOBAL.js'
+import ElectronicFence from '@/utils/ElectronicFence.js'
 const viewer = GLOBAL.viewer;
 
 
@@ -29,94 +28,73 @@ const props = defineProps({
         scale: 0.285,
         heading: 88,
         pitch: 0,
-        roll: 0
+        roll: 0,
+        lines: [
+          120.088662, 32.247261,  // 点1 (经度, 纬度)
+          120.088779, 32.246539,  // 点2
+          120.090681, 32.246755,  // 点3
+          120.090565, 32.247514,  // 点4
+          120.088662, 32.247261   // 闭合回点1
+        ]
       },
-      // {
-      //   url: "./static/glb/厂房23.glb",
-      //   name: "厂房2",
-      //   id: "厂房2",
-      //   lon: 120.0299,
-      //   lat: 32.2559,
-      //   height: 0,
-      //   scale: 0.7,
-      //   heading: 268,
-      //   pitch: 0,
-      //   roll: 0
-      // },
-      // {
-      //   url: "./static/glb/厂房3.glb",
-      //   name: "厂房3",
-      //   id: "厂房3",
-      //   lon: 120.08935,
-      //   lat: 32.24715,
-      //   height: 10,
-      //   scale: 0.285,
-      //   heading: 88,
-      //   pitch: 0,
-      //   roll: 0
-      // },
       {
-        url: "./static/glb/场景/监控农田.glb",
+        url: "./static/glb/泵站与农田设备(1).glb",
+        // url: "./static/glb/场景/监控农田.glb",
         label: "监控农田",
         id: "Farm",
-        lon: 120.0492,
-        lat: 32.2657,
+        lon: 120.0973,
+        lat: 32.2517,
         height: 0,
-        scale: 47.5,
-        heading: 88,
+        scale: 1.8,
+        heading: 89,
         pitch: 0,
-        roll: 0
+        roll: 0,
+        lines: [
+          120.096138, 32.252576,  // 点1 (经度, 纬度)
+          120.096274, 32.251585,  // 点2
+          120.098377, 32.251689,  // 点3
+          120.098396, 32.252478,  // 点4
+          120.096138, 32.252576   // 闭合回点1
+        ]
       },
-      // {
-      //   url: "./static/glb/水泵站.glb",
-      //   name: "水泵站",
-      //   id: "水泵站",
-      //   lon: 120.08935,
-      //   lat: 32.24715,
-      //   height: 10,
-      //   scale: 0.285,
-      //   heading: 88,
-      //   pitch: 0,
-      //   roll: 0
-      // },
-      // {
-      //   url: "./static/glb/厂房2.glb",
-      //   name: "仓库1",
-      //   id: "仓库1",
-      //   lon: 120.0298,
-      //   lat: 32.2558,
-      //   height: 0,
-      //   scale: 0.79,
-      //   heading: 253,
-      //   pitch: 0,
-      //   roll: 0
-      // },
       {
-        url: "./static/glb/厂房21.glb",
-        label: "厂房2",
-        id: "Workshop2",
-        lon: 120.02965,
-        lat: 32.255789,
+        url: "./static/glb/厂房3-无底图.glb",
+        name: "厂房3",
+        id: "厂房3",
+        lon: 120.0172,
+        lat: 32.2565,
         height: 0,
-        scale: 0.52,
+        scale: 0.088,
+        heading: 87,
+        pitch: 0,
+        roll: 0,
+        lines: [
+          120.017523, 32.256777,  // 点1 (经度, 纬度)
+          120.016665, 32.256261,  // 点2
+          120.017207, 32.255734,  // 点3
+          120.017947, 32.256303,  // 点4
+          120.017523, 32.256777   // 闭合回点1
+        ]
+      },
+      {
+        url: "./static/glb/仓库2.glb",
+        label: "仓库2",
+        id: "Workshop2",
+        lon: 120.0298,
+        lat: 32.2558,
+        height: 0,
+        scale: 0.6,
         heading: 255,
         pitch: 0,
-        roll: 0
-      },
-
-      
-      {
-        url: "./static/glb/场景/泵站.glb",
-        label: "农田",
-        id: "农田",
-        lon: 121.08935,
-        lat: 32.24715,
-        height: 0,
-        scale: 1,
-        heading: 88,
-        pitch: 0,
-        roll: 0
-      },
+        roll: 0,
+        lines: [
+          120.029499, 32.255953,  // 点1 (经度, 纬度)
+          120.029525, 32.255610,  // 点2
+          120.030050, 32.255715,  // 点3
+          120.030005, 32.256058,  // 点4
+          120.029499, 32.255953   // 闭合回点1
+        ]
+      }
     ]
   }
 })
@@ -143,63 +121,6 @@ onUnmounted(() => {
 })
 
 function init() {
-  const gltfs = [
-    {
-      url: "./static/glb/厂房1.glb",
-      name: "厂房1",
-      lon: 120.08935,
-      lat: 32.24715,
-      height: 10,
-      scale: 0.285,
-      heading: 88,
-      pitch: 0,
-      roll: 0
-    },
-    {
-      url: "./static/glb/厂房2.glb",
-      name: "厂房2",
-      lon: 120.08935,
-      lat: 32.24715,
-      height: 10,
-      scale: 0.285,
-      heading: 88,
-      pitch: 0,
-      roll: 0
-    },
-    {
-      url: "./static/glb/厂房3.glb",
-      name: "厂房3",
-      lon: 120.08935,
-      lat: 32.24715,
-      height: 10,
-      scale: 0.285,
-      heading: 88,
-      pitch: 0,
-      roll: 0
-    },
-    {
-      url: "./static/glb/农田.glb",
-      name: "农田",
-      lon: 120.08935,
-      lat: 32.24715,
-      height: 10,
-      scale: 0.285,
-      heading: 88,
-      pitch: 0,
-      roll: 0
-    },
-    {
-      url: "./static/glb/水泵站.glb",
-      name: "水泵站",
-      lon: 120.08935,
-      lat: 32.24715,
-      height: 10,
-      scale: 0.285,
-      heading: 88,
-      pitch: 0,
-      roll: 0
-    }
-  ]
   for (let index = 0; index < props.gltfs.length; index++) {
     const gltf = props.gltfs[index];
 
@@ -223,6 +144,16 @@ function renderGlb(gltf) {
 
   console.log(viewer)
   if (viewer) {
+       // 1. 扩散圆环控制
+    let radius = 0;
+    const maxRadius = 100; // 圆环最大扩散半径（米）
+    const scanSpeed = 5;   // 扩散速度
+
+    // 2. 中心点呼吸控制
+    let pointSize = 5;
+    let isGrowing = true;
+    const maxPointSize = 10;
+    const minPointSize = 5;
     const modelEntity = viewer.entities.add({
       name: gltf.id ?? 'model',
       position: Cesium.Cartesian3.fromDegrees(gltf.lon, gltf.lat, gltf.height),
@@ -252,11 +183,24 @@ function renderGlb(gltf) {
         pixelSize: 12,
         color: Cesium.Color.RED,
         outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 2
+        outlineWidth: 2,
       }
     });
     modelEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr)
-    modelEntity1.value = modelEntity
+    if (gltf.lines) {
+       const fence1 = ElectronicFence.create(viewer, {
+        positions: gltf.lines,
+        height: 30,                               // 高度 400 米
+        color: Cesium.Color.CYAN.withAlpha(0.6),   // 颜色：青色
+        duration: 1500,                            // 扫描动画周期（毫秒）
+        density: 60.0,                             // 立柱密度（越长/越大的多边形建议改大此值）
+        // bloom: true                                // 自动开启发光特效
+      });
+    }
+    if (gltf.id == 'Farm') {
+      modelEntity1.value = modelEntity
+     
+    }
     modelEntitys.value.push(modelEntity)
     // viewer.flyTo(modelEntity)
   }
