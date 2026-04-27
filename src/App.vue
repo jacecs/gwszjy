@@ -23,7 +23,7 @@
       </div>
       <div class="top-info">
 
-        <div class="info-pill">
+        <div class="info-pill" @click="toggleAllDrawers">
           <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
         </div>
         <!-- <div class="info-pill">
@@ -251,7 +251,7 @@ const menus = [
         },
         gltfs: [{
           id: "changfang1",
-          url: './static/glb/场景/厂房1.glb',
+          url: './static/glb/厂房1.glb',
           x: 0,
           y: 0,
           z: 0,
@@ -282,7 +282,7 @@ const menus = [
         },
         gltfs: [{
           id: "仓库",
-          url: './static/glb/场景/厂房1.glb',
+          url: './static/glb/厂房1.glb',
           x: 0,
           y: 0,
           z: 0,
@@ -993,8 +993,8 @@ body {
 .menu-icon {
   font-size: 14px;
 }
-</style>
-<style lang="less" scoped>
+
+
 .menu-group {
   position: relative;
   display: inline-block;

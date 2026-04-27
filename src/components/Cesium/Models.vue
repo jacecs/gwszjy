@@ -19,7 +19,7 @@ const props = defineProps({
     type: Array,
     default: () => [
       {
-        url: "./static/glb/场景/厂房1.glb",
+        url: "./static/glb/厂房1.glb",
         label: "厂房1",
         id: "Workshop",
         lon: 120.08935,
