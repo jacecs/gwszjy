@@ -235,9 +235,9 @@ const menus = [
           tz: -50,
         },
         camera: {
-            "lon": 120.09665,
-            "lat": 32.24846,
-            "height": 576.3,
+            "lon": 120.09738,
+            "lat": 32.24902,
+            "height": 422.6,
             "heading": 0,
             "pitch": -50,
             "roll": 0
@@ -266,12 +266,12 @@ const menus = [
           tz: 0,
         },
         camera: {
-          "lon": 120.09002,
-          "lat": 32.2522,
-          "height": 639.5,
-          "heading": 182,
-          "pitch": -46.9,
-          "roll": 0
+            "lon": 120.08971,
+            "lat": 32.24951,
+            "height": 304,
+            "heading": 182,
+            "pitch": -46.9,
+            "roll": 0
         }
       },
       {
@@ -297,12 +297,12 @@ const menus = [
           tz: 0,
         },
         camera: {
-          heading: 170.8,
-          height: 609.6,
-          lat: 32.2521,
-          lon: 120.08871,
-          pitch: -46.6,
-          roll: 0,
+            "lon": 120.08971,
+            "lat": 32.24951,
+            "height": 304,
+            "heading": 182,
+            "pitch": -46.9,
+            "roll": 0
         }
       }
     ]
@@ -367,11 +367,11 @@ const menus = [
           tz:-340
         },
         camera: {
-            "lon": 120.03035,
-            "lat": 32.25911,
-            "height": 216.3,
-            "heading": 185.4,
-            "pitch": -30.9,
+            "lon": 120.0299,
+            "lat": 32.25767,
+            "height": 123.8,
+            "heading": 182.7,
+            "pitch": -28.7,
             "roll": 0
         }
       }
@@ -437,14 +437,14 @@ const menus = [
           z: 1020,
         },
         camera: {
-            "lon": 120.01718,
-            "lat": 32.25422,
-            "height": 290.9,
-            "heading": 0,
-            "pitch": -50,
+            "lon": 120.01789,
+            "lat": 32.25442,
+            "height": 101.6,
+            "heading": 346.1,
+            "pitch": -23,
             "roll": 0
-        }
-      },
+        },
+      }
       // {
       //   id: 'Warehouse3', 
       //   name: '仓库3', 
@@ -634,10 +634,22 @@ function initThreeJS(status) {
 
 function cesiumClick(obj) {
   console.log('cesiumClick', obj)
+  // 定位
   if ( obj.type == 'model_click' ) {
     const id = obj.id
     const menu = getMenuObjById(id)
-    
+    const { camera } = menu
+    if (camera) {
+      GLOBAL.viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(camera.lon, camera.lat, camera.height),
+        orientation: {
+          heading: Cesium.Math.toRadians(camera.heading),
+          pitch: Cesium.Math.toRadians(camera.pitch),
+          roll: camera.roll
+        },
+        duration: 1
+      })
+    }
     // switchMode(id, menu)
   }
 }

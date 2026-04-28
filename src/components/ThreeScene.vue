@@ -14,7 +14,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { setThree } from '@/main.js'
+// import { setThree } from '@/main.js'
 import ThreeEvents from '@/utils/ThreeEvents.js'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import GLOBAL from '@/utils/GLOBAL.js'

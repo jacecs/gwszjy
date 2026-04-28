@@ -50,17 +50,17 @@ const props = defineProps({
         pitch: 0,
         roll: 0,
         lines: [
-          120.096138, 32.252576,  // 点1 (经度, 纬度)
+          120.096220, 32.252449,  // 点1 (经度, 纬度)
           120.096274, 32.251585,  // 点2
           120.098377, 32.251689,  // 点3
           120.098396, 32.252478,  // 点4
-          120.096138, 32.252576   // 闭合回点1
+          120.096220, 32.252449   // 闭合回点1
         ]
       },
       {
         url: "./static/glb/厂房3-无底图.glb",
         name: "厂房3",
-        id: "厂房3",
+        id: "Workshop3",
         lon: 120.0172,
         lat: 32.2565,
         height: 0,
@@ -79,7 +79,7 @@ const props = defineProps({
       {
         url: "./static/glb/仓库2.glb",
         label: "仓库2",
-        id: "Workshop2",
+        id: "Warehouse2",
         lon: 120.0298,
         lat: 32.2558,
         height: 0,
@@ -172,8 +172,7 @@ function renderGlb(gltf) {
         outlineWidth: 2, // 描边宽度
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM, // 垂直对齐方式：底部对齐到位置点
         horizontalOrigin: Cesium.HorizontalOrigin.CENTER, // 水平对齐方式：居中
-        pixelOffset: new Cesium.Cartesian2(0, -10), // 像素偏移，向上微调
-       
+        pixelOffset: new Cesium.Cartesian2(0, -15), // 像素偏移，向上微调
         disableDepthTestDistance: Number.POSITIVE_INFINITY, // 始终显示在最上层，不被地形遮挡
         showBackground: false, // 是否显示背景框
         backgroundColor: Cesium.Color.fromCssColorString('rgba(0, 0, 0, 0.6)'),
@@ -184,6 +183,7 @@ function renderGlb(gltf) {
         color: Cesium.Color.RED,
         outlineColor: Cesium.Color.WHITE,
         outlineWidth: 2,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
       }
     });
     modelEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr)
