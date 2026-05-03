@@ -186,6 +186,7 @@ async function renderModel(obj) {
       if (!GLOBAL[key]) {
         const modal = await appStore.loadGLBModal(loader, gltf.url)
         modal.modelId = gltf.id
+        modal.modelUrl = key
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
@@ -204,8 +205,8 @@ async function renderModel(obj) {
   }
 }
 
-function getModelById(id) {
-  return pageModels.find(item => item.modelId === id)
+function getModelById(id, key='modelId') {
+  return pageModels.find(item => item[key] === id)
 }
 
 // 进入到内部
@@ -213,7 +214,7 @@ function changeStatus(e) {
   console.log(1111111, props.data )
   if (props.data.id == 'Workshop') {
 
-    const model = getModelById('changfang1')
+    const model = getModelById('./static/glb/厂房1.glb', 'modelUrl')
     if (model) {
       const value = inStatus.value
       console.log(inStatus.value, e)

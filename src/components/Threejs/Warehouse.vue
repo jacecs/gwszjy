@@ -127,7 +127,7 @@ function remove() {
   if (pageModels && pageModels.length) {
     for (let index = 0; index < pageModels.length; index++) {
       const model = pageModels[index];
-      
+
       const modelScene = model.scene;
 
       if (modelScene) {
@@ -152,29 +152,6 @@ function remove() {
 
   pageModels = markRaw([])
 
-
-  if (model) {
-    const modelScene = model.scene;
-
-    if (modelScene) {
-      scene.remove(modelScene);
-
-      // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
-      modelScene.traverse((object) => {
-        if (object.geometry) {
-          object.geometry.dispose();
-        }
-        if (object.material) {
-          if (Array.isArray(object.material)) {
-            object.material.forEach(material => material.dispose());
-          } else {
-            object.material.dispose();
-          }
-        }
-      });
-    }
-    model = null;
-  }
 }
 
 function onClick(item) {
@@ -188,8 +165,8 @@ function init(obj) {
   renderModel(obj)
 }
 function centerAt(camera) {
-  const { x, y, z, tx=0, ty=0, tz=0 } = camera ?? {x: 56, y: 500, z: -400, tx: 0, ty: 0, tz: 0}
-   // 定位
+  const { x, y, z, tx = 0, ty = 0, tz = 0 } = camera ?? { x: 56, y: 500, z: -400, tx: 0, ty: 0, tz: 0 }
+  // 定位
   const cameraPos = new THREE.Vector3(x, y, z)
   const lookAt = new THREE.Vector3(tx, ty, tz)
   flyToSmoothly(cameraPos, lookAt)
@@ -206,6 +183,7 @@ async function renderModel(obj) {
       if (!GLOBAL[key]) {
         const modal = await appStore.loadGLBModal(loader, gltf.url)
         modal.modelId = gltf.id
+        modal.modelUrl = key
         GLOBAL[key] = modal
         console.log('模型加载成功', modal)
       }
@@ -226,24 +204,79 @@ function getModelById(id) {
 
 
 // 进入到内部
-function changeStatus(value) {
-  if (model) {
-    const list = model.scene.children
-    const outList = ['太阳能']
-    for (let index = 0; index < outList.length; index++) {
-      const name = outList[index];
-      let obj
-      obj = getModal(model.scene, name)
-      obj && obj.traverse((child) => { child.visible = !value });
-      obj && (obj.visible = !value)
+function changeStatus(e) {
+  console.log(1111111, props.data)
+  if (props.data.id == 'Workshop') {
+
+    const model = getModelById('./static/glb/厂房1.glb', 'modelUrl')
+    if (model) {
+      const value = inStatus.value
+      console.log(inStatus.value, e)
+      const outList = ['太阳能', '太阳能002', '厂房', , '厂房001']
+      for (let index = 0; index < outList.length; index++) {
+        const name = outList[index];
+        let obj
+        obj = getModal(model.scene, name)
+        obj && obj.traverse((child) => { child.visible = !value });
+        obj && (obj.visible = !value)
+      }
+
+      if (value) {
+        // 定位
+        const targetPos = new THREE.Vector3(90, 220, -10)
+        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
+
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        // 模型加载成功后触发
+        removeLine()
+        createLine()
+      } else {
+        // 定位
+        const targetPos = new THREE.Vector3(56, 500, -400)
+        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
+
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        removeLine()
+      }
+
     }
-    // 定位
-    const targetPos = new THREE.Vector3(90, 220, -10)
-    const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
+  } else if (props.data.id == 'Workshop3') {
+    const model = getModelById('changfang3')
+    if (model) {
+      const value = inStatus.value
+      console.log(inStatus.value, e)
+      const outList = ['002', '002039', , 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036']
+      for (let index = 0; index < outList.length; index++) {
+        const name = outList[index];
+        let obj
+        obj = getModal(model.scene, name)
+        obj && obj.traverse((child) => { child.visible = !value });
+        obj && (obj.visible = !value)
+      }
 
-    // const focusPoint = 
-    flyTo(targetPos, targetLookAt)
+      if (value) {
+        // 定位
+        const targetPos = new THREE.Vector3(-50, 305, 105)
+        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
 
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        // 模型加载成功后触发
+        removeLine()
+        createLine()
+      } else {
+        // 定位
+        const targetPos = new THREE.Vector3(10, 550, 1020)
+        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
+
+        // const focusPoint = 
+        flyTo(targetPos, targetLookAt)
+        removeLine()
+      }
+
+    }
   }
 }
 
@@ -265,24 +298,6 @@ function getModal(obj, name) {
   return tmp
 }
 
-function ctrlAnimation() {
-  if (model && model.scene) {
-    model.animations.forEach((clip, index) => {
-      const name = clip.name
-      if (name == '高温区机器人' || name == '低温区机器人') {
-        const bone = model.scene.getObjectByName(name)
-        if (bone) {
-          const mixer = new THREE.AnimationMixer(bone)
-          mixer.clipAction(clip).play()
-          mixers.push(mixer)
-        }
-      } else {
-        const action = this.modalMixer.clipAction(clip);
-        action.play();
-      }
-    });
-  }
-}
 async function showTooltip(model, point) {
   if (label) {
     label.removeFromParent()
@@ -644,7 +659,7 @@ function createLine() {
       color: 0xff0000,     // 青色流光
       radius: 1.0,         // 管道粗细
       speed: 3.0,          // 流动速度 (数值越大越快)
-      dashCount: lp.dashCount ??  10,       // 流光的段数 (密度)
+      dashCount: lp.dashCount ?? 10,       // 流光的段数 (密度)
       showBaseLine: false   // 是否显示底层管道
     });
 

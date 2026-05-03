@@ -61,6 +61,7 @@
         <DevicePanel title="⚙️ 气象监测" :devices="devices" />
         <DataPanel title="📊 墒情数据" :data="productionData" />
         <DataPanel title="📊 虫情监测" :data="productionData1" />
+        <DataVideo title="📊 视频监控" />
       </aside>
 
       <!-- 右侧抽屉开关 -->
@@ -150,6 +151,7 @@ const appStore = useAppStore();
 import CesiumMap from './components/CesiumMap.vue'
 import ThreeScene from './components/ThreeScene.vue'
 import DataPanel from './components/DataPanel.vue'
+import DataVideo from './components/DataVideo.vue'
 import DevicePanel from './components/DevicePanel.vue'
 import SceneHeader from './components/SceneHeader.vue'
 import BubblePopup from './components/BubblePopup.vue'
@@ -205,7 +207,7 @@ const menus = [
       "heading": 0,
       "pitch": -50,
       "roll": 0
-  }
+    }
   },
   {
     id: 'nongtian1', name: '农场1', icon: '🌱',
@@ -235,12 +237,12 @@ const menus = [
           tz: -50,
         },
         camera: {
-            "lon": 120.09738,
-            "lat": 32.24902,
-            "height": 422.6,
-            "heading": 0,
-            "pitch": -50,
-            "roll": 0
+          "lon": 120.09738,
+          "lat": 32.24902,
+          "height": 422.6,
+          "heading": 0,
+          "pitch": -50,
+          "roll": 0
         }
       },
       {
@@ -266,12 +268,12 @@ const menus = [
           tz: 0,
         },
         camera: {
-            "lon": 120.08971,
-            "lat": 32.24951,
-            "height": 304,
-            "heading": 182,
-            "pitch": -46.9,
-            "roll": 0
+          "lon": 120.08971,
+          "lat": 32.24951,
+          "height": 304,
+          "heading": 182,
+          "pitch": -46.9,
+          "roll": 0
         }
       },
       {
@@ -297,12 +299,12 @@ const menus = [
           tz: 0,
         },
         camera: {
-            "lon": 120.08971,
-            "lat": 32.24951,
-            "height": 304,
-            "heading": 182,
-            "pitch": -46.9,
-            "roll": 0
+          "lon": 120.08971,
+          "lat": 32.24951,
+          "height": 304,
+          "heading": 182,
+          "pitch": -46.9,
+          "roll": 0
         }
       }
     ]
@@ -327,7 +329,7 @@ const menus = [
             z: 0,
             scale: 20
           },
-        
+
 
         ],
         threeCamera: {
@@ -363,16 +365,16 @@ const menus = [
           y: 140,
           z: -52,
           tx: 60,
-          ty:21,
-          tz:-340
+          ty: 21,
+          tz: -340
         },
         camera: {
-            "lon": 120.0299,
-            "lat": 32.25767,
-            "height": 123.8,
-            "heading": 182.7,
-            "pitch": -28.7,
-            "roll": 0
+          "lon": 120.0299,
+          "lat": 32.25767,
+          "height": 123.8,
+          "heading": 182.7,
+          "pitch": -28.7,
+          "roll": 0
         }
       }
     ]
@@ -437,12 +439,12 @@ const menus = [
           z: 1020,
         },
         camera: {
-            "lon": 120.01789,
-            "lat": 32.25442,
-            "height": 101.6,
-            "heading": 346.1,
-            "pitch": -23,
-            "roll": 0
+          "lon": 120.01789,
+          "lat": 32.25442,
+          "height": 101.6,
+          "heading": 346.1,
+          "pitch": -23,
+          "roll": 0
         },
       }
       // {
@@ -483,9 +485,89 @@ const currentLocation = ref('泰兴市新街镇叶垛家利')
 const currentCoords = ref('32.18°N, 120.07°E')
 
 const envData = reactive([
-  { label: '温度', value: '16.75', unit: '°C', status: '正常', chart: [15, 16, 16.4, 16.2, 15, 15.5, 15.4] },
-  { label: '空气湿度', value: '68', unit: '%', status: '正常', chart: [55, 60, 58, 65, 70, 68, 72] },
-  { label: '光照强度', value: '83909', unit: 'lux', status: '充足', chart: [90, 85, 92, 88, 95, 91, 93] }
+  {
+    label: '温度', value: '16.75', unit: '°C', status: '正常', chart: [
+      {
+        time:  '2026-04-30',
+        value: 16.15
+      },
+      {
+        time: '2026-05-01',
+        value: 16.55
+      },
+      {
+        time: '2026-05-02',
+        value: 16.45
+      },
+      {
+        time: '2026-05-03',
+        value: 16.5
+      },
+      {
+        time: '2026-05-04',
+        value: 16.35
+      },
+      {
+        time: '2026-05-05',
+        value: 16.5
+      },
+    ]
+  },
+  { label: '空气湿度', value: '68', unit: '%', status: '正常', chart:
+   [
+      {
+        time:  '2026-04-30',
+        value:55
+      },
+      {
+        time: '2026-05-01',
+        value:60
+      },
+      {
+        time: '2026-05-02',
+        value: 58
+      },
+      {
+        time: '2026-05-03',
+        value: 65
+      },
+      {
+        time: '2026-05-04',
+        value: 70
+      },
+      {
+        time: '2026-05-05',
+        value: 68
+      },
+    ] },
+  { label: '光照强度', value: '83909', unit: 'lux', status: '充足', chart: 
+   [
+      {
+        time:  '2026-04-30',
+        value:90
+      },
+      {
+        time: '2026-05-01',
+        value:85
+      },
+      {
+        time: '2026-05-02',
+        value: 92
+      },
+      {
+        time: '2026-05-03',
+        value: 88
+      },
+      {
+        time: '2026-05-04',
+        value: 95
+      },
+      {
+        time: '2026-05-05',
+        value: 91
+      },
+    ]
+ }
 ])
 
 const soilData = reactive([
@@ -517,7 +599,7 @@ const productionData1 = reactive([
 
 function switchMode(mode, obj) {
   if (obj.children && obj.children.length) {
-    return 
+    return
   }
 
   currentMode.value = mode
@@ -635,7 +717,7 @@ function initThreeJS(status) {
 function cesiumClick(obj) {
   console.log('cesiumClick', obj)
   // 定位
-  if ( obj.type == 'model_click' ) {
+  if (obj.type == 'model_click') {
     const id = obj.id
     const menu = getMenuObjById(id)
     const { camera } = menu
@@ -786,6 +868,7 @@ body {
   padding: 5px 10px;
   font-size: 11px;
   color: var(--dark-green);
+  cursor: pointer;
 }
 .status-dot {
   width: 6px;
@@ -837,6 +920,25 @@ body {
   overflow-y: auto;
   z-index: 50;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 基础透明度 */
+  background-color: rgba(255, 255, 255, 0.1);
+
+  /* 添加毛玻璃效果 */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Safari兼容 */
+
+  /* 边框光晕效果 */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+
+  /* 渐变背景增强晶莹感 */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
 }
 
 .left-drawer {
@@ -1005,7 +1107,6 @@ body {
 .menu-icon {
   font-size: 14px;
 }
-
 
 .menu-group {
   position: relative;
