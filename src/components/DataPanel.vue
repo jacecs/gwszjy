@@ -13,18 +13,20 @@
         {{ item.value }}<span class="data-unit">{{ item.unit }}</span>
       </div>
       <div v-if="item.chart" class="data-chart">
-        <div 
+        <Echart :data="item.chart" ></Echart>
+        <!-- <div 
           v-for="(h, i) in item.chart" 
           :key="i" 
           class="chart-bar" 
           :style="{ height: h + '%' }"
-        ></div>
+        ></div> -->
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import Echart from './COMS/Echart.vue'
 defineProps({
   title: String,
   data: Array
@@ -120,11 +122,11 @@ function getStatusClass(status) {
 }
 
 .data-chart {
-  height: 36px;
-  margin-top: 10px;
+  height: 100px;
+  /* margin-top: 10px;
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 3px; */
 }
 
 .chart-bar {

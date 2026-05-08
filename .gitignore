@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+public/static/glb/*
+
+src/assets/glb/glb/*
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

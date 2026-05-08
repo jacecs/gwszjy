@@ -17,7 +17,8 @@ import { computed } from 'vue'
 const props = defineProps({
   mode: String,
   location: String,
-  coords: String
+  coords: String,
+  label: String
 })
 
 const modeText = computed(() => {

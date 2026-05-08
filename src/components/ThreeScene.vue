@@ -1,13 +1,26 @@
 <template>
   <div class="three-wrapper" ref="wrapperRef">
     <div class="three-container" ref="container"></div>
+
+    <div class="gltf-loading" v-if="glbLoading">
+      <span>正在加载模型<span id="js-loading-progress">{{progress}}</span>%,请稍等...</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, shallowRef, markRaw } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+// import { setThree } from '@/main.js'
+import ThreeEvents from '@/utils/ThreeEvents.js'
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import GLOBAL from '@/utils/GLOBAL.js'
+import TWEEN from '@tweenjs/tween.js';
+import { useAppStore } from '@/store/modules/app';
+const appStore = useAppStore();
 
 const props = defineProps({
   currentMode: {
@@ -16,12 +29,16 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['popup', 'flyToBuilding'])
+const emit = defineEmits(['popup', 'flyToBuilding', 'initSuccess', 'threeReady'])
 
 const wrapperRef = ref(null)
 const container = ref(null)
 
-let scene, camera, renderer, controls, animationId
+const progress = ref(0)
+const glbLoading = ref(false)
+
+
+let scene, camera, renderer, controls, animationId, labelRenderer
 let raycaster, mouse
 
 // Mode-specific objects
@@ -34,38 +51,30 @@ let groundMesh = null
 // Animation state
 let particleAngle = 0
 
-const PARTICLE_COUNT = 800
-const PARTICLE_COLOR = 0x00FF88
-const FENCE_RADIUS = 120 // ~20亩的围栏半径
-
-// 7个试验田数据
-const testfieldData = [
-  { id: 1, moisture: 45, temp: 25, ph: 6.8, label: '试验区 1' },
-  { id: 2, moisture: 52, temp: 24, ph: 6.5, label: '试验区 2' },
-  { id: 3, moisture: 38, temp: 26, ph: 7.2, label: '试验区 3' },
-  { id: 4, moisture: 61, temp: 23, ph: 6.3, label: '试验区 4' },
-  { id: 5, moisture: 44, temp: 25, ph: 6.9, label: '试验区 5' },
-  { id: 6, moisture: 57, temp: 24, ph: 6.6, label: '试验区 6' },
-  { id: 7, moisture: 41, temp: 27, ph: 7.0, label: '试验区 7' }
-]
+watch(() => appStore.LoadingProgress, (newValue) => {
+  progress.value = newValue
+})
+watch(() => appStore.GlbLoading, (newValue) => {
+  glbLoading.value = newValue
+})
 
 async function initThree() {
-  scene = new THREE.Scene()
+  scene = markRaw(new THREE.Scene())
   scene.background = null
 
-  camera = new THREE.PerspectiveCamera(60, container.value.clientWidth / container.value.clientHeight, 0.1, 500000)
+  camera = markRaw(new THREE.PerspectiveCamera(60, container.value.clientWidth / container.value.clientHeight, 0.1, 500000))
   camera.position.set(0, 300, 400)
   camera.lookAt(0, 0, 0)
 
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+  renderer = markRaw(new THREE.WebGLRenderer({ antialias: true, alpha: true }))
   renderer.setSize(container.value.clientWidth, container.value.clientHeight)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   container.value.appendChild(renderer.domElement)
 
-  raycaster = new THREE.Raycaster()
-  mouse = new THREE.Vector2()
+  raycaster = markRaw(new THREE.Raycaster())
+  mouse = markRaw(new THREE.Vector2())
 
-  controls = new OrbitControls(camera, renderer.domElement)
+  controls = markRaw(new OrbitControls(camera, renderer.domElement))
   controls.enableRotate = true
   controls.rotateSpeed = 0.4
   controls.enablePan = true
@@ -88,293 +97,157 @@ async function initThree() {
   dirLight.position.set(100, 200, 100)
   scene.add(dirLight)
 
-  const dirLight2 = new THREE.DirectionalLight(0x88ffcc, 0.3)
-  dirLight2.position.set(-50, 100, -50)
-  scene.add(dirLight2)
+  // const dirLight2 = new THREE.DirectionalLight(0x88ffcc, 0.3)
+  // dirLight2.position.set(-50, 100, -50)
+  // scene.add(dirLight2)
+  initLight(scene)
 
   window.addEventListener('resize', onResize)
   renderer.domElement.addEventListener('click', onMouseClick)
 
+
+
+  // 1. 初始化 CSS2DRenderer
+  labelRenderer = markRaw(new CSS2DRenderer())
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.domElement.style.position = 'absolute';
+  labelRenderer.domElement.style.top = '0px';
+  labelRenderer.domElement.style.pointerEvents = 'none'; // 让鼠标事件穿透，不影响 Three.js 点击
+  labelRenderer.domElement.style.zIndex = 99; // 让鼠标事件穿透，不影响 Three.js 点击
+  document.body.appendChild(labelRenderer.domElement);
+  initSky(scene)
   animate()
 
   // Initialize with overview mode
-  switchMode(props.currentMode)
-
+  // switchMode(props.currentMode)
+  
   console.log('✅ ThreeScene initialized, mode:', props.currentMode)
+  const three = markRaw({
+    scene,
+    camera,
+    renderer,
+    controls,
+    raycaster,
+    mouse
+  })
+  ThreeEvents.init(three)
+  // setThree(three)
+  GLOBAL.three = three
+  emit('initSuccess', true)
 }
 
-function clearAllObjects() {
-  if (particleFence) {
-    scene.remove(particleFence)
-    particleFence.geometry.dispose()
-    particleFence.material.dispose()
-    particleFence = null
-  }
 
-  testfieldObjects.forEach(obj => {
-    scene.remove(obj.mesh)
-    obj.mesh.geometry.dispose()
-    obj.mesh.material.dispose()
-  })
-  testfieldObjects = []
-
-  workshopBuildings.forEach(obj => {
-    scene.remove(obj.mesh)
-    obj.mesh.geometry.dispose()
-    obj.mesh.material.dispose()
-  })
-  workshopBuildings = []
-
-  warehouseBuildings.forEach(obj => {
-    scene.remove(obj.mesh)
-    obj.mesh.geometry.dispose()
-    obj.mesh.material.dispose()
-  })
-  warehouseBuildings = []
-
-  if (groundMesh) {
-    scene.remove(groundMesh)
-    groundMesh.geometry.dispose()
-    groundMesh.material.dispose()
-    groundMesh = null
-  }
+// 天空图
+function initSky  (scene) {
+    // 1. 加载天空盒纹理
+  const loader = new THREE.CubeTextureLoader();
+  const texture = loader.load([
+      './static/img/sky/sky.right.jpg',   // 右侧
+      './static/img/sky/sky.left.jpg',    // 左侧
+      './static/img/sky/sky.top.jpg',     // 顶部
+      './static/img/sky/sky.bottom.jpg',  // 底部
+      './static/img/sky/sky.front.jpg',   // 前面
+      './static/img/sky/sky.back.jpg'     // 后面
+  ]);
+  scene.background = texture;
 }
 
-function switchMode(mode) {
-  clearAllObjects()
+// 增加光源
+function initLight (scene) {
 
-  switch (mode) {
-    case 'overview':
-      createParticleFence()
-      resetCameraOverview()
-      break
-    case 'testfield':
-      createTestfield()
-      resetCameraTestfield()
-      break
-    case 'workshop':
-      createWorkshop()
-      resetCameraWorkshop()
-      break
-    case 'warehouse':
-      createWarehouse()
-      resetCameraWarehouse()
-      break
-  }
+  // // --- 原有光照 ---
+  // const ambientLight = new THREE.AmbientLight(0xffffff, 0.6) // 稍微降低环境光，让方向光更明显
+  // scene.add(ambientLight)
+
+  // // --- 新增：四周光源布局 ---
+  
+  // // 1. 主光源 (模拟太阳，右上方)
+  // const mainDirLight = new THREE.DirectionalLight(0xffffff, 1.0)
+  // mainDirLight.position.set(100, 200, 100)
+  // mainDirLight.castShadow = true // 如果后续需要阴影，可开启
+  // scene.add(mainDirLight)
+
+  // // 2. 补光 1 (左侧，平衡右侧阴影)
+  // const leftLight = new THREE.DirectionalLight(0xffffff, 0.5)
+  // leftLight.position.set(-100, 100, 0)
+  // scene.add(leftLight)
+
+  // // 3. 补光 2 (后方，照亮背面)
+  // const backLight = new THREE.DirectionalLight(0xffffff, 0.4)
+  // backLight.position.set(0, 100, -100)
+  // scene.add(backLight)
+
+  // // 4. 顶部柔光 (模拟天光，减少顶部死黑)
+  // const topLight = new THREE.DirectionalLight(0xffffff, 0.3)
+  // topLight.position.set(0, 300, 0)
+  // scene.add(topLight)
+    // 1. 环境光：基础保底亮度，提高强度
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7) // 从 0.6 提升到 1.2
+  scene.add(ambientLight)
+
+  // 2. 半球光：模拟天空散射光，让背光面不再死黑（非常有效）
+  // 参数：天空颜色, 地面颜色, 强度
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7)
+  hemiLight.position.set(0, 200, 0)
+  scene.add(hemiLight)
+
+  // 3. 主方向光：模拟太阳，大幅增强强度
+  const mainDirLight = new THREE.DirectionalLight(0xffffff, 0.7) // 从 1.0 提升到 2.5
+  mainDirLight.position.set(100, 200, 100)
+  mainDirLight.castShadow = false // 暂时关闭阴影以提升性能且避免阴影过黑
+  scene.add(mainDirLight)
+
+  // 4. 补光：照亮侧面和背面
+  const leftLight = new THREE.DirectionalLight(0xffffff, 0.7)
+  leftLight.position.set(-100, 100, 0)
+  scene.add(leftLight)
+
+  const backLight = new THREE.DirectionalLight(0xffffff, 0.7)
+  backLight.position.set(0, 100, -100)
+  scene.add(backLight)
 }
 
-function createParticleFence() {
-  const positions = new Float32Array(PARTICLE_COUNT * 3)
-  const colors = new Float32Array(PARTICLE_COUNT * 3)
 
-  const color = new THREE.Color(PARTICLE_COLOR)
+const loader = new GLTFLoader();
+// 创建Draco加载器实例
+const dracoLoader = new DRACOLoader();
+// 设置Draco解码器路径（本地或CDN）
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+// 或者使用本地路径
+// dracoLoader.setDecoderPath('./draco/');
 
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const angle = (i / PARTICLE_COUNT) * Math.PI * 2
-    const radiusVariation = FENCE_RADIUS + (Math.random() - 0.5) * 20
-    const height = 20 + Math.random() * 40
+// 将Draco加载器添加到GLTF加载器
+loader.setDRACOLoader(dracoLoader);
+function renderGLB() {
+  // 创建 GLTF 加载器
 
-    positions[i * 3] = Math.cos(angle) * radiusVariation
-    positions[i * 3 + 1] = height
-    positions[i * 3 + 2] = Math.sin(angle) * radiusVariation
+  // 加载 GLB 模型
+  loader.load(
+    './static/glb/厂房1.glb', // 模型路径
 
-    const brightness = 0.6 + Math.random() * 0.4
-    colors[i * 3] = color.r * brightness
-    colors[i * 3 + 1] = color.g * brightness
-    colors[i * 3 + 2] = color.b * brightness
-  }
+    // 成功回调函数
+    function (gltf) {
+      // gltf.scene 包含模型的完整场景图
+      scene.add(gltf.scene);
 
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      // 可以对模型进行操作
+      gltf.scene.scale.set(1, 1, 1);
+      gltf.scene.position.set(0, 0, 1000);
 
-  const material = new THREE.PointsMaterial({
-    size: 3,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.9,
-    sizeAttenuation: true,
-    blending: THREE.AdditiveBlending
-  })
+    },
 
-  particleFence = new THREE.Points(geometry, material)
-  scene.add(particleFence)
+    // 加载进度回调（可选）
+    function (xhr) {
+      console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    },
 
-  // Add ground glow ring
-  const ringGeo = new THREE.RingGeometry(FENCE_RADIUS - 5, FENCE_RADIUS + 5, 64)
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: PARTICLE_COLOR,
-    transparent: true,
-    opacity: 0.15,
-    side: THREE.DoubleSide
-  })
-  const ring = new THREE.Mesh(ringGeo, ringMat)
-  ring.rotation.x = -Math.PI / 2
-  ring.position.y = 0.5
-  scene.add(ring)
-
-  // Add center marker
-  const centerGeo = new THREE.CylinderGeometry(5, 5, 1, 32)
-  const centerMat = new THREE.MeshBasicMaterial({
-    color: PARTICLE_COLOR,
-    transparent: true,
-    opacity: 0.3
-  })
-  const centerMarker = new THREE.Mesh(centerGeo, centerMat)
-  centerMarker.position.y = 0.5
-  scene.add(centerMarker)
-}
-
-function createTestfield() {
-  // Green ground plane
-  const groundGeo = new THREE.PlaneGeometry(400, 400, 20, 20)
-  const groundMat = new THREE.MeshLambertMaterial({
-    color: 0x1a4d2e,
-    transparent: true,
-    opacity: 0.95
-  })
-  groundMesh = new THREE.Mesh(groundGeo, groundMat)
-  groundMesh.rotation.x = -Math.PI / 2
-  groundMesh.position.y = 0
-  scene.add(groundMesh)
-
-  // Add grid lines on ground
-  const gridHelper = new THREE.GridHelper(400, 40, 0x00aa44, 0x003322)
-  gridHelper.position.y = 0.2
-  scene.add(gridHelper)
-
-  // 7 white film boxes scattered across the field
-  const filmPositions = [
-    { x: -80, z: -60 },
-    { x: -30, z: -70 },
-    { x: 20, z: -40 },
-    { x: -50, z: 10 },
-    { x: 10, z: 20 },
-    { x: 60, z: -10 },
-    { x: 40, z: 60 }
-  ]
-
-  filmPositions.forEach((pos, idx) => {
-    const data = testfieldData[idx]
-    const geo = new THREE.BoxGeometry(16, 0.5, 12)
-    const mat = new THREE.MeshLambertMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.7,
-      emissive: 0x004422,
-      emissiveIntensity: 0.1
-    })
-    const mesh = new THREE.Mesh(geo, mat)
-    mesh.position.set(pos.x, 0.05, pos.z)
-    mesh.userData = {
-      type: 'testfield',
-      data: data,
-      idx: idx
+    // 错误回调（可选）
+    function (error) {
+      console.error('An error happened:', error);
     }
-    scene.add(mesh)
-    testfieldObjects.push({ mesh, data })
-
-    // Add subtle border glow
-    const edgeGeo = new THREE.EdgesGeometry(geo)
-    const edgeMat = new THREE.LineBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.5 })
-    const edges = new THREE.LineSegments(edgeGeo, edgeMat)
-    mesh.add(edges)
-  })
+  );
 }
 
-function createWorkshop() {
-  // Concrete ground
-  const groundGeo = new THREE.PlaneGeometry(300, 300)
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x3a3a3a })
-  groundMesh = new THREE.Mesh(groundGeo, groundMat)
-  groundMesh.rotation.x = -Math.PI / 2
-  scene.add(groundMesh)
-
-  // Grid
-  const grid = new THREE.GridHelper(300, 30, 0x555555, 0x333333)
-  grid.position.y = 0.1
-  scene.add(grid)
-
-  // Building 1
-  const b1Geo = new THREE.BoxGeometry(40, 25, 60)
-  const b1Mat = new THREE.MeshLambertMaterial({ color: 0xcccccc, transparent: true, opacity: 0.85 })
-  const b1 = new THREE.Mesh(b1Geo, b1Mat)
-  b1.position.set(-30, 12.5, 0)
-  b1.userData = { type: 'workshop', buildingId: 1, name: '烘干车间 A' }
-  scene.add(b1)
-  workshopBuildings.push(b1)
-
-  const b1Edge = new THREE.LineSegments(
-    new THREE.EdgesGeometry(b1Geo),
-    new THREE.LineBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.4 })
-  )
-  b1.add(b1Edge)
-
-  // Building 2
-  const b2Geo = new THREE.BoxGeometry(35, 22, 55)
-  const b2Mat = new THREE.MeshLambertMaterial({ color: 0xdddddd, transparent: true, opacity: 0.85 })
-  const b2 = new THREE.Mesh(b2Geo, b2Mat)
-  b2.position.set(30, 11, 0)
-  b2.userData = { type: 'workshop', buildingId: 2, name: '烘干车间 B' }
-  scene.add(b2)
-  workshopBuildings.push(b2)
-
-  const b2Edge = new THREE.LineSegments(
-    new THREE.EdgesGeometry(b2Geo),
-    new THREE.LineBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.4 })
-  )
-  b2.add(b2Edge)
-
-  // Ground labels
-  addBuildingLabel('烘干车间 A', -30, 0, 0)
-  addBuildingLabel('烘干车间 B', 30, 0, 0)
-}
-
-function createWarehouse() {
-  // Concrete ground
-  const groundGeo = new THREE.PlaneGeometry(300, 300)
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x3a3a3a })
-  groundMesh = new THREE.Mesh(groundGeo, groundMat)
-  groundMesh.rotation.x = -Math.PI / 2
-  scene.add(groundMesh)
-
-  const grid = new THREE.GridHelper(300, 30, 0x555555, 0x333333)
-  grid.position.y = 0.1
-  scene.add(grid)
-
-  // Warehouse 1
-  const w1Geo = new THREE.BoxGeometry(50, 18, 80)
-  const w1Mat = new THREE.MeshLambertMaterial({ color: 0xbbbbbb, transparent: true, opacity: 0.85 })
-  const w1 = new THREE.Mesh(w1Geo, w1Mat)
-  w1.position.set(-35, 9, 0)
-  w1.userData = { type: 'warehouse', buildingId: 1, name: '仓库 A' }
-  scene.add(w1)
-  warehouseBuildings.push(w1)
-
-  const w1Edge = new THREE.LineSegments(
-    new THREE.EdgesGeometry(w1Geo),
-    new THREE.LineBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.4 })
-  )
-  w1.add(w1Edge)
-
-  // Warehouse 2
-  const w2Geo = new THREE.BoxGeometry(50, 18, 80)
-  const w2Mat = new THREE.MeshLambertMaterial({ color: 0xcccccc, transparent: true, opacity: 0.85 })
-  const w2 = new THREE.Mesh(w2Geo, w2Mat)
-  w2.position.set(35, 9, 0)
-  w2.userData = { type: 'warehouse', buildingId: 2, name: '仓库 B' }
-  scene.add(w2)
-  warehouseBuildings.push(w2)
-
-  const w2Edge = new THREE.LineSegments(
-    new THREE.EdgesGeometry(w2Geo),
-    new THREE.LineBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.4 })
-  )
-  w2.add(w2Edge)
-
-  addBuildingLabel('仓库 A', -35, 0, 0)
-  addBuildingLabel('仓库 B', 35, 0, 0)
-}
 
 function addBuildingLabel(text, x, y, z) {
   const canvas = document.createElement('canvas')
@@ -517,7 +390,10 @@ function animate() {
     particleFence.material.opacity = pulse
   }
 
+  TWEEN.update();
+
   renderer.render(scene, camera)
+  labelRenderer.render(scene, camera); 
 }
 
 function onResize() {
@@ -534,7 +410,7 @@ function getControls() { return controls }
 
 watch(() => props.currentMode, (newMode) => {
   if (scene) {
-    switchMode(newMode)
+    //switchMode(newMode)
   }
 })
 
@@ -544,7 +420,7 @@ defineExpose({
   getRenderer,
   getControls,
   flyToBuilding,
-  switchMode
+  // switchMode
 })
 
 onMounted(() => {
@@ -558,7 +434,9 @@ onUnmounted(() => {
     renderer.domElement.removeEventListener('click', onMouseClick)
   }
   if (controls) controls.dispose()
-  if (renderer) renderer.dispose()
+  if (renderer) renderer.dispose()  
+
+  emit('initSuccess', false)
 })
 </script>
 
@@ -591,5 +469,17 @@ onUnmounted(() => {
 
 .three-container canvas:active {
   cursor: grabbing;
+}
+
+.gltf-loading {
+  position: absolute;
+
+  z-index: 999;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
 }
 </style>
