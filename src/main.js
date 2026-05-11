@@ -1,14 +1,13 @@
 
-import App from './App.vue'
 import { createApp } from 'vue';
 import store from './store';
 import router from './router'
 import './style.css'
+import Home from './App.vue'
 
-
-const app = createApp(App)
-app.use(router)
+const app = createApp(Home)
 app.use(store);
+app.use(router)
 app.mount('#app')
 export const setViewer = (viewer) => {
   app.config.globalProperties.$viewer = viewer

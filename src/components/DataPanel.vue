@@ -26,6 +26,9 @@
 </template>
 
 <script setup>
+
+import { useAppStore } from '@/store/modules/app';
+const appStore = useAppStore();
 import Echart from './COMS/Echart.vue'
 defineProps({
   title: String,
