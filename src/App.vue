@@ -1,145 +1,6 @@
 <template>
-  <div class="app-container">
-    <!-- 顶部栏 -->
-    <header class="top-bar">
-      <div class="logo">
-        <div class="logo-icon">
-          <svg viewBox="0 0 100 100" width="36" height="36">
-            <circle cx="50" cy="50" r="48" fill="#2ECC71" />
-            <path d="M50 20 Q30 40 30 60 Q30 80 50 85 Q70 80 70 60 Q70 40 50 20" fill="none" stroke="#E8F8F0" stroke-width="4" stroke-linecap="round" />
-            <line x1="50" y1="30" x2="50" y2="75" stroke="#E8F8F0" stroke-width="3" stroke-linecap="round" />
-            <line x1="50" y1="45" x2="38" y2="55" stroke="#E8F8F0" stroke-width="2" stroke-linecap="round" />
-            <line x1="50" y1="55" x2="62" y2="50" stroke="#E8F8F0" stroke-width="2" stroke-linecap="round" />
-          </svg>
-        </div>
-        <a href="https://e6lemviix2yqm.ok.kimi.link/#" target="_blank" class="logo-link">绿电数字农业平台</a>
-      </div>
-      <div class="top-center">
-        <div class="time-display">{{ currentTime }}</div>
-        <div class="date-display">
-          <div>{{ currentDate }}</div>
-          <div class="week">{{ currentWeek }}</div>
-        </div>
-      </div>
-      <div class="top-info">
-
-        <div class="info-pill" @click="toggleAllDrawers">
-          <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
-        </div>
-        <!-- <div class="info-pill">
-          <span class="status-dot"></span>
-          <span>系统在线</span>
-        </div>
-        <div class="info-pill">
-          <span>📍</span>
-          <span>江苏省泰州市</span>
-        </div>
-        <div class="info-pill">
-          <span>🌤</span>
-          <span>晴 26°C</span>
-        </div> -->
-      </div>
-    </header>
-
-    <!-- 主内容区 - 全屏GIS地图 -->
-    <main class="main-scene">
-      <SceneHeader :mode="currentMode" :location="currentLocation" :coords="currentCoords" />
-
-      <!-- 左侧数据抽屉 -->
-      <aside class="drawer-panel left-drawer" :class="{ collapsed: !leftDrawerOpen }">
-        <DataPanel title="🌡 环境监测" :data="envData" />
-        <DataPanel title="🌱 土壤监测" :data="soilData" />
-      </aside>
-
-      <!-- 左侧抽屉开关 -->
-      <button class="drawer-toggle left-toggle" @click="leftDrawerOpen = !leftDrawerOpen">
-        <span>{{ leftDrawerOpen ? '◀' : '▶' }}</span>
-      </button>
-
-      <!-- 右侧数据抽屉 -->
-      <aside class="drawer-panel right-drawer" :class="{ collapsed: !rightDrawerOpen }">
-        <DevicePanel title="⚙️ 气象监测" :devices="devices" />
-        <DataPanel title="📊 墒情数据" :data="productionData" />
-        <DataPanel title="📊 虫情监测" :data="productionData1" />
-        <DataVideo title="📊 视频监控" />
-      </aside>
-
-      <!-- 右侧抽屉开关 -->
-      <button class="drawer-toggle right-toggle" @click="rightDrawerOpen = !rightDrawerOpen">
-        <span>{{ rightDrawerOpen ? '▶' : '◀' }}</span>
-      </button>
-
-      <!-- 控制按钮区域 -->
-      <!-- <div class="control-bar">
-        <button class="control-btn" @click="toggleAllDrawers">
-          <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
-        </button>
-        <label class="toggle-label">
-          <input type="checkbox" v-model="showThreeJS" />
-          <span class="toggle-text">🌐 3D</span>
-        </label>
-      </div> -->
-
-      <div class="scene-viewport">
-        <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
-        <!-- threejs绘制区域 -->
-        <template v-if="showThreeJS ">
-          <!-- 总览 -->
-          <ThreeScene ref="threeScene" :currentMode="currentMode" @popup="handlePopup" @flyToBuilding="handleFlyToBuilding" @initSuccess="initThreeJS" />
-          <template v-if="threejsStatus">
-
-            <template v-if="['Warehouse', 'Warehouse2', 'Warehouse3' ].includes(currentMode)">
-              <ThreeWarehouse :data="currentModel"></ThreeWarehouse>
-            </template>
-            <template v-if="['Farm', 'Farm2', 'Farm3'].includes(currentMode)">
-              <ThreeFarm :data="currentModel" />
-            </template>
-            <template v-if="['Workshop', 'Workshop2', 'Workshop3'].includes(currentMode)">
-              <ThreeWorkshop :data="currentModel" />
-            </template>
-
-          </template>
-        </template>
-
-        <BubblePopup v-if="showPopup" :show="showPopup" :data="popupData" :style="popupStyle" @close="showPopup = false" />
-      </div>
-    </main>
-
-    <!-- cesium绘制区域 -->
-    <template v-if="cesiumStatus">
-      <Models @callback="cesiumClick"></Models>
-      <template v-if="currentMode == 'overview'">
-        <!-- 总览 -->
-        <Main></Main>
-      </template>
-      <template>
-        <!-- 农田 -->
-        <Farm></Farm>
-      </template>
-      <template>
-        <!-- 厂房 -->
-        <Warehouse></Warehouse>
-      </template>
-    </template>
-
-    <!-- 底部菜单 -->
-    <nav class="bottom-menu">
-      <div v-for="menu in menus" :key="menu.id" class="menu-group">
-        <!-- 一级菜单按钮 -->
-        <button class="menu-btn" :class="{ active: currentMode === menu.id || (activeParentMenu === menu.id && menu.children)  }" @click="switchMode(menu.id, menu)">
-          <span class="menu-icon">{{ menu.icon }}</span>
-          <span>{{ menu.name }}</span>
-        </button>
-
-        <!-- 二级菜单（悬浮时显示在上方） -->
-        <div v-if="menu.children" class="submenu top-submenu">
-          <button v-for="child in menu.children" :key="child.id" class="submenu-btn" @click="switchMode(child.id, child)">
-            <span class="menu-icon">{{ child.icon }}</span>
-            <span>{{ child.name }}</span>
-          </button>
-        </div>
-      </div>
-    </nav>
+  <div>
+    <router-view></router-view>
   </div>
 </template>
 
@@ -151,6 +12,7 @@ const appStore = useAppStore();
 import CesiumMap from './components/CesiumMap.vue'
 import ThreeScene from './components/ThreeScene.vue'
 import DataPanel from './components/DataPanel.vue'
+import DataPest from './components/DataPest.vue'
 import DataVideo from './components/DataVideo.vue'
 import DevicePanel from './components/DevicePanel.vue'
 import SceneHeader from './components/SceneHeader.vue'
@@ -700,7 +562,6 @@ onMounted(() => {
   //   }
   // }, 500)
 
-  appStore.getTokenInfo()
 })
 
 const cesiumStatus = ref(false)

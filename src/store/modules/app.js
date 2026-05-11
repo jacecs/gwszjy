@@ -7,7 +7,7 @@ export const useAppStore = defineStore('app', () => {
   const GlbLoading = ref(false);
   const LoadingProgress = ref(0);
 
-  let appInfo = reactive(null)
+  let appInfo = ref(null)
 
   const setScene = (sen) => {
     scene.value = sen
@@ -49,17 +49,25 @@ export const useAppStore = defineStore('app', () => {
   }
 
   const getTokenInfo = () => { 
-    const params = {
-      username: 'ktdz',
-      password: 'ktdz',
-    }
-    return getToken(params).then(res => {
-      console.log('获取token成功')
-      appInfo = res.data
-      
-    }).catch(err => {
-      console.log('获取token失败')
+    return new Promise((resolve, reject) => {
+      if (appInfo.value) {
+        resolve(appInfo.value)
+      } else {
+          const params = {
+            username: 'ktdz',
+            password: 'ktdz',
+          }
+          return getToken(params).then(res => {
+            appInfo.value = res.data && res.data[1] ?  res.data[1] : null
+            console.log('获取token成功', appInfo.value)
+            resolve(appInfo.value)
+            
+          }).catch(err => {
+            console.log('获取token失败')
+          })
+      }
     })
+
   }
 
 

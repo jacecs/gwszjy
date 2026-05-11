@@ -21,6 +21,10 @@ const props = defineProps({
   data: {
     type: Array,
     default: () => []
+  },
+  echartOptions: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -55,7 +59,7 @@ const updateChart = () => {
       left: 'center'
     },
     grid: {
-      top: 5,
+      top: 10,
       bottom: '5',
       left: 5,
       right: 5,
@@ -87,18 +91,19 @@ const updateChart = () => {
           color: '#5470c6'
         }
       }
-    ]
+    ],
+    ...props.echartOptions
   }
 
   // 如果父组件传入的是完整的 option 对象，可以直接使用:
   // const option = { ...baseOption, ...props.data } 
-
+  console.log(11111111, option)
   chartInstance.setOption(option, true) // true 表示不合并，完全替换
 }
 
 // 监听 data 变化
 watch(
-  () => props.data,
+ [() => props.data,  () => props.echartOptions],
   (newVal) => {
     if (chartInstance) {
       updateChart()
