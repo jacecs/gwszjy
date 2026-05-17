@@ -72,7 +72,7 @@ const menus = [
     }
   },
   {
-    id: 'nongtian1', name: '农场1', icon: '🌱',
+    id: 'nongtian1', name: '维明农场', icon: '🌱',
     children: [
       {
         id: 'Farm', name: '试验田', icon: '🌱',
@@ -176,7 +176,7 @@ const menus = [
     children: [
       {
         id: 'Farm2',
-        name: '试验田2',
+        name: '试验田',
         icon: '🌱',
         position: {
           lon: "120.097",
@@ -198,77 +198,6 @@ const menus = [
           x: 5,
           y: 150,
           z: -155,
-        },
-        camera: {
-          "lon": 120.04952,
-          "lat": 32.26108,
-          "height": 793,
-          "heading": 0,
-          "pitch": -51,
-          "roll": 0
-        }
-      },
-      {
-        id: 'Warehouse2', name: '仓库', icon: '📦',
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [{
-          id: "仓库2",
-          url: './static/glb/厂房2.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 1
-        }],
-        threeCamera: {
-          x: 61,
-          y: 140,
-          z: -52,
-          tx: 60,
-          ty: 21,
-          tz: -340
-        },
-        camera: {
-          "lon": 120.0299,
-          "lat": 32.25767,
-          "height": 123.8,
-          "heading": 182.7,
-          "pitch": -28.7,
-          "roll": 0
-        }
-      }
-    ]
-  },
-  {
-    id: 'nongtian3',
-    name: '农场3',
-    icon: '🌱',
-    children: [
-      {
-        id: 'Farm3',
-        name: '试验田',
-        icon: '🌱',
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [
-          {
-            id: "试验田3",
-            url: './static/glb/农田3.glb',
-            x: 0,
-            y: 0,
-            z: 0,
-            scale: 20
-          },
-
-        ],
-        threeCamera: {
-          x: 0,
-          y: 26,
-          z: -27,
         },
         camera: {
           "lon": 120.04952,
@@ -308,39 +237,140 @@ const menus = [
           "pitch": -23,
           "roll": 0
         },
+      },
+      {
+        id: 'Warehouse2', name: '仓库', icon: '📦',
+        position: {
+          lon: "120.089928",
+          lat: "32.244513"
+        },
+        gltfs: [{
+          id: "仓库2",
+          url: './static/glb/厂房2.glb',
+          x: 0,
+          y: 0,
+          z: 0,
+          scale: 1
+        }],
+        threeCamera: {
+          x: 61,
+          y: 140,
+          z: -52,
+          tx: 60,
+          ty: 21,
+          tz: -340
+        },
+        camera: {
+          "lon": 120.0299,
+          "lat": 32.25767,
+          "height": 123.8,
+          "heading": 182.7,
+          "pitch": -28.7,
+          "roll": 0
+        }
       }
-      // {
-      //   id: 'Warehouse3', 
-      //   name: '仓库3', 
-      //   icon: '📦',
-      //   position: {
-      //     lon: "120.089928",
-      //     lat: "32.244513"
-      //   },
-      //   gltfs:[{
-      //     id: "仓库3",
-      //     url: './static/glb/仓库3.glb',
-      //     x: 0,
-      //     y: 0,
-      //     z: 0,
-      //     scale:1
-      //   }],
-      //   threeCamera: {
-      //     x: -62,
-      //     y: 50,
-      //     z: 63,
-      //   },
-      //   camera: {
-      //     "lon": 120.02888,
-      //     "lat": 32.2571,
-      //     "height": 100.1,
-      //     "heading": 155.1,
-      //     "pitch": -33.1,
-      //     "roll": 0.1
-      //   }
-      // }
     ]
   },
+  // {
+  //   id: 'nongtian3',
+  //   name: '农场3',
+  //   icon: '🌱',
+  //   children: [
+  //     {
+  //       id: 'Farm3',
+  //       name: '试验田',
+  //       icon: '🌱',
+  //       position: {
+  //         lon: "120.089928",
+  //         lat: "32.244513"
+  //       },
+  //       gltfs: [
+  //         {
+  //           id: "试验田3",
+  //           url: './static/glb/农田3.glb',
+  //           x: 0,
+  //           y: 0,
+  //           z: 0,
+  //           scale: 20
+  //         },
+
+  //       ],
+  //       threeCamera: {
+  //         x: 0,
+  //         y: 26,
+  //         z: -27,
+  //       },
+  //       camera: {
+  //         "lon": 120.04952,
+  //         "lat": 32.26108,
+  //         "height": 793,
+  //         "heading": 0,
+  //         "pitch": -51,
+  //         "roll": 0
+  //       }
+  //     },
+  //     {
+  //       id: 'Workshop3',
+  //       name: '烘干车间',
+  //       icon: '🏭',
+  //       position: {
+  //         lon: "120.089928",
+  //         lat: "32.244513"
+  //       },
+  //       gltfs: [{
+  //         id: "changfang3",
+  //         url: './static/glb/厂房3-有底图.glb',
+  //         x: 0,
+  //         y: 0,
+  //         z: 0,
+  //         scale: 1
+  //       }],
+  //       threeCamera: {
+  //         x: 10,
+  //         y: 550,
+  //         z: 1020,
+  //       },
+  //       camera: {
+  //         "lon": 120.01789,
+  //         "lat": 32.25442,
+  //         "height": 101.6,
+  //         "heading": 346.1,
+  //         "pitch": -23,
+  //         "roll": 0
+  //       },
+  //     }
+  //     // {
+  //     //   id: 'Warehouse3', 
+  //     //   name: '仓库3', 
+  //     //   icon: '📦',
+  //     //   position: {
+  //     //     lon: "120.089928",
+  //     //     lat: "32.244513"
+  //     //   },
+  //     //   gltfs:[{
+  //     //     id: "仓库3",
+  //     //     url: './static/glb/仓库3.glb',
+  //     //     x: 0,
+  //     //     y: 0,
+  //     //     z: 0,
+  //     //     scale:1
+  //     //   }],
+  //     //   threeCamera: {
+  //     //     x: -62,
+  //     //     y: 50,
+  //     //     z: 63,
+  //     //   },
+  //     //   camera: {
+  //     //     "lon": 120.02888,
+  //     //     "lat": 32.2571,
+  //     //     "height": 100.1,
+  //     //     "heading": 155.1,
+  //     //     "pitch": -33.1,
+  //     //     "roll": 0.1
+  //     //   }
+  //     // }
+  //   ]
+  // },
 ]
 
 const currentLocation = ref('泰兴市新街镇叶垛家利')

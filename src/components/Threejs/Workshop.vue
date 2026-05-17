@@ -19,6 +19,7 @@
       <input type="checkbox" v-model="inStatus" @change="changeStatus" />
       内部场景
     </label>
+    <button v-if="drillDevice" class="device-back-btn" @click="resetDeviceDrill">{{ isolatedDevice ? '返回内部' : '返回车间' }}</button>
   </template>
 </template>
 
@@ -52,11 +53,14 @@ const props = defineProps({
     default: () => ({})
   }
 })
+const emit = defineEmits(['deviceDrill'])
 
 
 const inStatus = ref(false)
 const gltfStatus = ref(false)
 const currentModel = ref(null)
+const drillDevice = ref(null)
+const isolatedDevice = ref(null)
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
@@ -69,6 +73,9 @@ loader.setDRACOLoader(dracoLoader);
 let model = null;
 let mixers = []
 let pageModels = markRaw([])
+let drillHotspots = markRaw([])
+let isolatedVisibility = markRaw(new Map())
+let flowLines = markRaw([])
 let label
 const modelUrl = computed(() => {
   const map = {
@@ -82,6 +89,7 @@ const modelUrl = computed(() => {
 watch(() => props.data, (newMode) => {
   if (newMode) {
     gltfStatus.value = false
+    resetWorkshopState()
     currentModel.value = newMode
 
     console.log(111111, newMode)
@@ -107,15 +115,29 @@ onUnmounted(() => {
   ThreeEvents.off('LEFT_CLICK', onClick)
   ThreeEvents.off('LEFT_CLICK', onGetInfo)
 
+  resetWorkshopState()
   remove()
-  removeLine()
   if (animationId) {
     cancelAnimationFrame(animationId);
     animationId = null;
   }
 })
 
+function resetWorkshopState() {
+  restoreIsolatedVisibility()
+  removeLine()
+  inStatus.value = false
+  drillDevice.value = null
+  isolatedDevice.value = null
+  emit('deviceDrill', null)
+}
+
 function remove() {
+  restoreIsolatedVisibility()
+  removeLine()
+  drillDevice.value = null
+  isolatedDevice.value = null
+  removeDryingTowerHotspots()
   if (label) {
     label.removeFromParent()
     label = null
@@ -130,20 +152,6 @@ function remove() {
 
       if (modelScene) {
         scene.remove(modelScene);
-
-        // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
-        modelScene.traverse((object) => {
-          if (object.geometry) {
-            object.geometry.dispose();
-          }
-          if (object.material) {
-            if (Array.isArray(object.material)) {
-              object.material.forEach(material => material.dispose());
-            } else {
-              object.material.dispose();
-            }
-          }
-        });
       }
     }
   }
@@ -159,6 +167,7 @@ function onGetInfo(e) {
 
 function onClick(item) {
   if (item) {
+    if (tryDrillDryingTower(item)) return
     const label = showTooltip(item.object, item.point)
   }
 }
@@ -201,6 +210,7 @@ async function renderModel(obj) {
       GLOBAL[key].scene.position.set(gltf.x, gltf.y, gltf.z);
     }
 
+    createDryingTowerHotspots(obj)
     gltfStatus.value = true
   }
 }
@@ -209,9 +219,185 @@ function getModelById(id, key='modelId') {
   return pageModels.find(item => item[key] === id)
 }
 
+function getDryingTowerHotspotConfig(workshopId) {
+  const map = {
+    Workshop: [
+      { name: '烘干塔1', position: [140, 18, 155], lookAt: [140, 12, 155], camera: [140, 78, 235], isolateCamera: [140, 45, 205], heater: [115, 10, 112] },
+      { name: '烘干塔2', position: [190, 18, 155], lookAt: [190, 12, 155], camera: [190, 78, 235], isolateCamera: [190, 45, 205], heater: [160, 10, 107] },
+      { name: '烘干塔3', position: [243, 18, 145], lookAt: [243, 12, 145], camera: [243, 78, 225], isolateCamera: [243, 45, 195], heater: [230, 10, 100] }
+    ],
+    Workshop3: [
+      { name: '烘干塔1', position: [205, 42, 190], lookAt: [205, 32, 190], camera: [205, 112, 282], isolateCamera: [205, 82, 248], heater: [295, 32, 240] },
+      { name: '烘干塔2', position: [145, 42, 75], lookAt: [145, 32, 75], camera: [145, 112, 167], isolateCamera: [145, 82, 133], heater: [245, 32, 165] },
+      { name: '烘干塔3', position: [75, 42, -30], lookAt: [75, 32, -30], camera: [75, 112, 62], isolateCamera: [75, 82, 28], heater: [175, 32, 55] }
+    ]
+  }
+  return map[workshopId] || []
+}
+
+function createDryingTowerHotspots(obj) {
+  removeDryingTowerHotspots()
+  if (!['Workshop', 'Workshop3'].includes(obj.id)) return
+  const geometry = new THREE.CylinderGeometry(16, 16, obj.id === 'Workshop3' ? 90 : 58, 24)
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x48ffd0,
+    transparent: true,
+    opacity: 0.08,
+    depthWrite: false
+  })
+  getDryingTowerHotspotConfig(obj.id).forEach((config) => {
+    const hotspot = new THREE.Mesh(geometry.clone(), material.clone())
+    hotspot.name = config.name
+    hotspot.userData = {
+      type: 'dryingTower',
+      deviceName: config.name,
+      camera: config.camera,
+      lookAt: config.lookAt,
+      isolateCamera: config.isolateCamera,
+      heater: config.heater
+    }
+    hotspot.position.set(...config.position)
+    scene.add(hotspot)
+    drillHotspots.push(hotspot)
+  })
+}
+
+function removeDryingTowerHotspots() {
+  drillHotspots.forEach((hotspot) => {
+    scene.remove(hotspot)
+    hotspot.geometry?.dispose()
+    hotspot.material?.dispose()
+  })
+  drillHotspots = markRaw([])
+}
+
+function findDryingTowerObject(object) {
+  let current = object
+  const keywords = ['烘干塔', '干燥塔', 'drying', 'dryer', 'tower']
+  while (current) {
+    const name = String(current.name || '').toLowerCase()
+    if (current.userData?.type === 'dryingTower' || keywords.some((keyword) => name.includes(keyword.toLowerCase()))) {
+      return current
+    }
+    current = current.parent
+  }
+  return null
+}
+
+function tryDrillDryingTower(item) {
+  const target = findDryingTowerObject(item.object)
+  if (!target) return false
+  const cameraConfig = target.userData?.camera
+  const lookAtConfig = target.userData?.lookAt
+  const targetWorldPosition = new THREE.Vector3()
+  target.getWorldPosition(targetWorldPosition)
+  const targetLookAt = lookAtConfig ? new THREE.Vector3(...lookAtConfig) : targetWorldPosition
+  const targetPosition = cameraConfig
+    ? new THREE.Vector3(...cameraConfig)
+    : targetWorldPosition.clone().add(new THREE.Vector3(0, 70, 90))
+
+  drillDevice.value = {
+    type: 'dryingTower',
+    name: target.userData?.deviceName || target.name || '烘干塔设备',
+    subtitle: `${currentModel.value?.name || '烘干车间'} / 设备下钻`,
+    camera: cameraConfig,
+    lookAt: lookAtConfig
+  }
+  emit('deviceDrill', drillDevice.value)
+  if (inStatus.value) {
+    isolateDryingTowerAndHeater(target)
+  } else {
+    inStatus.value = true
+    changeStatus()
+    flyTo(targetPosition, targetLookAt)
+  }
+  showTooltip(target, item.point)
+  return true
+}
+
+function resetDeviceDrill(notify = true) {
+  if (isolatedDevice.value) {
+    restoreIsolatedVisibility()
+    isolatedDevice.value = null
+    if (!notify) {
+      drillDevice.value = null
+      return
+    }
+    if (drillDevice.value?.camera && drillDevice.value?.lookAt) {
+      flyTo(new THREE.Vector3(...drillDevice.value.camera), new THREE.Vector3(...drillDevice.value.lookAt))
+    }
+    return
+  }
+  if (!drillDevice.value) return
+  drillDevice.value = null
+  if (notify) emit('deviceDrill', null)
+  if (currentModel.value?.threeCamera) {
+    centerAt(currentModel.value.threeCamera)
+  }
+}
+
+function getActiveWorkshopModel() {
+  if (props.data.id == 'Workshop') return getModelById('./static/glb/厂房1.glb', 'modelUrl')
+  if (props.data.id == 'Workshop3') return getModelById('changfang3')
+  return model
+}
+
+function restoreIsolatedVisibility() {
+  isolatedVisibility.forEach((visible, object) => {
+    object.visible = visible
+  })
+  isolatedVisibility = markRaw(new Map())
+}
+
+function isolateDryingTowerAndHeater(target) {
+  restoreIsolatedVisibility()
+  const workshopModel = getActiveWorkshopModel()
+  if (!workshopModel?.scene) return
+
+  const towerCenter = new THREE.Vector3()
+  target.getWorldPosition(towerCenter)
+  const heaterCenter = target.userData?.heater ? new THREE.Vector3(...target.userData.heater) : towerCenter.clone().add(new THREE.Vector3(-35, -8, -45))
+   //const keepKeywords =['烘干塔主体', '干燥塔', 'drying', 'dryer', 'tower', '加热', '燃烧', '炉', 'heater', 'burner', 'hot']
+  const keepKeywords = ['机器', '机器001','机器002',  '烘干塔主体001','立方体066', 'drying', 'dryer', 'tower', '加热', '燃烧', '炉', 'heater', 'burner', 'hot']
+
+  workshopModel.scene.traverse((object) => {
+    if (!object.isMesh && !object.isGroup) return
+    isolatedVisibility.set(object, object.visible)
+    const worldPosition = new THREE.Vector3()
+    object.getWorldPosition(worldPosition)
+    const name = String(object.name || '').toLowerCase()
+    const keepByName = keepKeywords.some((keyword) => name.includes(keyword.toLowerCase()))
+    const keepByPosition = worldPosition.distanceTo(towerCenter) < 55 || worldPosition.distanceTo(heaterCenter) < 50
+    object.visible = keepByName || keepByPosition
+  })
+
+  drillHotspots.forEach((hotspot) => {
+    isolatedVisibility.set(hotspot, hotspot.visible)
+    hotspot.visible = hotspot === target
+  })
+  removeLine()
+
+  isolatedDevice.value = {
+    type: 'dryingTowerHeater',
+    name: `${target.userData?.deviceName || '烘干塔'}与加热炉`
+  }
+  drillDevice.value = {
+    ...drillDevice.value,
+    name: isolatedDevice.value.name,
+    subtitle: `${currentModel.value?.name || '烘干车间'} / 烘干塔与加热炉`
+  }
+  emit('deviceDrill', drillDevice.value)
+
+  const isolateCamera = target.userData?.isolateCamera ? new THREE.Vector3(...target.userData.isolateCamera) : towerCenter.clone().add(new THREE.Vector3(0, 35, 55))
+  const lookAt = new THREE.Vector3().addVectors(towerCenter, heaterCenter).multiplyScalar(0.5)
+  flyTo(isolateCamera, lookAt)
+}
+
 // 进入到内部
 function changeStatus(e) {
   console.log(1111111, props.data )
+  restoreIsolatedVisibility()
+  isolatedDevice.value = null
   if (props.data.id == 'Workshop') {
 
     const model = getModelById('./static/glb/厂房1.glb', 'modelUrl')
@@ -416,8 +602,6 @@ function flyTo(targetPosition, targetLookAt, duration = 1500) {
     .start();
 }
 
-
-let flowLines = markRaw([])
 
 const linePoints1 = reactive([
   {
@@ -858,3 +1042,23 @@ function animate() {
 animate();
 
 </script>
+
+<style scoped>
+.device-back-btn {
+  position: fixed;
+  left: 390px;
+  bottom: 96px;
+  z-index: 9999;
+  padding: 7px 12px;
+  color: #eaffff;
+  background: rgba(4, 14, 20, 0.78);
+  border: 1px solid rgba(64, 240, 180, 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.device-back-btn:hover {
+  color: #07100d;
+  background: #69ffc5;
+}
+</style>

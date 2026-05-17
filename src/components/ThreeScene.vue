@@ -60,13 +60,14 @@ watch(() => appStore.GlbLoading, (newValue) => {
 
 async function initThree() {
   scene = markRaw(new THREE.Scene())
-  scene.background = null
+  scene.background = new THREE.Color(0x020408)
 
   camera = markRaw(new THREE.PerspectiveCamera(60, container.value.clientWidth / container.value.clientHeight, 0.1, 500000))
   camera.position.set(0, 300, 400)
   camera.lookAt(0, 0, 0)
 
-  renderer = markRaw(new THREE.WebGLRenderer({ antialias: true, alpha: true }))
+  renderer = markRaw(new THREE.WebGLRenderer({ antialias: true, alpha: false }))
+  renderer.setClearColor(0x020408, 1)
   renderer.setSize(container.value.clientWidth, container.value.clientHeight)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   container.value.appendChild(renderer.domElement)
@@ -115,7 +116,6 @@ async function initThree() {
   labelRenderer.domElement.style.pointerEvents = 'none'; // 让鼠标事件穿透，不影响 Three.js 点击
   labelRenderer.domElement.style.zIndex = 99; // 让鼠标事件穿透，不影响 Three.js 点击
   document.body.appendChild(labelRenderer.domElement);
-  initSky(scene)
   animate()
 
   // Initialize with overview mode
@@ -449,7 +449,7 @@ onUnmounted(() => {
   height: 100vh;
   z-index: 2;
   pointer-events: none;
-  background: transparent;
+  background: #020408;
 }
 
 .three-container {
@@ -460,6 +460,7 @@ onUnmounted(() => {
   height: 100vh;
   z-index: 2;
   pointer-events: auto;
+  background: #020408;
 }
 
 .three-container canvas {

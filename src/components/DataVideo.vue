@@ -14,14 +14,14 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import Video from './COMS/Video.vue'
-defineProps({
+const props = defineProps({
   title: String,
   data: Array
 })
 
-const streams = reactive([{
+const defaultStreams = [{
   name: '摄像头1',
   url: 'http://localhost/live/stream1.flv'
 },
@@ -36,16 +36,26 @@ const streams = reactive([{
 {
   name: '摄像头4',
   url: 'http://localhost/live/stream4.flv'
-}])
+}]
 
 const streamUrl = ref('')
 
+const streams = computed(() => {
+  return props.data && props.data.length ? props.data : defaultStreams
+})
+
 const selStream = computed(() => {
-  return streams.find(item => item.url === streamUrl.value)
+  return streams.value.find(item => item.url === streamUrl.value)
+})
+
+watch(streams, (newStreams) => {
+  streamUrl.value = newStreams[0]?.url || ''
+}, {
+  immediate: true
 })
 
 onMounted(() => {
-   streamUrl.value = streams[0].url
+  streamUrl.value = streams.value[0]?.url || ''
 })
 
 </script>
