@@ -27,6 +27,7 @@ const videoRef = ref(null)
 const players = []
 
 const createPlayer = (video, url) => {
+  if (!video || !url) return null
   if (flvjs.isSupported()) {
     const player = flvjs.createPlayer({
       type: 'flv',
@@ -51,7 +52,7 @@ const createPlayer = (video, url) => {
     return player
   }
 }
-watch(() => props.streams, async () => {
+async function loadStream() {
   players.forEach(p => {
     if (p) {
       p.pause()
@@ -65,20 +66,20 @@ watch(() => props.streams, async () => {
   const video = videoRef.value
   const url = props.streams?.url
   console.log('video', video)
-  if (video) {
+  if (video && url) {
     createPlayer(video, url)
   }
-},
-  {
-    deep: true
-  }
-)
+}
+
+// watch(() => props.streams, loadStream,
+//   {
+//     deep: true
+//   }
+// )
 
 
 onMounted(() => {
-  // const video = videoRef.value
-  // const player = createPlayer(video, props.streams.url)
-  // players.push(player)
+  // loadStream()
 })
 
 onBeforeUnmount(() => {

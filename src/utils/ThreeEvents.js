@@ -34,7 +34,7 @@ class ThreeEvents {
           // 4. 更新射线并执行检测
           raycaster.setFromCamera(mouse, camera);
           // intersectObjects 返回一个按距离排序的相交数组
-          const intersects = raycaster.intersectObjects(scene.children);
+          const intersects = raycaster.intersectObjects(scene.children, true);
           console.log('坐标信息:', intersects[0]?.point);
           console.log('点击物体信息:', intersects);
           // 5. 处理交互结果
@@ -63,7 +63,7 @@ class ThreeEvents {
       // 4. 更新射线并执行检测
       raycaster.setFromCamera(mouse, camera);
       // intersectObjects 返回一个按距离排序的相交数组
-      const intersects = raycaster.intersectObjects(scene.children);
+      const intersects = raycaster.intersectObjects(scene.children, true);
 
       // 5. 处理交互结果
       if (intersects.length > 0) {
