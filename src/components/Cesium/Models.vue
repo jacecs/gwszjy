@@ -28,7 +28,7 @@ const props = defineProps({
     default: () => [
       {
         url: "./static/glb/厂房1.glb",
-        label: "厂房1",
+        label: "维明农场",
         id: "Workshop",
         lon: 120.08935,
         lat: 32.24715,
@@ -48,7 +48,7 @@ const props = defineProps({
       {
         url: "./static/glb/泵站与农田设备(1).glb",
         // url: "./static/glb/场景/监控农田.glb",
-        label: "监控农田",
+        label: "维明农场试验田",
         id: "Farm",
         lon: 120.0973,
         lat: 32.2517,
@@ -57,17 +57,20 @@ const props = defineProps({
         heading: 89,
         pitch: 0,
         roll: 0,
+        point: [120.097195,32.252956],
         lines: [
-          120.096220, 32.252449,  // 点1 (经度, 纬度)
-          120.096274, 32.251585,  // 点2
-          120.098377, 32.251689,  // 点3
-          120.098396, 32.252478,  // 点4
-          120.096220, 32.252449   // 闭合回点1
+          120.096171, 32.253432,  // 点1 (经度, 纬度)
+          120.097299, 32.253475,  // 点2
+          120.097368, 32.253085,  // 点3
+          120.098644, 32.253255,  // 点4
+          120.098756, 32.252505,   // 闭合回点1
+          120.096226, 32.252444, // 闭合回点1
+          120.096171, 32.253432,
         ]
       },
       {
         url: "./static/glb/厂房3-无底图.glb",
-        name: "厂房3",
+        name: "政府农场",
         id: "Workshop3",
         lon: 120.0172,
         lat: 32.2565,
@@ -86,7 +89,7 @@ const props = defineProps({
       },
       {
         url: "./static/glb/仓库2.glb",
-        label: "仓库2",
+        label: "仓库",
         id: "Warehouse2",
         lon: 120.0298,
         lat: 32.2558,
@@ -101,6 +104,25 @@ const props = defineProps({
           120.030050, 32.255715,  // 点3
           120.030005, 32.256058,  // 点4
           120.029499, 32.255953   // 闭合回点1
+        ]
+      },
+      {
+        // url: "./static/glb/仓库2.glb",
+        label: "政府试验田",
+        id: "Warehouse2",
+        lon: 120.027958,
+        lat: 32.257392,
+        height: 0,
+        scale: 0.6,
+        heading: 255,
+        pitch: 0,
+        roll: 0,
+        lines: [
+          120.027291, 32.257458,  // 点1 (经度, 纬度)
+          120.029368, 32.258026,  // 点2
+          120.029436, 32.256951,  // 点3
+          120.027414, 32.256421,  // 点4
+          120.027291, 32.257458   // 闭合回点1
         ]
       }
     ]
@@ -213,7 +235,8 @@ function renderGlb(gltf) {
         disableDepthTestDistance: Number.POSITIVE_INFINITY, // 始终显示在最上层，不被地形遮挡
         showBackground: false, // 是否显示背景框
         backgroundColor: Cesium.Color.fromCssColorString('rgba(0, 0, 0, 0.6)'),
-        backgroundPadding: new Cesium.Cartesian2(10, 5)
+        backgroundPadding: new Cesium.Cartesian2(10, 5),
+        scaleByDistance: new Cesium.NearFarScalar(1000, 1.0, 1000000, 0.4),
       },
       point: {
         pixelSize: 12,
@@ -350,7 +373,15 @@ function createBillboardParticles(gltf) {
 }
 
 function createAreaParticles(gltf) {
-  const center = { lon: gltf.lon, lat: gltf.lat }
+
+  let center = { lon: gltf.lon, lat: gltf.lat }
+  if (gltf.point) {
+    center = {
+      lon: gltf.point[0],
+      lat: gltf.point[1]
+    }
+  }
+
   const entities = []
   for (let index = 0; index < 46; index++) {
     const phase = (index / 46) * Math.PI * 2
