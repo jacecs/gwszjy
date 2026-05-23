@@ -15,7 +15,7 @@
     </div>
   </div> -->
 
-  <template v-if="gltfStatus">
+  <template v-if="gltfStatus && supportedInternalScene">
     <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
       <input type="checkbox" v-model="inStatus" @change="changeStatus" />
       内部场景
@@ -55,6 +55,8 @@ const props = defineProps({
 })
 
 const gltfStatus = ref(false);
+const inStatus = ref(false)
+const currentModel = ref(null)
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
@@ -77,8 +79,12 @@ const modelUrl = computed(() => {
   }
   return map[props.mode] || '🌾 总览'
 })
+const supportedInternalScene = computed(() => ['Workshop', 'Workshop3'].includes(currentModel.value?.id))
 watch(() => props.data, (newMode) => {
   if (newMode) {
+    gltfStatus.value = false
+    inStatus.value = false
+    currentModel.value = newMode
     remove()
     init(newMode)
   }

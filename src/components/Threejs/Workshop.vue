@@ -75,6 +75,7 @@ let mixers = []
 let pageModels = markRaw([])
 let drillHotspots = markRaw([])
 let isolatedVisibility = markRaw(new Map())
+let internalSceneVisibility = markRaw(new Map())
 let flowLines = markRaw([])
 let label
 const modelUrl = computed(() => {
@@ -125,6 +126,7 @@ onUnmounted(() => {
 
 function resetWorkshopState() {
   restoreIsolatedVisibility()
+  restoreInternalSceneVisibility()
   removeLine()
   inStatus.value = false
   drillDevice.value = null
@@ -134,6 +136,7 @@ function resetWorkshopState() {
 
 function remove() {
   restoreIsolatedVisibility()
+  restoreInternalSceneVisibility()
   removeLine()
   drillDevice.value = null
   isolatedDevice.value = null
@@ -201,7 +204,7 @@ async function renderModel(obj) {
       }
       const tmp = markRaw(GLOBAL[key]) // 定义当前模型
       scene.add(GLOBAL[key].scene);
-      if (index = 0) {
+      if (index === 0) {
         model = tmp
       }
       pageModels.push(GLOBAL[key])
@@ -349,6 +352,96 @@ function restoreIsolatedVisibility() {
   isolatedVisibility = markRaw(new Map())
 }
 
+function restoreInternalSceneVisibility() {
+  internalSceneVisibility.forEach((visible, object) => {
+    object.visible = visible
+  })
+  internalSceneVisibility = markRaw(new Map())
+}
+
+function setObjectVisibleWithCache(object, visible) {
+  if (!object || internalSceneVisibility.has(object)) return
+  internalSceneVisibility.set(object, object.visible)
+  object.visible = visible
+}
+
+function getInternalSceneConfig() {
+  const configs = {
+    Workshop: {
+      model: getModelById('./static/glb/厂房1.glb', 'modelUrl'),
+      outsideNames: ['太阳能', '太阳能002', '厂房', '厂房001'],
+      inCamera: {
+        position: [90, 220, -10],
+        target: [170, 45, 100]
+      },
+      outCamera: {
+        position: [56, 500, -400],
+        target: [0, 0, 0]
+      }
+    },
+    Workshop3: {
+      model: getModelById('changfang3'),
+      outsideNames: ['002', '002039', 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036'],
+      inCamera: {
+        position: [-50, 305, 105],
+        target: [170, 45, 100]
+      },
+      outCamera: {
+        position: [10, 550, 1020],
+        target: [0, 0, 0]
+      }
+    }
+  }
+
+  return configs[props.data.id]
+}
+
+function moveToCamera(config) {
+  if (!config) return
+  flyTo(
+    new THREE.Vector3(...config.position),
+    new THREE.Vector3(...config.target)
+  )
+}
+
+function applyInternalScene(value, shouldMoveCamera = true) {
+  restoreInternalSceneVisibility()
+
+  const config = getInternalSceneConfig()
+  if (!config?.model?.scene) {
+    inStatus.value = false
+    removeLine()
+    return false
+  }
+
+  if (!value) {
+    removeLine()
+    if (shouldMoveCamera) {
+      moveToCamera(config.outCamera)
+    }
+    return true
+  }
+
+  config.outsideNames.forEach((name) => {
+    const object = getModal(config.model.scene, name)
+    if (!object) return
+
+    object.traverse((child) => {
+      setObjectVisibleWithCache(child, !value)
+    })
+    setObjectVisibleWithCache(object, !value)
+  })
+
+  removeLine()
+  createLine()
+
+  if (shouldMoveCamera) {
+    moveToCamera(config.inCamera)
+  }
+
+  return true
+}
+
 function isolateDryingTowerAndHeater(target) {
   restoreIsolatedVisibility()
   const workshopModel = getActiveWorkshopModel()
@@ -398,78 +491,7 @@ function changeStatus(e) {
   console.log(1111111, props.data )
   restoreIsolatedVisibility()
   isolatedDevice.value = null
-  if (props.data.id == 'Workshop') {
-
-    const model = getModelById('./static/glb/厂房1.glb', 'modelUrl')
-    if (model) {
-      const value = inStatus.value
-      console.log(inStatus.value, e)
-      const outList = ['太阳能', '太阳能002', '厂房', , '厂房001']
-      for (let index = 0; index < outList.length; index++) {
-        const name = outList[index];
-        let obj
-        obj = getModal(model.scene, name)
-        obj && obj.traverse((child) => { child.visible = !value });
-        obj && (obj.visible = !value)
-      }
-
-      if (value) {
-        // 定位
-        const targetPos = new THREE.Vector3(90, 220, -10)
-        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        // 模型加载成功后触发
-        removeLine()
-        createLine()
-      } else {
-        // 定位
-        const targetPos = new THREE.Vector3(56, 500, -400)
-        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        removeLine()
-      }
-
-    }
-  } else if (props.data.id == 'Workshop3') {
-    const model = getModelById('changfang3')
-    if (model) {
-      const value = inStatus.value
-      console.log(inStatus.value, e)
-      const outList = ['002', '002039', , 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036']
-      for (let index = 0; index < outList.length; index++) {
-        const name = outList[index];
-        let obj
-        obj = getModal(model.scene, name)
-        obj && obj.traverse((child) => { child.visible = !value });
-        obj && (obj.visible = !value)
-      }
-
-      if (value) {
-        // 定位
-        const targetPos = new THREE.Vector3(-50, 305, 105)
-        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        // 模型加载成功后触发
-        removeLine()
-        createLine()
-      } else {
-        // 定位
-        const targetPos = new THREE.Vector3(10, 550, 1020)
-        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        removeLine()
-      }
-
-    }
-  }
+  applyInternalScene(inStatus.value)
 }
 
 function getModal(obj, name) {

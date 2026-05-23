@@ -41,7 +41,7 @@ const props = defineProps({
         heading: 88,
         pitch: 0,
         roll: 0,
-      show: true
+      // show: true
     })
   }
 })
@@ -54,14 +54,14 @@ const emit = defineEmits(['configChange'])
 const config = reactive({ 
   // name: "农田",
   // id: "农田",
-  lon: 120.0973,
-  lat: 32.2517,
-  height: 0,
-  scale: 1.8,
-  heading: 89,
-  pitch: 0,
-  roll: 0,
-  show: true
+        lon: 120.027958,
+        lat: 32.257392,
+        height: 0,
+        scale: 0.6,
+        heading: 255,
+        pitch: 0,
+        roll: 0,
+  // show: true
  })
 
 const labels = {
@@ -104,7 +104,7 @@ function updateModel() {
   )
   const origin = Cesium.Cartesian3.fromDegrees(lon, lat, height)
   props.entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr)
-  props.entity.show = show
+  props.entity.show = true // show
   emit('configChange', { ...config })
 }
 

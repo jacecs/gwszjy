@@ -234,7 +234,7 @@ const menus = [
         gltfs: [
           {
             id: "监控农田",
-            url: './static/glb/泵站与农田设备(1).glb',
+            url: './static/glb/试验田_1.glb',
             x: 0,
             y: 0,
             z: 0,
@@ -336,11 +336,11 @@ const menus = [
         gltfs: [
           {
             id: "试验田2",
-            url: './static/glb/农田2.glb',
+            url: './static/glb/试验田_2.glb',
             x: 0,
             y: 0,
             z: 0,
-            scale: 20
+            scale: 1
           },
 
 

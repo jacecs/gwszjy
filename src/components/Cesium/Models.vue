@@ -46,7 +46,7 @@ const props = defineProps({
         ]
       },
       {
-        url: "./static/glb/泵站与农田设备(1).glb",
+        url: "./static/glb/试验田_1.glb",
         // url: "./static/glb/场景/监控农田.glb",
         label: "维明农场试验田",
         id: "Farm",
@@ -107,14 +107,14 @@ const props = defineProps({
         ]
       },
       {
-        // url: "./static/glb/仓库2.glb",
+        url: "./static/glb/试验田_2.glb",
         label: "政府试验田",
-        id: "Warehouse2",
-        lon: 120.027958,
+        id: "Warehouse3",
+        lon: 120.0283,
         lat: 32.257392,
         height: 0,
-        scale: 0.6,
-        heading: 255,
+        scale: 1.76,
+        heading: 90,
         pitch: 0,
         roll: 0,
         lines: [
@@ -267,7 +267,7 @@ function renderGlb(gltf) {
         // bloom: true                                // 自动开启发光特效
       });
     }
-    if (gltf.id == 'Farm') {
+    if (gltf.id == 'Warehouse3') {
       modelEntity1.value = modelEntity
      
     }
