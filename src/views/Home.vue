@@ -60,7 +60,7 @@
       <aside class="drawer-panel right-drawer" :class="{ collapsed: !rightDrawerOpen }">
         <DevicePanel :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
         <DataPanel :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
-        <DataPest v-if="!isFarmMode && !isDryingTowerMode && !isWarehouseMode" title="📊 虫情监测" :data="productionData1" />
+        <DataPest v-if="isFarmMode || (!isDryingTowerMode && !isWarehouseMode)" title="📊 虫情监测" :data="productionData1" />
         <DataVideo :title="videoPanelTitle" :data="videoPanelData" />
       </aside>
 
@@ -175,6 +175,7 @@ import ThreeFarm from '@/components/Threejs/Farm.vue'
 import ThreeWorkshop from '@/components/Threejs/Workshop.vue'
 const instance = getCurrentInstance();
 import GLOBAL from '@/utils/GLOBAL.js'
+import { getDeviceDashboard, getTestfieldSensors, getDryingSensors, getStorageSensors } from '@/utils/api.js'
 const viewer = GLOBAL.viewer;
 // const viewer = instance.appContext.config.globalProperties.$viewer;
 const cesiumMap = ref(null)
@@ -194,6 +195,8 @@ const allDrawersOpen = ref(true)
 const activeParentMenu = ref(null)
 const currentModel = ref({})
 const activeModelDevice = ref(null)
+
+const dashData = ref({})
 
 function toggleAllDrawers() {
   allDrawersOpen.value = !allDrawersOpen.value
@@ -227,6 +230,7 @@ const menus = [
     children: [
       {
         id: 'Farm', name: '试验田', icon: '🌱',
+        facilityId: 1,
         position: {
           lon: "120.097",
           lat: "32.250"
@@ -249,6 +253,16 @@ const menus = [
           ty: 1.8,
           tz: -50,
         },
+        waterPump: {
+          url: './static/glb/水泵.glb',
+          scale: 35,
+          offset: { x: 0, y: 8, z: 0 }
+        },
+        pestDevice: {
+          url: './static/glb/虫情测报仪.glb',
+          scale: 35,
+          offset: { x: 0, y: 0, z: 0 }
+        },
         camera: {
           "lon": 120.09738,
           "lat": 32.24902,
@@ -260,6 +274,7 @@ const menus = [
       },
       {
         id: 'Workshop', name: '烘干车间', icon: '🏭',
+        facilityId: 9,
         position: {
           lon: "120.089928",
           lat: "32.244513"
@@ -280,6 +295,12 @@ const menus = [
           ty: 0,
           tz: 0,
         },
+        dryingTowerDetail: {
+          url: './static/glb/烘干塔1.glb',
+          scale: 1,
+          offset: { x: 0, y: 0, z: 0 },
+          camera: { distance: 520 }
+        },
         camera: {
           "lon": 120.08971,
           "lat": 32.24951,
@@ -291,6 +312,7 @@ const menus = [
       },
       {
         id: 'Workshop2', name: '仓库', icon: '📦',
+        facilityId: 7,
         position: {
           lon: "120.089928",
           lat: "32.244513"
@@ -328,6 +350,7 @@ const menus = [
       {
         id: 'Farm2',
         name: '试验田',
+        facilityId: 2,
         icon: '🌱',
         position: {
           lon: "120.097",
@@ -350,6 +373,16 @@ const menus = [
           y: 150,
           z: -155,
         },
+        waterPump: {
+          url: './static/glb/水泵.glb',
+          scale: 35,
+          offset: { x: 0, y: 8, z: 0 }
+        },
+        pestDevice: {
+          url: './static/glb/虫情测报仪.glb',
+          scale: 35,
+          offset: { x: 0, y: 0, z: 0 }
+        },
         camera: {
           "lon": 120.04952,
           "lat": 32.26108,
@@ -361,6 +394,7 @@ const menus = [
       },
       {
         id: 'Workshop3',
+        facilityId: 10,
         name: '烘干车间',
         icon: '🏭',
         position: {
@@ -380,6 +414,12 @@ const menus = [
           y: 550,
           z: 1020,
         },
+        dryingTowerDetail: {
+          url: './static/glb/烘干塔1.glb',
+          scale: 1,
+          offset: { x: 0, y: 0, z: 0 },
+          camera: { distance: 520 }
+        },
         camera: {
           "lon": 120.01789,
           "lat": 32.25442,
@@ -391,6 +431,7 @@ const menus = [
       },
       {
         id: 'Warehouse2', name: '仓库', icon: '📦',
+        facilityId: 6,
         position: {
           lon: "120.089928",
           lat: "32.244513"
@@ -532,7 +573,7 @@ const envData = reactive([
   {
     label: '温度', value: '16.75', unit: '°C', status: '正常', chart: [
       {
-        time:  '2026-04-30',
+        time: '2026-04-30',
         value: 16.15
       },
       {
@@ -557,61 +598,64 @@ const envData = reactive([
       },
     ]
   },
-  { label: '空气湿度', value: '68', unit: '%', status: '正常', chart:
-   [
-      {
-        time:  '2026-04-30',
-        value:55
-      },
-      {
-        time: '2026-05-01',
-        value:60
-      },
-      {
-        time: '2026-05-02',
-        value: 58
-      },
-      {
-        time: '2026-05-03',
-        value: 65
-      },
-      {
-        time: '2026-05-04',
-        value: 70
-      },
-      {
-        time: '2026-05-05',
-        value: 68
-      },
-    ] },
-  { label: '光照强度', value: '83909', unit: 'lux', status: '充足', chart: 
-   [
-      {
-        time:  '2026-04-30',
-        value:90
-      },
-      {
-        time: '2026-05-01',
-        value:85
-      },
-      {
-        time: '2026-05-02',
-        value: 92
-      },
-      {
-        time: '2026-05-03',
-        value: 88
-      },
-      {
-        time: '2026-05-04',
-        value: 95
-      },
-      {
-        time: '2026-05-05',
-        value: 91
-      },
-    ]
- }
+  {
+    label: '空气湿度', value: '68', unit: '%', status: '正常', chart:
+      [
+        {
+          time: '2026-04-30',
+          value: 55
+        },
+        {
+          time: '2026-05-01',
+          value: 60
+        },
+        {
+          time: '2026-05-02',
+          value: 58
+        },
+        {
+          time: '2026-05-03',
+          value: 65
+        },
+        {
+          time: '2026-05-04',
+          value: 70
+        },
+        {
+          time: '2026-05-05',
+          value: 68
+        },
+      ]
+  },
+  {
+    label: '光照强度', value: '83909', unit: 'lux', status: '充足', chart:
+      [
+        {
+          time: '2026-04-30',
+          value: 90
+        },
+        {
+          time: '2026-05-01',
+          value: 85
+        },
+        {
+          time: '2026-05-02',
+          value: 92
+        },
+        {
+          time: '2026-05-03',
+          value: 88
+        },
+        {
+          time: '2026-05-04',
+          value: 95
+        },
+        {
+          time: '2026-05-05',
+          value: 91
+        },
+      ]
+  }
 ])
 
 const soilData = reactive([
@@ -641,7 +685,7 @@ const productionData1 = reactive([
   { label: '金龟子', value: '67', unit: '个' }
 ])
 
-const fieldPanelData = {
+const fieldPanelData = reactive({
   Farm: {
     name: '维明农场试验田',
     sensors: [
@@ -740,12 +784,12 @@ const fieldPanelData = {
       { name: '田块中心摄像头', url: 'http://localhost/live/farm3-center.flv' }
     ]
   }
-}
+})
 
 const isFarmMode = computed(() => ['Farm', 'Farm2', 'Farm3'].includes(currentMode.value))
 const activeFieldData = computed(() => fieldPanelData[currentMode.value] || fieldPanelData.Farm)
 const activeFieldName = computed(() => activeFieldData.value.name)
-const dryingTowerData = {
+const dryingTowerData = reactive({
   name: '烘干塔设备',
   status: '运行中',
   temperature: '58.6°C',
@@ -783,9 +827,9 @@ const dryingTowerData = {
     { name: '烘干塔顶部', url: 'http://localhost/live/dryer-top.flv' },
     { name: '烘干塔出粮口', url: 'http://localhost/live/dryer-outlet.flv' }
   ]
-}
+})
 const isDryingTowerMode = computed(() => ['Workshop', 'Workshop3'].includes(currentMode.value) || activeModelDevice.value?.type === 'dryingTower')
-const warehouseData = {
+const warehouseData = reactive({
   name: '仓库',
   sensors: [
     { label: '库内温度', value: '18.4', unit: '°C', status: '正常' },
@@ -817,7 +861,7 @@ const warehouseData = {
     { name: '仓库A区', url: 'http://localhost/live/warehouse-a.flv' },
     { name: '仓库B区', url: 'http://localhost/live/warehouse-b.flv' }
   ]
-}
+})
 const isWarehouseMode = computed(() => ['Workshop2', 'Warehouse', 'Warehouse2', 'Warehouse3'].includes(currentMode.value))
 const leftPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌡 烘干塔传感器' : (isWarehouseMode.value ? '📡 仓库传感器' : (isFarmMode.value ? `📡 ${activeFieldName.value}传感器` : '🌡 环境监测')))
 const leftPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.sensors : (isWarehouseMode.value ? warehouseData.sensors : (isFarmMode.value ? activeFieldData.value.sensors : envData)))
@@ -902,6 +946,16 @@ function switchMode(mode, obj) {
 
   currentModel.value = obj
 
+  if (isFarmModeId(mode)) {
+    getTestfieldOverview(obj?.facilityId , mode)
+  }
+  if (isDryingTowerModeId(mode)) {
+    getDryingOverview(obj?.facilityId )
+  }
+  if (isWarehouseModeId(mode)) {
+    getStorageOverview(obj?.facilityId )
+  }
+
 
   // 找到父级菜单
   const parent = menus.find(menu =>
@@ -941,8 +995,23 @@ function switchMode(mode, obj) {
 
 }
 
+function isFarmModeId(mode) {
+  return ['Farm', 'Farm2', 'Farm3'].includes(mode)
+}
+
+function isDryingTowerModeId(mode) {
+  return ['Workshop', 'Workshop3'].includes(mode)
+}
+
+function isWarehouseModeId(mode) {
+  return ['Workshop2', 'Warehouse', 'Warehouse2', 'Warehouse3'].includes(mode)
+}
+
 function handleDeviceDrill(device) {
   activeModelDevice.value = device
+  if (device?.type === 'dryingTower') {
+    getDryingOverview(device.facilityId || currentModel.value?.facilityId)
+  }
 }
 
 function handleMapClick({ lon, lat }) {
@@ -990,6 +1059,7 @@ function updateTime() {
 let timeInterval = null
 
 onMounted(() => {
+  getOverviewData()
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
   // Fly to initial location
@@ -1051,6 +1121,381 @@ function getMenuObjById(id) {
   }
   return null
 }
+
+// 获取总览数据
+function getOverviewData() {
+  getDeviceDashboard().then(res => {
+    console.log(res)
+    if (res.code == 200) {
+      dashData.value = res.data
+      const environment = res.data.environment
+      const latestRecord = res.data.latestRecord
+      console.log(222222, environment, latestRecord)
+      soilData.splice(0, soilData.length, ...[
+        { label: '土壤 pH 值', value: environment.avgSoilPH, status: '' },
+        { label: '氮 N', value: `${latestRecord.nitrogen}`, unit: 'mg/kg' },
+        { label: '磷 P', value: `${latestRecord.phosphorus}`, unit: 'mg/kg' },
+        { label: '钾 K', value: `${latestRecord.potassium}`, unit: 'mg/kg' }
+      ])
+      devices.splice(0, devices.length, ...[
+        { name: '气压', text: `${latestRecord.pressure}KPa` },
+        { name: '光照', text: `${latestRecord.lightIntensity}lux` },
+        { name: '光合', text: `${latestRecord.photosynthesis}μmol/m²` },
+        { name: '风速', text: `${latestRecord.windSpeed}m/s` },
+        { name: '累计雨量', text: `${latestRecord.rainfall}mm` },
+        { name: '风向', text: `${latestRecord.windDirection}°` },
+        { name: '总辐射', text: `${latestRecord.totalRadiation}HW/m2` }
+      ])
+      productionData.splice(0, productionData.length, ...[
+        { label: '土壤温度', value: environment.avgTemperature, unit: '°C' },
+        { label: '土壤湿度', value: environment.avgHumidity, unit: '%', },
+      ])
+      envData.splice(0, envData.length, ...[
+        {
+          label: '温度', value: `${latestRecord.ambientTemperature}`, unit: '°C', status: '正常', chart: [
+            {
+              time: '2026-04-30',
+              value:  `${latestRecord.soilTemp}`
+            },
+            {
+              time: '2026-05-01',
+              value: `${latestRecord.soilTemp1}`
+            },
+            {
+              time: '2026-05-02',
+              value: `${latestRecord.soilTemp2}`
+            },
+            {
+              time: '2026-05-03',
+              value: `${latestRecord.soilTemp3}`
+            },
+            {
+              time: '2026-05-04',
+              value: `${latestRecord.soilTemp4}`
+            },
+            {
+              time: '2026-05-05',
+              value: `${latestRecord.soilTemp5}`
+            },
+          ]
+        },
+        {
+          label: '空气湿度', value: `${latestRecord.ambientHumidity}`, unit: '%', status: '正常', chart:
+            [
+              {
+                time: '2026-04-30',
+                value:  `${latestRecord.soilHumi}`
+              },
+              {
+                time: '2026-05-01',
+                value: `${latestRecord.soilHumi1}`
+              },
+              {
+                time: '2026-05-02',
+                value: `${latestRecord.soilHumi2}`
+              },
+              {
+                time: '2026-05-03',
+                value: `${latestRecord.soilHumi3}`
+              },
+              {
+                time: '2026-05-04',
+                value: `${latestRecord.soilHumi4}`
+              },
+              {
+                time: '2026-05-05',
+                value: `${latestRecord.soilHumi5}`
+              },
+            ]
+        },
+        {
+          label: '土壤电导率', value: `${environment.avgSoilEC}`, unit: 'uS/cm', status: '充足', chart:
+            [
+              {
+                time: '2026-04-30',
+                value:  `${latestRecord.soilCond}`
+              },
+              {
+                time: '2026-05-01',
+                value: `${latestRecord.soilCond1}`
+              },
+              {
+                time: '2026-05-02',
+                value: `${latestRecord.soilCond2}`
+              },
+              {
+                time: '2026-05-03',
+                value: `${latestRecord.soilCond3}`
+              },
+              {
+                time: '2026-05-04',
+                value: `${latestRecord.soilCond4}`
+              },
+              {
+                time: '2026-05-05',
+                value: `${latestRecord.soilCond5}`
+              },
+            ]
+        }
+      ])
+    }
+  })
+}
+// 获取试验田总览数据
+function getTestfieldOverview(facilityId, mode = currentMode.value) {
+  const params = facilityId ? { facilityId: facilityId } : {}
+  getTestfieldSensors(params).then(res => {
+    console.log('getTestfieldOverview', res)
+    if (res.code == 200 && res.data) {
+      bindTestfieldOverview(mode, res.data)
+    }
+  })
+} 
+
+function bindTestfieldOverview(mode, data) {
+  const payload = data.overview || data.detail || data
+  const target = fieldPanelData[mode]
+  if (!target) return
+
+  const facility = payload.facility || {}
+  const realtimeSensor = payload.realtimeSensor || {}
+  const soil = payload.soil || {}
+  const weather = payload.weather || {}
+  const weatherInfo = payload.weatherInfo || {}
+  const facilityStatus = payload.facilityStatus || {}
+  const irrigationControl = payload.irrigationControl || {}
+
+  target.name = facility.name || payload.name || target.name
+
+  target.sensors.splice(0, target.sensors.length, ...[
+    { label: '空气温度', value: realtimeSensor.airTemperature ?? '--', unit: '°C', status: '正常' },
+    { label: '空气湿度', value: realtimeSensor.airHumidity ?? '--', unit: '%', status: '正常' },
+    { label: '光照强度', value: realtimeSensor.lightIntensity ?? '--', unit: 'lux', status: '充足' },
+    { label: 'CO₂浓度', value: realtimeSensor.co2Concentration ?? '--', unit: 'ppm', status: '正常' }
+  ])
+
+  target.soil.splice(0, target.soil.length, ...[
+    { label: '土壤温度', value: realtimeSensor.soilTemperature ?? soil.temperature ?? '--', unit: '°C', status: '正常' },
+    { label: '土壤湿度', value: realtimeSensor.soilHumidity ?? soil.moisture ?? '--', unit: '%', status: '正常' },
+    { label: '土壤 pH', value: realtimeSensor.soilPh ?? soil.ph ?? '--', unit: '', status: '正常' },
+    { label: '土壤电导率', value: soil.ec ?? '--', unit: 'mS/cm', status: '正常' },
+    { label: '氮 N', value: soil.nitrogen ?? '--', unit: 'mg/kg', status: '正常' },
+    { label: '磷 P', value: soil.phosphorus ?? '--', unit: 'mg/kg', status: '正常' },
+    { label: '钾 K', value: soil.potassium ?? '--', unit: 'mg/kg', status: '正常' }
+  ])
+
+  target.weather.splice(0, target.weather.length, ...[
+    { name: '气温', text: formatDeviceValue(weather.temperature ?? '--', '°C'), status: 'online' },
+    { name: '湿度', text: formatDeviceValue(weather.humidity ?? '--', '%'), status: 'online' },
+    { name: '风速', text: formatDeviceValue(weatherInfo.windSpeed ?? weather.windSpeed ?? '--', 'm/s'), status: 'online' },
+    { name: '风向', text: weatherInfo.windDirection || formatDeviceValue(weather.windDirection ?? '--', '°'), status: 'online' },
+    { name: '气压', text: formatDeviceValue(weatherInfo.airPressure ?? weather.pressure ?? '--', 'KPa'), status: 'online' },
+    { name: '总辐射', text: formatDeviceValue(weatherInfo.totalRadiation ?? '--', 'W/m²'), status: 'online' }
+  ])
+
+  target.irrigation.splice(0, target.irrigation.length, ...[
+    { label: '灌溉阀门', value: irrigationControl.valveStatus || facilityStatus.irrigationStatus || '--', unit: '', status: '运行中' },
+    { label: '瞬时流量', value: irrigationControl.instantFlow ?? '--', unit: 'm³/h', status: '正常' },
+    { label: '管网压力', value: irrigationControl.pipePressure ?? '--', unit: 'MPa', status: '正常' },
+    { label: '今日用水', value: irrigationControl.todayWaterConsumption ?? '--', unit: 'm³', status: '节能' },
+    { label: '预警数量', value: facilityStatus.warningCount ?? '0', unit: '条', status: '正常' }
+  ])
+
+  target.videos.splice(0, target.videos.length, ...normalizeVideoMonitor(payload.insectDetection, '虫情摄像头'))
+  productionData1.splice(0, productionData1.length, ...normalizeInsectData(payload.insectData))
+}
+
+function normalizePanelData(list) {
+  return list.map(item => ({
+    label: item.label || item.name || item.sensorName || '',
+    value: item.value ?? item.dataValue ?? item.text ?? '',
+    unit: item.unit || '',
+    status: item.status || '正常',
+    chart: item.chart
+  }))
+}
+
+function normalizeDeviceData(list) {
+  return list.map(item => ({
+    name: item.name || item.label || item.deviceName || '',
+    text: item.text || `${item.value ?? item.dataValue ?? ''}${item.unit || ''}`,
+    status: item.status || 'online'
+  }))
+}
+
+function normalizeVideoMonitor(videoMonitor, prefix) {
+  if (!videoMonitor) return []
+  if (Array.isArray(videoMonitor)) {
+    return videoMonitor.map((item, index) => ({
+      name: item.name || item.label || `${prefix}${index + 1}`,
+      url: item.url || item.streamUrl || item.videoUrl || item.flvUrl || ''
+    })).filter(item => item.url)
+  }
+  return Object.entries(videoMonitor).map(([key, value], index) => ({
+    name: `${prefix}${index + 1}`,
+    url: value,
+    channel: key
+  })).filter(item => item.url)
+}
+
+function normalizeInsectData(insectData = []) {
+  const pestMap = new Map()
+  insectData.forEach(item => {
+    try {
+      const result = JSON.parse(item.detectResult || '{}')
+      const pests = Array.isArray(result.pests) ? result.pests : []
+      pests.forEach(pest => {
+        const name = pest.type || '其他'
+        const count = Number(pest.count || 0)
+        pestMap.set(name, (pestMap.get(name) || 0) + count)
+      })
+    } catch (error) {
+      if (item.objectCount !== undefined) {
+        pestMap.set(item.devName || '虫情数量', (pestMap.get(item.devName || '虫情数量') || 0) + Number(item.objectCount || 0))
+      }
+    }
+  })
+  return Array.from(pestMap.entries()).map(([label, value]) => ({
+    label,
+    name: label,
+    value,
+    unit: '个'
+  }))
+}
+
+function pickValue(primary, secondary, keys, fallback = '--') {
+  for (const key of keys) {
+    const value = primary?.[key] ?? secondary?.[key]
+    if (value !== undefined && value !== null && value !== '') return value
+  }
+  return fallback
+}
+
+function formatDeviceValue(value, unit) {
+  if (value === '--') return value
+  const text = String(value)
+  return unit && text.includes(unit) ? text : `${text}${unit}`
+}
+// 获取烘干塔总览数据
+function getDryingOverview(facilityId) {
+  const params = facilityId ? { facilityId: facilityId } : {}
+  getDryingSensors(params).then(res => {
+    console.log('getDryingOverview', res)
+    if (res.code == 200 && res.data) {
+      bindDryingOverview(res.data)
+    }
+  })
+} 
+
+function bindDryingOverview(data) {
+  const payload = data.overview || data.detail || data
+  const facility = payload.facility || {}
+  const operationStatus = payload.operationStatus || {}
+  const realtimeSensor = payload.realtimeSensor || {}
+  const processData = payload.processData || {}
+  const energyConsumption = payload.energyConsumption || {}
+  const deviceStatus = payload.deviceStatus || {}
+  const recentBatch = Array.isArray(payload.recentBatches) ? payload.recentBatches[0] || {} : {}
+
+  dryingTowerData.name = facility.name || payload.name || payload.towerName || dryingTowerData.name
+  dryingTowerData.status = operationStatus.runStatus || dryingTowerData.status
+  dryingTowerData.temperature = formatDeviceValue(operationStatus.innerTemperature ?? realtimeSensor.innerTemperature ?? stripUnit(dryingTowerData.temperature), '°C')
+  dryingTowerData.humidity = formatDeviceValue(operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? recentBatch.currentMoisture ?? stripUnit(dryingTowerData.humidity), '%')
+  dryingTowerData.windTemp = formatDeviceValue(operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? stripUnit(dryingTowerData.windTemp), '°C')
+  dryingTowerData.capacity = formatDeviceValue(processData.processingCapacity ?? stripUnit(dryingTowerData.capacity), 't/h')
+  dryingTowerData.grain = processData.grainType || recentBatch.grainType || dryingTowerData.grain
+  dryingTowerData.moistureDrop = formatDeviceValue(processData.targetMoisture ?? recentBatch.targetMoisture ?? stripUnit(dryingTowerData.moistureDrop), '%')
+
+  dryingTowerData.sensors.splice(0, dryingTowerData.sensors.length, ...[
+    { label: '塔内温度', value: operationStatus.innerTemperature ?? '--', unit: '°C', status: '正常' },
+    { label: '热风温度', value: operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? '--', unit: '°C', status: '正常' },
+    { label: '出粮水分', value: operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? '--', unit: '%', status: '正常' },
+    { label: '粮层厚度', value: realtimeSensor.grainLayerThickness ?? '--', unit: 'm', status: '正常' }
+  ])
+
+  dryingTowerData.process.splice(0, dryingTowerData.process.length, ...[
+    { label: '处理粮种', value: processData.grainType || recentBatch.grainType || '--', unit: '', status: operationStatus.runStatus || '运行中' },
+    { label: '处理能力', value: processData.processingCapacity ?? '--', unit: 't/h', status: '正常' },
+    { label: '目标水分', value: processData.targetMoisture ?? recentBatch.targetMoisture ?? '--', unit: '%', status: '正常' },
+    { label: '烘干时长', value: recentBatch.dryingDuration ?? '--', unit: 'min', status: '正常' }
+  ])
+
+  dryingTowerData.equipment.splice(0, dryingTowerData.equipment.length, ...[
+    { name: '提升机', text: deviceStatus.elevator || '--', status: 'online' },
+    { name: '垂直烘干风机', text: deviceStatus.verticalDryingFan || '--', status: 'online' },
+    { name: '循环风机', text: deviceStatus.circulatingFan || '--', status: 'online' },
+    { name: '燃烧器', text: deviceStatus.burner || '--', status: 'online' },
+    { name: '排风阀', text: deviceStatus.exhaustValve || '--', status: 'online' }
+  ])
+
+  dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
+    { label: '瞬时功率', value: energyConsumption.instantPower ?? '--', unit: 'kW', status: '正常' },
+    { label: '今日耗电', value: energyConsumption.todayPowerConsumption ?? '--', unit: 'kWh', status: '节能' },
+    { label: '燃气流量', value: energyConsumption.gasFlowRate ?? '--', unit: 'm³/h', status: '正常' },
+    { label: '出粮量', value: energyConsumption.outletGrainCount ?? '--', unit: 't', status: '正常' }
+  ])
+
+  dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor, '烘干塔摄像头'))
+}
+
+function stripUnit(value) {
+  return String(value ?? '').replace(/[^\d.-]/g, '') || '--'
+}
+// 获取仓库总览数据
+function getStorageOverview(facilityId) {
+  const params = facilityId ? { facilityId: facilityId } : {}
+  getStorageSensors(params).then(res => {
+    console.log('getStorageOverview', res)
+    if (res.code == 200 && res.data) {
+      bindStorageOverview(res.data)
+    }
+  })
+} 
+
+function bindStorageOverview(data) {
+  const payload = data.overview || data.detail || data
+  const facility = payload.facility || {}
+  const realtimeSensor = payload.realtimeSensor || {}
+  const positionStatus = payload.positionStatus || {}
+  const stockStatus = payload.stockStatus || {}
+  const stockStats = payload.stockStats || {}
+  const deviceStatus = payload.deviceStatus || {}
+  const firstStock = Array.isArray(payload.stockList) ? payload.stockList[0] || {} : {}
+
+  warehouseData.name = facility.name || payload.name || payload.warehouseName || warehouseData.name
+
+  warehouseData.sensors.splice(0, warehouseData.sensors.length, ...[
+    { label: '库内温度', value: realtimeSensor.innerTemperature ?? '--', unit: '°C', status: '正常' },
+    { label: '库内湿度', value: realtimeSensor.innerHumidity ?? '--', unit: '%', status: '正常' },
+    { label: '粮堆温度', value: realtimeSensor.grainTemperature ?? '--', unit: '°C', status: '正常' },
+    { label: '氨气浓度', value: realtimeSensor.ammoniaConcentration ?? '--', unit: 'ppm', status: '正常' }
+  ])
+
+  warehouseData.positions.splice(0, warehouseData.positions.length, ...[
+    { label: '当前库容', value: positionStatus.currentCapacity ?? '--', unit: '%', status: '正常' },
+    { label: '可用库容', value: positionStatus.availableCapacity ?? '--', unit: '%', status: '正常' },
+    { label: '库存总量', value: stockStats.totalStock ?? '--', unit: 't', status: '正常' },
+    { label: '库存批次', value: stockStats.stockCount ?? '--', unit: '批', status: '正常' }
+  ])
+
+  warehouseData.equipment.splice(0, warehouseData.equipment.length, ...[
+    { name: '通风系统', text: deviceStatus.ventilation || '--', status: 'online' },
+    { name: '湿度控制', text: deviceStatus.humidityControl || '--', status: deviceStatus.humidityControl === '停机' ? 'offline' : 'online' },
+    { name: '门禁状态', text: deviceStatus.doorStatus || '--', status: 'online' },
+    { name: '消防水压', text: formatDeviceValue(deviceStatus.fireWaterPressure ?? '--', 'MPa'), status: 'online' },
+    { name: '安防巡检', text: deviceStatus.securityInspection || '--', status: 'online' }
+  ])
+
+  warehouseData.stock.splice(0, warehouseData.stock.length, ...[
+    { label: '库存粮种', value: stockStatus.grainType || firstStock.grainType || '--', unit: '', status: '正常' },
+    { label: '库存重量', value: stockStatus.stockWeight ?? stockStats.totalStock ?? '--', unit: 't', status: '正常' },
+    { label: '入库批次', value: stockStatus.entryBatchCount ?? stockStats.stockCount ?? '--', unit: '批', status: '正常' },
+    { label: '异常告警', value: stockStatus.abnormalAlertCount ?? stockStats.warningCount ?? '0', unit: '条', status: '正常' }
+  ])
+
+  warehouseData.videos.splice(0, warehouseData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor, '仓库摄像头'))
+}
+
 
 onUnmounted(() => {
   if (timeInterval) clearInterval(timeInterval)

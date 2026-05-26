@@ -20,12 +20,12 @@
 
 <script setup>
 
-import { ref, reactive, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, getCurrentInstance, watch } from 'vue'
 import { useAppStore } from '@/store/modules/app';
-import { insectStatistic } from '@/utils/api'
+import { insectStatistic, getInsectStatistics } from '@/utils/api'
 
 import Echart from './COMS/Echart.vue'
-defineProps({
+const props = defineProps({
   title: String,
   data: Array
 })
@@ -33,7 +33,47 @@ defineProps({
 const list = ref([])
 const echartOptions = ref({})
 
+function setChartData(data = []) {
+  if (!data.length) return
+  list.value = data.map(item => ({
+    name: item.name || item.label,
+    value: item.value
+  }))
+  echartOptions.value = {
+    xAxis: {
+      type: 'category',
+      data: list.value.map(item => item.name),
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {},
+    },
+    series: [
+      {
+        data: list.value.map(item => item.value),
+        type: 'bar',
+        itemStyle: {
+          color: '#5470c6'
+        },
+        label: {
+          show: true,
+          position: 'top',
+          color: '#333',
+        }
+      }
+    ],
+  }
+}
+
+watch(() => props.data, (data) => {
+  setChartData(data)
+}, {
+  immediate: true,
+  deep: true
+})
+
 onMounted(() => {
+  if (props.data && props.data.length) return
   const appStore = useAppStore();
   const params = {
     etime: "",
@@ -42,9 +82,9 @@ onMounted(() => {
     token: appStore.appInfo.token,
     imei: "ft202604001",
   }
-  insectStatistic(params).then(res => {
+  getInsectStatistics(params).then(res => {
     console.log(res)
-    if (res.code === 0) {
+    if (res.code === 200) {
       // list.value = res.data.sort((a, b) => {
       //   return b.value - a.value
       // }).map(item => {
