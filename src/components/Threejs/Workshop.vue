@@ -15,7 +15,7 @@
     </div>
   </div> -->
   <template v-if="gltfStatus && ['Workshop','Workshop3'].includes(currentModel.id) ">
-    <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
+    <label class="internal-scene-btn" :class="{ active: inStatus }">
       <input type="checkbox" v-model="inStatus" @change="changeStatus" />
       内部场景
     </label>
@@ -75,8 +75,16 @@ let mixers = []
 let pageModels = markRaw([])
 let drillHotspots = markRaw([])
 let isolatedVisibility = markRaw(new Map())
+let internalSceneVisibility = markRaw(new Map())
 let flowLines = markRaw([])
 let label
+let activeDryingTowerModel = null
+
+const defaultDryingTowerConfig = {
+  url: './static/glb/烘干塔.glb',
+  scale: 1,
+  offset: { x: 0, y: 0, z: 0 }
+}
 const modelUrl = computed(() => {
   const map = {
     overview: '🌾 总览',
@@ -125,6 +133,8 @@ onUnmounted(() => {
 
 function resetWorkshopState() {
   restoreIsolatedVisibility()
+  restoreInternalSceneVisibility()
+  removeDryingTowerDetailModel()
   removeLine()
   inStatus.value = false
   drillDevice.value = null
@@ -134,6 +144,8 @@ function resetWorkshopState() {
 
 function remove() {
   restoreIsolatedVisibility()
+  restoreInternalSceneVisibility()
+  removeDryingTowerDetailModel()
   removeLine()
   drillDevice.value = null
   isolatedDevice.value = null
@@ -166,6 +178,7 @@ function onGetInfo(e) {
 
 
 function onClick(item) {
+  if (activeDryingTowerModel) return
   if (item) {
     if (tryDrillDryingTower(item)) return
     const label = showTooltip(item.object, item.point)
@@ -201,7 +214,7 @@ async function renderModel(obj) {
       }
       const tmp = markRaw(GLOBAL[key]) // 定义当前模型
       scene.add(GLOBAL[key].scene);
-      if (index = 0) {
+      if (index === 0) {
         model = tmp
       }
       pageModels.push(GLOBAL[key])
@@ -287,6 +300,10 @@ function findDryingTowerObject(object) {
 function tryDrillDryingTower(item) {
   const target = findDryingTowerObject(item.object)
   if (!target) return false
+  if (inStatus.value) {
+    showDryingTowerDetail(target)
+    return true
+  }
   const cameraConfig = target.userData?.camera
   const lookAtConfig = target.userData?.lookAt
   const targetWorldPosition = new THREE.Vector3()
@@ -316,6 +333,16 @@ function tryDrillDryingTower(item) {
 }
 
 function resetDeviceDrill(notify = true) {
+  if (activeDryingTowerModel) {
+    removeDryingTowerDetailModel()
+    showWorkshopModels()
+    inStatus.value = true
+    applyInternalScene(true, false)
+    isolatedDevice.value = null
+    drillDevice.value = null
+    if (notify) emit('deviceDrill', null)
+    return
+  }
   if (isolatedDevice.value) {
     restoreIsolatedVisibility()
     isolatedDevice.value = null
@@ -336,6 +363,131 @@ function resetDeviceDrill(notify = true) {
   }
 }
 
+async function showDryingTowerDetail(target) {
+  hideWorkshopModels()
+  removeTooltip()
+  removeLine()
+  drillHotspots.forEach((hotspot) => {
+    hotspot.visible = false
+  })
+
+  const config = currentModel.value?.dryingTowerDetail ?? defaultDryingTowerConfig
+  activeDryingTowerModel = markRaw(await appStore.loadGLBModal(loader, config.url ?? defaultDryingTowerConfig.url))
+  activeDryingTowerModel.scene.name = target.userData?.deviceName || target.name || '烘干塔设备'
+  activeDryingTowerModel.scene.userData.modelId = 'dryingTowerDetail'
+  prepareDryingTowerDetailModel(activeDryingTowerModel.scene)
+  scene.add(activeDryingTowerModel.scene)
+
+  const targetWorldPosition = new THREE.Vector3()
+  target.getWorldPosition(targetWorldPosition)
+  const scale = config.scale ?? defaultDryingTowerConfig.scale
+  const offset = config.offset ?? defaultDryingTowerConfig.offset
+  activeDryingTowerModel.scene.scale.set(scale, scale, scale)
+  activeDryingTowerModel.scene.position.set(
+    targetWorldPosition.x + (offset.x ?? 0),
+    targetWorldPosition.y + (offset.y ?? 0),
+    targetWorldPosition.z + (offset.z ?? 0)
+  )
+  focusDetailModel(activeDryingTowerModel.scene, config.camera)
+
+  isolatedDevice.value = {
+    type: 'dryingTowerDetail',
+    name: activeDryingTowerModel.scene.name
+  }
+  drillDevice.value = {
+    type: 'dryingTowerDetail',
+    name: activeDryingTowerModel.scene.name,
+    subtitle: `${currentModel.value?.name || '烘干车间'} / 烘干塔模型`
+  }
+  emit('deviceDrill', drillDevice.value)
+}
+
+function prepareDryingTowerDetailModel(modelScene) {
+  modelScene.traverse((object) => {
+    const name = String(object.name || '')
+    const materialName = String(object.material?.name || '')
+    const isLargeGround = name.includes('平面') || materialName.includes('道路')
+    if (isLargeGround) {
+      object.visible = false
+    }
+  })
+}
+
+function removeDryingTowerDetailModel() {
+  if (!activeDryingTowerModel) return
+  scene.remove(activeDryingTowerModel.scene)
+  disposeModel(activeDryingTowerModel.scene)
+  activeDryingTowerModel = null
+}
+
+function hideWorkshopModels() {
+  pageModels.forEach((model) => {
+    if (model?.scene) model.scene.visible = false
+  })
+}
+
+function showWorkshopModels() {
+  pageModels.forEach((model) => {
+    if (model?.scene) model.scene.visible = true
+  })
+  drillHotspots.forEach((hotspot) => {
+    hotspot.visible = true
+  })
+}
+
+function removeTooltip() {
+  if (label) {
+    label.removeFromParent()
+    label = null
+  }
+}
+
+function disposeModel(modelScene) {
+  modelScene.traverse((object) => {
+    if (object.geometry) {
+      object.geometry.dispose()
+    }
+    if (object.material) {
+      if (Array.isArray(object.material)) {
+        object.material.forEach(material => material.dispose())
+      } else {
+        object.material.dispose()
+      }
+    }
+  })
+}
+
+function focusDetailModel(modelScene, cameraConfig = {}) {
+  modelScene.updateMatrixWorld(true)
+  const box = getVisibleMeshBox(modelScene)
+  if (box.isEmpty()) return
+
+  const center = box.getCenter(new THREE.Vector3())
+  const size = box.getSize(new THREE.Vector3())
+  const maxSize = Math.max(size.x, size.y, size.z)
+  const direction = new THREE.Vector3(1, 0.7, 1).normalize()
+  const distance = cameraConfig.distance ?? Math.max(maxSize * 1.6, 140)
+  const targetPos = center.clone().add(direction.multiplyScalar(distance))
+
+  controls.target.copy(center)
+  camera.position.copy(targetPos)
+  controls.update()
+}
+
+function getVisibleMeshBox(modelScene) {
+  const box = new THREE.Box3()
+  const meshBox = new THREE.Box3()
+  modelScene.traverse((object) => {
+    if (!object.isMesh || !object.visible) return
+    const name = String(object.name || '')
+    const materialName = String(object.material?.name || '')
+    if (name.includes('平面') || materialName.includes('道路')) return
+    meshBox.setFromObject(object)
+    box.union(meshBox)
+  })
+  return box
+}
+
 function getActiveWorkshopModel() {
   if (props.data.id == 'Workshop') return getModelById('./static/glb/厂房1.glb', 'modelUrl')
   if (props.data.id == 'Workshop3') return getModelById('changfang3')
@@ -347,6 +499,107 @@ function restoreIsolatedVisibility() {
     object.visible = visible
   })
   isolatedVisibility = markRaw(new Map())
+}
+
+function restoreInternalSceneVisibility() {
+  internalSceneVisibility.forEach((visible, object) => {
+    object.visible = visible
+  })
+  internalSceneVisibility = markRaw(new Map())
+}
+
+function setObjectVisibleWithCache(object, visible) {
+  if (!object || internalSceneVisibility.has(object)) return
+  internalSceneVisibility.set(object, object.visible)
+  object.visible = visible
+}
+
+function getInternalSceneConfig() {
+  const configs = {
+    Workshop: {
+      model: getModelById('./static/glb/厂房1.glb', 'modelUrl'),
+      outsideNames: ['太阳能', '太阳能002', '厂房', '厂房001'],
+      inCamera: {
+        position: [90, 220, -10],
+        target: [170, 45, 100]
+      },
+      outCamera: {
+        position: [56, 500, -400],
+        target: [0, 0, 0]
+      }
+    },
+    Workshop3: {
+      model: getModelById('changfang3'),
+      outsideNames: ['002', '002039', 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036'],
+      outsideKeywords: ['窗户', '小窗户'],
+      inCamera: {
+        position: [-50, 305, 105],
+        target: [170, 45, 100]
+      },
+      outCamera: {
+        position: [10, 550, 1020],
+        target: [0, 0, 0]
+      }
+    }
+  }
+
+  return configs[props.data.id]
+}
+
+function moveToCamera(config) {
+  if (!config) return
+  flyTo(
+    new THREE.Vector3(...config.position),
+    new THREE.Vector3(...config.target)
+  )
+}
+
+function applyInternalScene(value, shouldMoveCamera = true) {
+  restoreInternalSceneVisibility()
+
+  const config = getInternalSceneConfig()
+  if (!config?.model?.scene) {
+    inStatus.value = false
+    removeLine()
+    return false
+  }
+
+  if (!value) {
+    removeLine()
+    if (shouldMoveCamera) {
+      moveToCamera(config.outCamera)
+    }
+    return true
+  }
+
+  config.outsideNames.forEach((name) => {
+    const object = getModal(config.model.scene, name)
+    if (!object) return
+
+    object.traverse((child) => {
+      setObjectVisibleWithCache(child, !value)
+    })
+    setObjectVisibleWithCache(object, !value)
+  })
+
+  config.outsideKeywords?.forEach((keyword) => {
+    config.model.scene.traverse((object) => {
+      if (!String(object.name || '').includes(keyword)) return
+      object.traverse((child) => {
+        setObjectVisibleWithCache(child, !value)
+      })
+      setObjectVisibleWithCache(object, !value)
+    })
+  })
+
+  removeLine()
+  createLine()
+
+  if (shouldMoveCamera) {
+    moveToCamera(config.inCamera)
+  }
+
+  return true
 }
 
 function isolateDryingTowerAndHeater(target) {
@@ -398,78 +651,7 @@ function changeStatus(e) {
   console.log(1111111, props.data )
   restoreIsolatedVisibility()
   isolatedDevice.value = null
-  if (props.data.id == 'Workshop') {
-
-    const model = getModelById('./static/glb/厂房1.glb', 'modelUrl')
-    if (model) {
-      const value = inStatus.value
-      console.log(inStatus.value, e)
-      const outList = ['太阳能', '太阳能002', '厂房', , '厂房001']
-      for (let index = 0; index < outList.length; index++) {
-        const name = outList[index];
-        let obj
-        obj = getModal(model.scene, name)
-        obj && obj.traverse((child) => { child.visible = !value });
-        obj && (obj.visible = !value)
-      }
-
-      if (value) {
-        // 定位
-        const targetPos = new THREE.Vector3(90, 220, -10)
-        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        // 模型加载成功后触发
-        removeLine()
-        createLine()
-      } else {
-        // 定位
-        const targetPos = new THREE.Vector3(56, 500, -400)
-        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        removeLine()
-      }
-
-    }
-  } else if (props.data.id == 'Workshop3') {
-    const model = getModelById('changfang3')
-    if (model) {
-      const value = inStatus.value
-      console.log(inStatus.value, e)
-      const outList = ['002', '002039', , 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036']
-      for (let index = 0; index < outList.length; index++) {
-        const name = outList[index];
-        let obj
-        obj = getModal(model.scene, name)
-        obj && obj.traverse((child) => { child.visible = !value });
-        obj && (obj.visible = !value)
-      }
-
-      if (value) {
-        // 定位
-        const targetPos = new THREE.Vector3(-50, 305, 105)
-        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        // 模型加载成功后触发
-        removeLine()
-        createLine()
-      } else {
-        // 定位
-        const targetPos = new THREE.Vector3(10, 550, 1020)
-        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        removeLine()
-      }
-
-    }
-  }
+  applyInternalScene(inStatus.value)
 }
 
 function getModal(obj, name) {
@@ -1044,9 +1226,9 @@ animate();
 </script>
 
 <style scoped>
+.internal-scene-btn,
 .device-back-btn {
   position: fixed;
-  left: 390px;
   bottom: 96px;
   z-index: 9999;
   padding: 7px 12px;
@@ -1055,8 +1237,31 @@ animate();
   border: 1px solid rgba(64, 240, 180, 0.45);
   border-radius: 6px;
   cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
 }
 
+.internal-scene-btn {
+  left: 300px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.internal-scene-btn input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #69ffc5;
+}
+
+.device-back-btn {
+  left: 410px;
+}
+
+.internal-scene-btn:hover,
+.internal-scene-btn.active,
 .device-back-btn:hover {
   color: #07100d;
   background: #69ffc5;

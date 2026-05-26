@@ -8,6 +8,9 @@
         <input type="number" v-model.number="config.scale" :step="1" @input="updateModel">
       </div> -->
   </div>
+  <button v-if="pumpVisible" class="farm-back-btn" @click.stop="closePumpModel">
+    返回试验田
+  </button>
 </template>
 
 <script setup>
@@ -56,6 +59,20 @@ let pageModels = markRaw([])
 let flowLines = markRaw([])
 
 let label
+let activeDetailModel = null
+const pumpVisible = ref(false)
+
+const defaultPumpConfig = {
+  url: './static/glb/水泵.glb',
+  scale: 35,
+  offset: { x: 0, y: 8, z: 0 }
+}
+
+const defaultPestConfig = {
+  url: './static/glb/虫情测报仪.glb',
+  scale: 35,
+  offset: { x: 0, y: 0, z: 0 }
+}
 
 const config = reactive({
   x:0,
@@ -115,6 +132,12 @@ function remove() {
     label.removeFromParent()
     label = null
   }
+  if (activeDetailModel) {
+    scene.remove(activeDetailModel.scene)
+    disposeModel(activeDetailModel.scene)
+    activeDetailModel = null
+  }
+  pumpVisible.value = false
   if (pageModels && pageModels.length) {
     for (let index = 0; index < pageModels.length; index++) {
       const model = pageModels[index];
@@ -124,19 +147,7 @@ function remove() {
       if (modelScene) {
         scene.remove(modelScene);
 
-        // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
-        modelScene.traverse((object) => {
-          if (object.geometry) {
-            object.geometry.dispose();
-          }
-          if (object.material) {
-            if (Array.isArray(object.material)) {
-              object.material.forEach(material => material.dispose());
-            } else {
-              object.material.dispose();
-            }
-          }
-        });
+        disposeModel(modelScene);
       }
     }
   }
@@ -145,13 +156,35 @@ function remove() {
 
 }
 
+function disposeModel(modelScene) {
+  // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
+  modelScene.traverse((object) => {
+    if (object.geometry) {
+      object.geometry.dispose();
+    }
+    if (object.material) {
+      if (Array.isArray(object.material)) {
+        object.material.forEach(material => material.dispose());
+      } else {
+        object.material.dispose();
+      }
+    }
+  });
+}
+
 
 
 
 function onClick(item) {
+  if (pumpVisible.value) return
   if (item) {
-    const object = item.object // item.object.parent ?? item.object
-    const label = showTooltip(object, item.point)
+    const name = getObjectNamePath(item.object)
+    console.log('试验田点击对象:', name, item)
+    if (name.indexOf('水井') > -1) {
+      showPumpAtWell(item)
+    } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
+      showPestDevice(item)
+    }
   }
 }
 
@@ -198,6 +231,101 @@ function getModelById(id) {
 
 function getGlb(id) {
   return GLOBAL[id] ?? null
+}
+
+async function showPumpAtWell(item) {
+  const pumpConfig = props.data?.waterPump ?? defaultPumpConfig
+  showDetailModel(item, pumpConfig, '水泵')
+}
+
+async function showPestDevice(item) {
+  const pestConfig = props.data?.pestDevice ?? defaultPestConfig
+  showDetailModel(item, pestConfig, '虫情测报仪')
+}
+
+async function showDetailModel(item, config, modelName) {
+  const point = item?.point
+  if (!point) return
+
+  hideFieldModels()
+  removeTooltip()
+  if (activeDetailModel) {
+    scene.remove(activeDetailModel.scene)
+    disposeModel(activeDetailModel.scene)
+  }
+  activeDetailModel = markRaw(await appStore.loadGLBModal(loader, config.url))
+  activeDetailModel.scene.name = modelName
+  activeDetailModel.scene.userData.modelId = modelName
+  scene.add(activeDetailModel.scene)
+
+  const scale = config.scale ?? 1
+  const offset = config.offset ?? { x: 0, y: 0, z: 0 }
+  activeDetailModel.scene.visible = true
+  activeDetailModel.scene.scale.set(scale, scale, scale)
+  activeDetailModel.scene.position.set(
+    point.x + (offset.x ?? 0),
+    point.y + (offset.y ?? 0),
+    point.z + (offset.z ?? 0)
+  )
+  focusDetailModel(activeDetailModel.scene, config.camera)
+  pumpVisible.value = true
+}
+
+function focusDetailModel(modelScene, cameraConfig = {}) {
+  modelScene.updateMatrixWorld(true)
+  const box = new THREE.Box3().setFromObject(modelScene)
+  if (box.isEmpty()) return
+
+  const center = box.getCenter(new THREE.Vector3())
+  const size = box.getSize(new THREE.Vector3())
+  const maxSize = Math.max(size.x, size.y, size.z)
+  const direction = new THREE.Vector3(1, 0.65, 1).normalize()
+  const distance = cameraConfig.distance ?? Math.max(maxSize * 2.3, 80)
+  const targetPos = center.clone().add(direction.multiplyScalar(distance))
+
+  controls.target.copy(center)
+  camera.position.copy(targetPos)
+  controls.update()
+}
+
+function getObjectNamePath(object) {
+  const names = []
+  let current = object
+  while (current) {
+    if (current.name) names.push(current.name)
+    current = current.parent
+  }
+  return names.join('/')
+}
+
+function hideFieldModels() {
+  pageModels.forEach(model => {
+    if (model?.scene) model.scene.visible = false
+  })
+}
+
+function showFieldModels() {
+  pageModels.forEach(model => {
+    if (model?.scene) model.scene.visible = true
+  })
+}
+
+function removeTooltip() {
+  if (label) {
+    label.removeFromParent()
+    label = null
+  }
+}
+
+function closePumpModel() {
+  if (activeDetailModel) {
+    scene.remove(activeDetailModel.scene)
+    disposeModel(activeDetailModel.scene)
+    activeDetailModel = null
+  }
+  pumpVisible.value = false
+  showFieldModels()
+  centerAt(props.data?.threeCamera)
 }
 
 
@@ -456,3 +584,25 @@ function animate() {
 animate();
 
 </script>
+
+<style scoped>
+.farm-back-btn {
+  position: fixed;
+  top: 96px;
+  right: 420px;
+  z-index: 10000;
+  padding: 10px 18px;
+  border: 1px solid rgba(46, 204, 113, 0.55);
+  border-radius: 6px;
+  background: rgba(5, 18, 16, 0.82);
+  color: #e8f8f0;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.farm-back-btn:hover {
+  background: rgba(39, 174, 96, 0.9);
+}
+</style>
