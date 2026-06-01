@@ -333,10 +333,11 @@ async function showTooltip(model, point) {
 
 function loadData() {
   return new Promise(resolve => {
-    resolve({
-      "编号": "厂房",
-      "参数1": "0.00",
-    })
+        resolve([])
+    // resolve({
+    //   "编号": "厂房",
+    //   "参数1": "0.00",
+    // })
   })
 }
 

@@ -348,24 +348,6 @@ function getModal(obj, name) {
   return tmp
 }
 
-function ctrlAnimation() {
-  if (model && model.scene) {
-    model.animations.forEach((clip, index) => {
-      const name = clip.name
-      if (name == '高温区机器人' || name == '低温区机器人') {
-        const bone = model.scene.getObjectByName(name)
-        if (bone) {
-          const mixer = new THREE.AnimationMixer(bone)
-          mixer.clipAction(clip).play()
-          mixers.push(mixer)
-        }
-      } else {
-        const action = this.modalMixer.clipAction(clip);
-        action.play();
-      }
-    });
-  }
-}
 async function showTooltip(model, point) {
   if (label) {
     label.removeFromParent()
@@ -407,10 +389,11 @@ async function showTooltip(model, point) {
 
 function loadData() {
   return new Promise(resolve => {
-    resolve([{
-      "name": "测点",
-      "value": "0.00",
-    }])
+    resolve([])
+    // resolve([{
+    //   "name": "测点",
+    //   "value": "0.00",
+    // }])
     // getModalInfo().then(res => {
     //   resolve(res)
     //   return res
