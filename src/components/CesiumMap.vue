@@ -6,7 +6,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, reactive, shallowRef, markRaw  } from 'vue'
-import { setViewer } from '@/main.js'
 import GLOBAL from '@/utils/GLOBAL.js'
 import viewerEvents from '@/utils/ViewerEvents.js'
 const props = defineProps({
@@ -36,7 +35,9 @@ async function loadCesium() {
       return
     }
     const script = document.createElement('script')
-    script.src = '/cesium/Cesium.js'
+    const cesiumBaseUrl = `${import.meta.env.BASE_URL}cesium/`
+    window.CESIUM_BASE_URL = cesiumBaseUrl
+    script.src = `${cesiumBaseUrl}Cesium.js`
     script.onload = () => resolve(window.Cesium)
     document.head.appendChild(script)
   })

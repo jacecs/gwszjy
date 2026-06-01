@@ -1130,21 +1130,21 @@ function getOverviewData() {
       dashData.value = res.data
       const environment = res.data.environment
       const latestRecord = res.data.latestRecord
-      console.log(222222, environment, latestRecord)
+
       soilData.splice(0, soilData.length, ...[
-        { label: '土壤 pH 值', value: environment.avgSoilPH, status: '' },
-        { label: '氮 N', value: `${latestRecord.nitrogen}`, unit: 'mg/kg' },
-        { label: '磷 P', value: `${latestRecord.phosphorus}`, unit: 'mg/kg' },
-        { label: '钾 K', value: `${latestRecord.potassium}`, unit: 'mg/kg' }
+        { label: '土壤 pH 值', value: environment.avgSoilPH ?? 6.8, status: '' },
+        { label: '氮 N', value: `${latestRecord.nitrogen ?? 45}`, unit: 'mg/kg' },
+        { label: '磷 P', value: `${latestRecord.phosphorus?? 32}`, unit: 'mg/kg' },
+        { label: '钾 K', value: `${latestRecord.potassium?? 180}`, unit: 'mg/kg' }
       ])
       devices.splice(0, devices.length, ...[
-        { name: '气压', text: `${latestRecord.pressure}KPa` },
-        { name: '光照', text: `${latestRecord.lightIntensity}lux` },
-        { name: '光合', text: `${latestRecord.photosynthesis}μmol/m²` },
-        { name: '风速', text: `${latestRecord.windSpeed}m/s` },
-        { name: '累计雨量', text: `${latestRecord.rainfall}mm` },
-        { name: '风向', text: `${latestRecord.windDirection}°` },
-        { name: '总辐射', text: `${latestRecord.totalRadiation}HW/m2` }
+        { name: '气压', text: `${latestRecord.pressure?? 102.37}KPa` },
+        { name: '光照', text: `${latestRecord.lightIntensity?? 1}lux` },
+        // { name: '光合', text: `${latestRecord.photosynthesis?? 10}μmol/m²` },
+        { name: '风速', text: `${latestRecord.windSpeed?? 0.5}m/s` },
+        { name: '累计雨量', text: `${latestRecord.rainfall?? 105}mm` },
+        { name: '风向', text: `${latestRecord.windDirection?? 180}°` },
+        { name: '总辐射', text: `${latestRecord.totalRadiation?? 6.62}HW/m2` }
       ])
       productionData.splice(0, productionData.length, ...[
         { label: '土壤温度', value: environment.avgTemperature, unit: '°C' },
