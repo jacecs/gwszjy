@@ -37,7 +37,7 @@ function setChartData(data = []) {
   if (!data.length) return
   list.value = data.map(item => ({
     name: item.name || item.label,
-    value: item.value
+    value: item.value ?? item.count ?? 0
   }))
   echartOptions.value = {
     xAxis: {
@@ -107,7 +107,7 @@ onMounted(() => {
         },
         series: [
           {
-            data: res.data.map((item, index) => item.value),
+            data: res.data.map((item, index) => item.value ?? item.count ?? 0),
             type: 'bar',
             itemStyle: {
               color: '#5470c6'

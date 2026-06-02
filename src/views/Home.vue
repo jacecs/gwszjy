@@ -117,7 +117,7 @@
 
     <!-- cesium绘制区域 -->
     <template v-if="cesiumStatus">
-      <Models :current-mode="currentMode" :active-area-id="activeParticleArea" @callback="cesiumClick"></Models>
+      <Models :current-mode="currentMode" :gltf="gltfModels" :active-area-id="activeParticleArea" @callback="cesiumClick"></Models>
       <template v-if="currentMode == 'overview'">
         <!-- 总览 -->
         <Main></Main>
@@ -175,7 +175,7 @@ import ThreeFarm from '@/components/Threejs/Farm.vue'
 import ThreeWorkshop from '@/components/Threejs/Workshop.vue'
 const instance = getCurrentInstance();
 import GLOBAL from '@/utils/GLOBAL.js'
-import { getDeviceDashboard, getTestfieldSensors, getDryingSensors, getStorageSensors } from '@/utils/api.js'
+import { getOverview, getTestfieldSensors, getDryingSensors, getStorageSensors } from '@/utils/api.js'
 const viewer = GLOBAL.viewer;
 // const viewer = instance.appContext.config.globalProperties.$viewer;
 const cesiumMap = ref(null)
@@ -191,6 +191,7 @@ const popupStyle = ref({})
 const leftDrawerOpen = ref(true)
 const rightDrawerOpen = ref(true)
 const allDrawersOpen = ref(true)
+const gltfModels = ref([])
 
 const activeParentMenu = ref(null)
 const currentModel = ref({})
@@ -208,7 +209,7 @@ const currentTime = ref('00:00:00')
 const currentDate = ref('2026-04-02')
 const currentWeek = ref('星期四')
 
-const menus = [
+const menus = reactive([
   {
     id: 'overview',
     name: '总览', icon: '🌍',
@@ -564,7 +565,7 @@ const menus = [
   //     // }
   //   ]
   // },
-]
+])
 
 const currentLocation = ref('泰兴市根思乡')
 const currentCoords = ref('32.18°N, 120.07°E')
@@ -1069,6 +1070,7 @@ onMounted(() => {
   //   }
   // }, 500)
 
+
 })
 
 const cesiumStatus = ref(false)
@@ -1089,6 +1091,7 @@ function cesiumClick(obj) {
     const id = obj.id
     activeParticleArea.value = id
     const menu = getMenuObjById(id)
+    if (!menu) return
     const { camera } = menu
     if (camera) {
       GLOBAL.viewer.camera.flyTo({
@@ -1124,122 +1127,76 @@ function getMenuObjById(id) {
 
 // 获取总览数据
 function getOverviewData() {
-  getDeviceDashboard().then(res => {
+  getOverview().then(res => {
     console.log(res)
-    if (res.code == 200) {
-      dashData.value = res.data
-      const environment = res.data.environment
-      const latestRecord = res.data.latestRecord
-
-      soilData.splice(0, soilData.length, ...[
-        { label: '土壤 pH 值', value: environment.avgSoilPH ?? 6.8, status: '' },
-        { label: '氮 N', value: `${latestRecord.nitrogen ?? 45}`, unit: 'mg/kg' },
-        { label: '磷 P', value: `${latestRecord.phosphorus?? 32}`, unit: 'mg/kg' },
-        { label: '钾 K', value: `${latestRecord.potassium?? 180}`, unit: 'mg/kg' }
-      ])
-      devices.splice(0, devices.length, ...[
-        { name: '气压', text: `${latestRecord.pressure?? 102.37}KPa` },
-        { name: '光照', text: `${latestRecord.lightIntensity?? 1}lux` },
-        // { name: '光合', text: `${latestRecord.photosynthesis?? 10}μmol/m²` },
-        { name: '风速', text: `${latestRecord.windSpeed?? 0.5}m/s` },
-        { name: '累计雨量', text: `${latestRecord.rainfall?? 105}mm` },
-        { name: '风向', text: `${latestRecord.windDirection?? 180}°` },
-        { name: '总辐射', text: `${latestRecord.totalRadiation?? 6.62}HW/m2` }
-      ])
-      productionData.splice(0, productionData.length, ...[
-        { label: '土壤温度', value: environment.avgTemperature, unit: '°C' },
-        { label: '土壤湿度', value: environment.avgHumidity, unit: '%', },
-      ])
-      envData.splice(0, envData.length, ...[
-        {
-          label: '温度', value: `${latestRecord.ambientTemperature}`, unit: '°C', status: '正常', chart: [
-            {
-              time: '2026-04-30',
-              value:  `${latestRecord.soilTemp}`
-            },
-            {
-              time: '2026-05-01',
-              value: `${latestRecord.soilTemp1}`
-            },
-            {
-              time: '2026-05-02',
-              value: `${latestRecord.soilTemp2}`
-            },
-            {
-              time: '2026-05-03',
-              value: `${latestRecord.soilTemp3}`
-            },
-            {
-              time: '2026-05-04',
-              value: `${latestRecord.soilTemp4}`
-            },
-            {
-              time: '2026-05-05',
-              value: `${latestRecord.soilTemp5}`
-            },
-          ]
-        },
-        {
-          label: '空气湿度', value: `${latestRecord.ambientHumidity}`, unit: '%', status: '正常', chart:
-            [
-              {
-                time: '2026-04-30',
-                value:  `${latestRecord.soilHumi}`
-              },
-              {
-                time: '2026-05-01',
-                value: `${latestRecord.soilHumi1}`
-              },
-              {
-                time: '2026-05-02',
-                value: `${latestRecord.soilHumi2}`
-              },
-              {
-                time: '2026-05-03',
-                value: `${latestRecord.soilHumi3}`
-              },
-              {
-                time: '2026-05-04',
-                value: `${latestRecord.soilHumi4}`
-              },
-              {
-                time: '2026-05-05',
-                value: `${latestRecord.soilHumi5}`
-              },
-            ]
-        },
-        {
-          label: '土壤电导率', value: `${environment.avgSoilEC}`, unit: 'uS/cm', status: '充足', chart:
-            [
-              {
-                time: '2026-04-30',
-                value:  `${latestRecord.soilCond}`
-              },
-              {
-                time: '2026-05-01',
-                value: `${latestRecord.soilCond1}`
-              },
-              {
-                time: '2026-05-02',
-                value: `${latestRecord.soilCond2}`
-              },
-              {
-                time: '2026-05-03',
-                value: `${latestRecord.soilCond3}`
-              },
-              {
-                time: '2026-05-04',
-                value: `${latestRecord.soilCond4}`
-              },
-              {
-                time: '2026-05-05',
-                value: `${latestRecord.soilCond5}`
-              },
-            ]
-        }
-      ])
+    if (res.code == 200 && res.data) {
+      bindOverviewData(res.data)
     }
   })
+}
+
+function bindOverviewData(data) {
+  dashData.value = data
+
+  if (Array.isArray(data.menus)) {
+    menus.splice(0, menus.length, ...data.menus)
+  }
+  gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
+
+  const panelData = data.panelData || data
+  const weather = panelData.weather || data.latestRecord || {}
+  const soil = panelData.soil || {}
+  const soilMoisture = panelData.soilMoisture || {}
+  const environment = Array.isArray(panelData.environment) ? panelData.environment : []
+  const latestEnvironment = environment[environment.length - 1] || {}
+
+  soilData.splice(0, soilData.length, ...[
+    { label: '土壤 pH 值', value: soil.ph ?? '--', status: '' },
+    { label: '氮 N', value: soil.nitrogen ?? '--', unit: 'mg/kg' },
+    { label: '磷 P', value: soil.phosphorus ?? '--', unit: 'mg/kg' },
+    { label: '钾 K', value: soil.potassium ?? '--', unit: 'mg/kg' }
+  ])
+
+  devices.splice(0, devices.length, ...[
+    { name: '气压', text: formatDeviceValue(weather.pressure ?? '--', 'KPa') },
+    { name: '光照', text: formatDeviceValue(weather.lightIntensity ?? '--', 'lux') },
+    { name: '风速', text: formatDeviceValue(weather.windSpeed ?? '--', 'm/s') },
+    { name: '累计雨量', text: formatDeviceValue(weather.cumulativeRainfall ?? weather.rainfall ?? '--', 'mm') },
+    { name: '风向', text: formatDeviceValue(weather.windDirection ?? '--', '°') },
+    { name: '总辐射', text: formatDeviceValue(weather.totalRadiation ?? '--', 'W/m²') },
+    { name: '光合有效辐射', text: formatDeviceValue(weather.photosyntheticRadiation ?? '--', 'μmol/m²/s') }
+  ])
+
+  productionData.splice(0, productionData.length, ...[
+    { label: '土壤温度', value: latestEnvironment.temperature ?? '--', unit: '°C' },
+    { label: '土壤湿度', value: soilMoisture.soilMoisture ?? '--', unit: '%', status: soilMoisture.status === 'pending' ? '待接入' : '正常' }
+  ])
+
+  envData.splice(0, envData.length, ...[
+    {
+      label: '温度',
+      value: latestEnvironment.temperature ?? '--',
+      unit: '°C',
+      status: '正常',
+      chart: buildEnvironmentChart(environment, 'temperature')
+    },
+    {
+      label: '空气湿度',
+      value: latestEnvironment.airHumidity ?? '--',
+      unit: '%',
+      status: '正常',
+      chart: buildEnvironmentChart(environment, 'airHumidity')
+    },
+    {
+      label: '土壤电导率',
+      value: latestEnvironment.soilConductivity ?? '--',
+      unit: 'uS/cm',
+      status: '充足',
+      chart: buildEnvironmentChart(environment, 'soilConductivity')
+    }
+  ])
+
+  productionData1.splice(0, productionData1.length, ...normalizeInsectStatistics(panelData.insect?.statistics || []))
 }
 // 获取试验田总览数据
 function getTestfieldOverview(facilityId, mode = currentMode.value) {
@@ -1303,6 +1260,22 @@ function bindTestfieldOverview(mode, data) {
 
   target.videos.splice(0, target.videos.length, ...normalizeVideoMonitor(payload.insectDetection, '虫情摄像头'))
   productionData1.splice(0, productionData1.length, ...normalizeInsectData(payload.insectData))
+}
+
+function buildEnvironmentChart(environment, key) {
+  return environment.map(item => ({
+    time: item.date,
+    value: item[key] ?? 0
+  }))
+}
+
+function normalizeInsectStatistics(statistics = []) {
+  return statistics.map(item => ({
+    label: item.name || item.label || '未知虫害',
+    name: item.name || item.label || '未知虫害',
+    value: item.value ?? item.count ?? 0,
+    unit: '个'
+  }))
 }
 
 function normalizePanelData(list) {
