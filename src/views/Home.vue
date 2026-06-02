@@ -210,289 +210,179 @@ const currentDate = ref('2026-04-02')
 const currentWeek = ref('星期四')
 
 const menus = reactive([
-  {
-    id: 'overview',
-    name: '总览', icon: '🌍',
-    position: {
-      lon: "120.07",
-      lat: "32.18"
-    },
-    camera: {
-      "lon": 120.06647,
-      "lat": 32.18264,
-      "height": 9700.3,
-      "heading": 0,
-      "pitch": -50,
-      "roll": 0
-    }
-  },
-  {
-    id: 'nongtian1', name: '维明农场', icon: '🌱',
-    children: [
-      {
-        id: 'Farm', name: '试验田', icon: '🌱',
-        facilityId: 1,
-        position: {
-          lon: "120.097",
-          lat: "32.250"
-        },
-        gltfs: [
-          {
-            id: "监控农田",
-            url: './static/glb/试验田_1.glb',
-            x: 0,
-            y: 0,
-            z: 0,
-            scale: 1,
-          },
-        ],
-        threeCamera: {
-          x: 0,
-          y: 50,
-          z: 18,
-          tx: -11,
-          ty: 1.8,
-          tz: -50,
-        },
-        waterPump: {
-          url: './static/glb/水泵.glb',
-          scale: 35,
-          offset: { x: 0, y: 8, z: 0 }
-        },
-        pestDevice: {
-          url: './static/glb/虫情测报仪.glb',
-          scale: 35,
-          offset: { x: 0, y: 0, z: 0 }
-        },
-        camera: {
-          "lon": 120.09738,
-          "lat": 32.24902,
-          "height": 422.6,
-          "heading": 0,
-          "pitch": -50,
-          "roll": 0
-        }
-      },
-      {
-        id: 'Workshop', name: '烘干车间', icon: '🏭',
-        facilityId: 9,
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [{
-          id: "changfang1",
-          url: './static/glb/厂房1.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 1
-        }],
-        threeCamera: {
-          x: 200,
-          y: 200,
-          z: -300,
-          tx: 200,
-          ty: 0,
-          tz: 0,
-        },
-        dryingTowerDetail: {
-          url: './static/glb/烘干塔1.glb',
-          scale: 1,
-          offset: { x: 0, y: 0, z: 0 },
-          camera: { distance: 520 }
-        },
-        camera: {
-          "lon": 120.08971,
-          "lat": 32.24951,
-          "height": 304,
-          "heading": 182,
-          "pitch": -46.9,
-          "roll": 0
-        }
-      },
-      {
-        id: 'Workshop2', name: '仓库', icon: '📦',
-        facilityId: 7,
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [{
-          id: "仓库",
-          url: './static/glb/厂房1.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 1
-        }],
-        threeCamera: {
-          x: -120,
-          y: 112,
-          z: -250,
-          tx: -5,
-          ty: 0,
-          tz: 0,
-        },
-        camera: {
-          "lon": 120.08971,
-          "lat": 32.24951,
-          "height": 304,
-          "heading": 182,
-          "pitch": -46.9,
-          "roll": 0
-        }
-      }
-    ]
-  },
-  {
-    id: 'nongtian2', name: '农场2', icon: '🌱',
-    children: [
-      {
-        id: 'Farm2',
-        name: '试验田',
-        facilityId: 2,
-        icon: '🌱',
-        position: {
-          lon: "120.097",
-          lat: "32.250"
-        },
-        gltfs: [
-          {
-            id: "试验田2",
-            url: './static/glb/试验田_2.glb',
-            x: 0,
-            y: 0,
-            z: 0,
-            scale: 1
-          },
-
-
-        ],
-        threeCamera: {
-          x: 5,
-          y: 150,
-          z: -155,
-        },
-        waterPump: {
-          url: './static/glb/水泵.glb',
-          scale: 35,
-          offset: { x: 0, y: 8, z: 0 }
-        },
-        pestDevice: {
-          url: './static/glb/虫情测报仪.glb',
-          scale: 35,
-          offset: { x: 0, y: 0, z: 0 }
-        },
-        camera: {
-          "lon": 120.04952,
-          "lat": 32.26108,
-          "height": 793,
-          "heading": 0,
-          "pitch": -51,
-          "roll": 0
-        }
-      },
-      {
-        id: 'Workshop3',
-        facilityId: 10,
-        name: '烘干车间',
-        icon: '🏭',
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [{
-          id: "changfang3",
-          url: './static/glb/厂房3-有底图.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 1
-        }],
-        threeCamera: {
-          x: 10,
-          y: 550,
-          z: 1020,
-        },
-        dryingTowerDetail: {
-          url: './static/glb/烘干塔1.glb',
-          scale: 1,
-          offset: { x: 0, y: 0, z: 0 },
-          camera: { distance: 520 }
-        },
-        camera: {
-          "lon": 120.01789,
-          "lat": 32.25442,
-          "height": 101.6,
-          "heading": 346.1,
-          "pitch": -23,
-          "roll": 0
-        },
-      },
-      {
-        id: 'Warehouse2', name: '仓库', icon: '📦',
-        facilityId: 6,
-        position: {
-          lon: "120.089928",
-          lat: "32.244513"
-        },
-        gltfs: [{
-          id: "仓库2",
-          url: './static/glb/厂房2.glb',
-          x: 0,
-          y: 0,
-          z: 0,
-          scale: 1
-        }],
-        threeCamera: {
-          x: 61,
-          y: 140,
-          z: -52,
-          tx: 60,
-          ty: 21,
-          tz: -340
-        },
-        camera: {
-          "lon": 120.0299,
-          "lat": 32.25767,
-          "height": 123.8,
-          "heading": 182.7,
-          "pitch": -28.7,
-          "roll": 0
-        }
-      },
-
-    ]
-  },
   // {
-  //   id: 'nongtian3',
-  //   name: '农场3',
-  //   icon: '🌱',
+  //   id: 'overview',
+  //   name: '总览', icon: '🌍',
+  //   position: {
+  //     lon: "120.07",
+  //     lat: "32.18"
+  //   },
+  //   camera: {
+  //     "lon": 120.06647,
+  //     "lat": 32.18264,
+  //     "height": 9700.3,
+  //     "heading": 0,
+  //     "pitch": -50,
+  //     "roll": 0
+  //   }
+  // },
+  // {
+  //   id: 'nongtian1', name: '维明农场', icon: '🌱',
   //   children: [
   //     {
-  //       id: 'Farm3',
-  //       name: '试验田',
-  //       icon: '🌱',
+  //       id: 'Farm', name: '试验田', icon: '🌱',
+  //       facilityId: 1,
+  //       position: {
+  //         lon: "120.097",
+  //         lat: "32.250"
+  //       },
+  //       gltfs: [
+  //         {
+  //           id: "监控农田",
+  //           url: './static/glb/试验田_1.glb',
+  //           x: 0,
+  //           y: 0,
+  //           z: 0,
+  //           scale: 1,
+  //         },
+  //       ],
+  //       threeCamera: {
+  //         x: 0,
+  //         y: 50,
+  //         z: 18,
+  //         tx: -11,
+  //         ty: 1.8,
+  //         tz: -50,
+  //       },
+  //       waterPump: {
+  //         url: './static/glb/水泵.glb',
+  //         scale: 35,
+  //         offset: { x: 0, y: 8, z: 0 }
+  //       },
+  //       pestDevice: {
+  //         url: './static/glb/虫情测报仪.glb',
+  //         scale: 35,
+  //         offset: { x: 0, y: 0, z: 0 }
+  //       },
+  //       camera: {
+  //         "lon": 120.09738,
+  //         "lat": 32.24902,
+  //         "height": 422.6,
+  //         "heading": 0,
+  //         "pitch": -50,
+  //         "roll": 0
+  //       }
+  //     },
+  //     {
+  //       id: 'Workshop', name: '烘干车间', icon: '🏭',
+  //       facilityId: 9,
   //       position: {
   //         lon: "120.089928",
   //         lat: "32.244513"
   //       },
+  //       gltfs: [{
+  //         id: "changfang1",
+  //         url: './static/glb/厂房1.glb',
+  //         x: 0,
+  //         y: 0,
+  //         z: 0,
+  //         scale: 1
+  //       }],
+  //       threeCamera: {
+  //         x: 200,
+  //         y: 200,
+  //         z: -300,
+  //         tx: 200,
+  //         ty: 0,
+  //         tz: 0,
+  //       },
+  //       dryingTowerDetail: {
+  //         url: './static/glb/烘干塔1.glb',
+  //         scale: 1,
+  //         offset: { x: 0, y: 0, z: 0 },
+  //         camera: { distance: 520 }
+  //       },
+  //       camera: {
+  //         "lon": 120.08971,
+  //         "lat": 32.24951,
+  //         "height": 304,
+  //         "heading": 182,
+  //         "pitch": -46.9,
+  //         "roll": 0
+  //       }
+  //     },
+  //     {
+  //       id: 'Workshop2', name: '仓库', icon: '📦',
+  //       facilityId: 7,
+  //       position: {
+  //         lon: "120.089928",
+  //         lat: "32.244513"
+  //       },
+  //       gltfs: [{
+  //         id: "仓库",
+  //         url: './static/glb/厂房1.glb',
+  //         x: 0,
+  //         y: 0,
+  //         z: 0,
+  //         scale: 1
+  //       }],
+  //       threeCamera: {
+  //         x: -120,
+  //         y: 112,
+  //         z: -250,
+  //         tx: -5,
+  //         ty: 0,
+  //         tz: 0,
+  //       },
+  //       camera: {
+  //         "lon": 120.08971,
+  //         "lat": 32.24951,
+  //         "height": 304,
+  //         "heading": 182,
+  //         "pitch": -46.9,
+  //         "roll": 0
+  //       }
+  //     }
+  //   ]
+  // },
+  // {
+  //   id: 'nongtian2', name: '农场2', icon: '🌱',
+  //   children: [
+  //     {
+  //       id: 'Farm2',
+  //       name: '试验田',
+  //       facilityId: 2,
+  //       icon: '🌱',
+  //       position: {
+  //         lon: "120.097",
+  //         lat: "32.250"
+  //       },
   //       gltfs: [
   //         {
-  //           id: "试验田3",
-  //           url: './static/glb/农田3.glb',
+  //           id: "试验田2",
+  //           url: './static/glb/试验田_2.glb',
   //           x: 0,
   //           y: 0,
   //           z: 0,
-  //           scale: 20
+  //           scale: 1
   //         },
+
 
   //       ],
   //       threeCamera: {
-  //         x: 0,
-  //         y: 26,
-  //         z: -27,
+  //         x: 5,
+  //         y: 150,
+  //         z: -155,
+  //       },
+  //       waterPump: {
+  //         url: './static/glb/水泵.glb',
+  //         scale: 35,
+  //         offset: { x: 0, y: 8, z: 0 }
+  //       },
+  //       pestDevice: {
+  //         url: './static/glb/虫情测报仪.glb',
+  //         scale: 35,
+  //         offset: { x: 0, y: 0, z: 0 }
   //       },
   //       camera: {
   //         "lon": 120.04952,
@@ -505,6 +395,7 @@ const menus = reactive([
   //     },
   //     {
   //       id: 'Workshop3',
+  //       facilityId: 10,
   //       name: '烘干车间',
   //       icon: '🏭',
   //       position: {
@@ -524,6 +415,12 @@ const menus = reactive([
   //         y: 550,
   //         z: 1020,
   //       },
+  //       dryingTowerDetail: {
+  //         url: './static/glb/烘干塔1.glb',
+  //         scale: 1,
+  //         offset: { x: 0, y: 0, z: 0 },
+  //         camera: { distance: 520 }
+  //       },
   //       camera: {
   //         "lon": 120.01789,
   //         "lat": 32.25442,
@@ -532,37 +429,40 @@ const menus = reactive([
   //         "pitch": -23,
   //         "roll": 0
   //       },
-  //     }
-  //     // {
-  //     //   id: 'Warehouse3', 
-  //     //   name: '仓库3', 
-  //     //   icon: '📦',
-  //     //   position: {
-  //     //     lon: "120.089928",
-  //     //     lat: "32.244513"
-  //     //   },
-  //     //   gltfs:[{
-  //     //     id: "仓库3",
-  //     //     url: './static/glb/仓库3.glb',
-  //     //     x: 0,
-  //     //     y: 0,
-  //     //     z: 0,
-  //     //     scale:1
-  //     //   }],
-  //     //   threeCamera: {
-  //     //     x: -62,
-  //     //     y: 50,
-  //     //     z: 63,
-  //     //   },
-  //     //   camera: {
-  //     //     "lon": 120.02888,
-  //     //     "lat": 32.2571,
-  //     //     "height": 100.1,
-  //     //     "heading": 155.1,
-  //     //     "pitch": -33.1,
-  //     //     "roll": 0.1
-  //     //   }
-  //     // }
+  //     },
+  //     {
+  //       id: 'Warehouse2', name: '仓库', icon: '📦',
+  //       facilityId: 6,
+  //       position: {
+  //         lon: "120.089928",
+  //         lat: "32.244513"
+  //       },
+  //       gltfs: [{
+  //         id: "仓库2",
+  //         url: './static/glb/厂房2.glb',
+  //         x: 0,
+  //         y: 0,
+  //         z: 0,
+  //         scale: 1
+  //       }],
+  //       threeCamera: {
+  //         x: 61,
+  //         y: 140,
+  //         z: -52,
+  //         tx: 60,
+  //         ty: 21,
+  //         tz: -340
+  //       },
+  //       camera: {
+  //         "lon": 120.0299,
+  //         "lat": 32.25767,
+  //         "height": 123.8,
+  //         "heading": 182.7,
+  //         "pitch": -28.7,
+  //         "roll": 0
+  //       }
+  //     },
+
   //   ]
   // },
 ])
@@ -947,13 +847,11 @@ function switchMode(mode, obj) {
 
   currentModel.value = obj
 
-  if (isFarmModeId(mode)) {
+  if (obj.facilityType == 1) {
     getTestfieldOverview(obj?.facilityId , mode)
-  }
-  if (isDryingTowerModeId(mode)) {
+  } else if (obj.facilityType == 3) {
     getDryingOverview(obj?.facilityId )
-  }
-  if (isWarehouseModeId(mode)) {
+  } else if (obj.facilityType == 2) {
     getStorageOverview(obj?.facilityId )
   }
 
@@ -1215,6 +1113,12 @@ function bindTestfieldOverview(mode, data) {
   if (!target) return
 
   const facility = payload.facility || {}
+  const baseData = payload.baseData || {}
+  const envSensorData = payload.envSensorData || {}
+  const soilData = payload.soilData || {}
+  const weatherData = payload.weatherData || {}
+  const irrigationData = payload.irrigationData || {}
+  const videoMonitorData = payload.videoMonitorData || {}
   const realtimeSensor = payload.realtimeSensor || {}
   const soil = payload.soil || {}
   const weather = payload.weather || {}
@@ -1225,41 +1129,41 @@ function bindTestfieldOverview(mode, data) {
   target.name = facility.name || payload.name || target.name
 
   target.sensors.splice(0, target.sensors.length, ...[
-    { label: '空气温度', value: realtimeSensor.airTemperature ?? '--', unit: '°C', status: '正常' },
-    { label: '空气湿度', value: realtimeSensor.airHumidity ?? '--', unit: '%', status: '正常' },
-    { label: '光照强度', value: realtimeSensor.lightIntensity ?? '--', unit: 'lux', status: '充足' },
-    { label: 'CO₂浓度', value: realtimeSensor.co2Concentration ?? '--', unit: 'ppm', status: '正常' }
+    readMetric(envSensorData.airTemperature, '空气温度', '°C', realtimeSensor.airTemperature),
+    readMetric(envSensorData.airHumidity, '空气湿度', '%', realtimeSensor.airHumidity),
+    readMetric(envSensorData.lightIntensity, '光照强度', 'lux', realtimeSensor.lightIntensity, '充足'),
+    readMetric(envSensorData.co2Concentration, 'CO₂浓度', 'ppm', realtimeSensor.co2Concentration)
   ])
 
   target.soil.splice(0, target.soil.length, ...[
-    { label: '土壤温度', value: realtimeSensor.soilTemperature ?? soil.temperature ?? '--', unit: '°C', status: '正常' },
-    { label: '土壤湿度', value: realtimeSensor.soilHumidity ?? soil.moisture ?? '--', unit: '%', status: '正常' },
-    { label: '土壤 pH', value: realtimeSensor.soilPh ?? soil.ph ?? '--', unit: '', status: '正常' },
-    { label: '土壤电导率', value: soil.ec ?? '--', unit: 'mS/cm', status: '正常' },
-    { label: '氮 N', value: soil.nitrogen ?? '--', unit: 'mg/kg', status: '正常' },
-    { label: '磷 P', value: soil.phosphorus ?? '--', unit: 'mg/kg', status: '正常' },
-    { label: '钾 K', value: soil.potassium ?? '--', unit: 'mg/kg', status: '正常' }
+    readMetric(soilData.soilTemperature, '土壤温度', '°C', realtimeSensor.soilTemperature ?? soil.temperature),
+    readMetric(soilData.soilMoisture, '土壤湿度', '%', realtimeSensor.soilHumidity ?? soil.moisture ?? stripUnit(baseData.soilMoisture)),
+    readMetric(soilData.phValue, '土壤 pH', '', realtimeSensor.soilPh ?? soil.ph),
+    readMetric(soilData.soilConductivity, '土壤电导率', 'mS/cm', soil.ec),
+    readMetric(soilData.nitrogen, '氮 N', 'mg/kg', soil.nitrogen),
+    readMetric(soilData.phosphorus, '磷 P', 'mg/kg', soil.phosphorus),
+    readMetric(soilData.potassium, '钾 K', 'mg/kg', soil.potassium)
   ])
 
   target.weather.splice(0, target.weather.length, ...[
-    { name: '气温', text: formatDeviceValue(weather.temperature ?? '--', '°C'), status: 'online' },
-    { name: '湿度', text: formatDeviceValue(weather.humidity ?? '--', '%'), status: 'online' },
-    { name: '风速', text: formatDeviceValue(weatherInfo.windSpeed ?? weather.windSpeed ?? '--', 'm/s'), status: 'online' },
-    { name: '风向', text: weatherInfo.windDirection || formatDeviceValue(weather.windDirection ?? '--', '°'), status: 'online' },
-    { name: '气压', text: formatDeviceValue(weatherInfo.airPressure ?? weather.pressure ?? '--', 'KPa'), status: 'online' },
-    { name: '总辐射', text: formatDeviceValue(weatherInfo.totalRadiation ?? '--', 'W/m²'), status: 'online' }
+    metricToDevice(weatherData.temperature, '气温', '°C', weather.temperature),
+    metricToDevice(weatherData.humidity, '湿度', '%', weather.humidity),
+    metricToDevice(weatherData.windSpeed, '风速', 'm/s', weatherInfo.windSpeed ?? weather.windSpeed),
+    { name: '风向', text: weatherData.windDirection || weatherInfo.windDirection || formatDeviceValue(weather.windDirection ?? '--', '°'), status: 'online' },
+    metricToDevice(weatherData.pressure, '气压', 'hPa', weatherInfo.airPressure ?? weather.pressure),
+    metricToDevice(weatherData.totalRadiation, '总辐射', 'W/m²', weatherInfo.totalRadiation)
   ])
 
   target.irrigation.splice(0, target.irrigation.length, ...[
-    { label: '灌溉阀门', value: irrigationControl.valveStatus || facilityStatus.irrigationStatus || '--', unit: '', status: '运行中' },
-    { label: '瞬时流量', value: irrigationControl.instantFlow ?? '--', unit: 'm³/h', status: '正常' },
-    { label: '管网压力', value: irrigationControl.pipePressure ?? '--', unit: 'MPa', status: '正常' },
-    { label: '今日用水', value: irrigationControl.todayWaterConsumption ?? '--', unit: 'm³', status: '节能' },
-    { label: '预警数量', value: facilityStatus.warningCount ?? '0', unit: '条', status: '正常' }
+    { label: '灌溉阀门', value: irrigationData.valveStatus || irrigationControl.valveStatus || facilityStatus.irrigationStatus || baseData.irrigationStatus || '--', unit: '', status: '运行中' },
+    readMetric(irrigationData.instantFlow, '瞬时流量', 'm³/h', irrigationControl.instantFlow),
+    readMetric(irrigationData.pipePressure, '管网压力', 'MPa', irrigationControl.pipePressure),
+    readMetric(irrigationData.todayWaterUsage, '今日用水', 'm³', irrigationControl.todayWaterConsumption, irrigationData.todayWaterUsage?.tag || '节能'),
+    { label: '预警数量', value: irrigationData.alertCount ?? facilityStatus.warningCount ?? '0', unit: '条', status: irrigationData.alertStatus || '正常' }
   ])
 
-  target.videos.splice(0, target.videos.length, ...normalizeVideoMonitor(payload.insectDetection, '虫情摄像头'))
-  productionData1.splice(0, productionData1.length, ...normalizeInsectData(payload.insectData))
+  target.videos.splice(0, target.videos.length, ...normalizeVideoMonitor(videoMonitorData.cameras || payload.insectDetection, '试验田摄像头'))
+  productionData1.splice(0, productionData1.length, ...normalizeInsectStatistics(payload.insectData?.statistics || []))
 }
 
 function buildEnvironmentChart(environment, key) {
@@ -1276,6 +1180,23 @@ function normalizeInsectStatistics(statistics = []) {
     value: item.value ?? item.count ?? 0,
     unit: '个'
   }))
+}
+
+function readMetric(metric, label, defaultUnit = '', fallbackValue = undefined, fallbackStatus = '正常') {
+  return {
+    label,
+    value: metric?.value ?? fallbackValue ?? '--',
+    unit: metric?.unit ?? defaultUnit,
+    status: metric?.status || fallbackStatus
+  }
+}
+
+function metricToDevice(metric, name, defaultUnit = '', fallbackValue = undefined) {
+  return {
+    name,
+    text: formatDeviceValue(metric?.value ?? fallbackValue ?? '--', metric?.unit ?? defaultUnit),
+    status: 'online'
+  }
 }
 
 function normalizePanelData(list) {
@@ -1300,7 +1221,7 @@ function normalizeVideoMonitor(videoMonitor, prefix) {
   if (!videoMonitor) return []
   if (Array.isArray(videoMonitor)) {
     return videoMonitor.map((item, index) => ({
-      name: item.name || item.label || `${prefix}${index + 1}`,
+      name: item.name || item.label || item.cameraName || `${prefix}${index + 1}`,
       url: item.url || item.streamUrl || item.videoUrl || item.flvUrl || ''
     })).filter(item => item.url)
   }
@@ -1363,6 +1284,11 @@ function getDryingOverview(facilityId) {
 function bindDryingOverview(data) {
   const payload = data.overview || data.detail || data
   const facility = payload.facility || {}
+  const baseInfo = payload.baseInfo || {}
+  const dryingSensor = payload.dryingSensor || {}
+  const dryingProcess = payload.dryingProcess || {}
+  const dryingEquipment = payload.dryingEquipment || {}
+  const energyAlarm = payload.energyAlarm || {}
   const operationStatus = payload.operationStatus || {}
   const realtimeSensor = payload.realtimeSensor || {}
   const processData = payload.processData || {}
@@ -1371,44 +1297,44 @@ function bindDryingOverview(data) {
   const recentBatch = Array.isArray(payload.recentBatches) ? payload.recentBatches[0] || {} : {}
 
   dryingTowerData.name = facility.name || payload.name || payload.towerName || dryingTowerData.name
-  dryingTowerData.status = operationStatus.runStatus || dryingTowerData.status
-  dryingTowerData.temperature = formatDeviceValue(operationStatus.innerTemperature ?? realtimeSensor.innerTemperature ?? stripUnit(dryingTowerData.temperature), '°C')
-  dryingTowerData.humidity = formatDeviceValue(operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? recentBatch.currentMoisture ?? stripUnit(dryingTowerData.humidity), '%')
-  dryingTowerData.windTemp = formatDeviceValue(operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? stripUnit(dryingTowerData.windTemp), '°C')
-  dryingTowerData.capacity = formatDeviceValue(processData.processingCapacity ?? stripUnit(dryingTowerData.capacity), 't/h')
-  dryingTowerData.grain = processData.grainType || recentBatch.grainType || dryingTowerData.grain
-  dryingTowerData.moistureDrop = formatDeviceValue(processData.targetMoisture ?? recentBatch.targetMoisture ?? stripUnit(dryingTowerData.moistureDrop), '%')
+  dryingTowerData.status = baseInfo.runStatus || operationStatus.runStatus || dryingProcess.runStatus || dryingTowerData.status
+  dryingTowerData.temperature = formatDeviceValue(baseInfo.innerTemperature ?? dryingSensor.innerTemperature?.value ?? operationStatus.innerTemperature ?? realtimeSensor.innerTemperature ?? stripUnit(dryingTowerData.temperature), '°C')
+  dryingTowerData.humidity = formatDeviceValue(baseInfo.outletMoisture ?? dryingSensor.outletMoisture?.value ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? recentBatch.currentMoisture ?? stripUnit(dryingTowerData.humidity), '%')
+  dryingTowerData.windTemp = formatDeviceValue(baseInfo.hotAirTemperature ?? dryingSensor.hotAirTemperature?.value ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? stripUnit(dryingTowerData.windTemp), '°C')
+  dryingTowerData.capacity = formatDeviceValue(dryingProcess.processingCapacity ?? processData.processingCapacity ?? stripUnit(dryingTowerData.capacity), 't/h')
+  dryingTowerData.grain = dryingProcess.grainType || processData.grainType || recentBatch.grainType || dryingTowerData.grain
+  dryingTowerData.moistureDrop = formatDeviceValue(dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? stripUnit(dryingTowerData.moistureDrop), '%')
 
   dryingTowerData.sensors.splice(0, dryingTowerData.sensors.length, ...[
-    { label: '塔内温度', value: operationStatus.innerTemperature ?? '--', unit: '°C', status: '正常' },
-    { label: '热风温度', value: operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? '--', unit: '°C', status: '正常' },
-    { label: '出粮水分', value: operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? '--', unit: '%', status: '正常' },
-    { label: '粮层厚度', value: realtimeSensor.grainLayerThickness ?? '--', unit: 'm', status: '正常' }
+    readMetric(dryingSensor.innerTemperature, '塔内温度', '°C', baseInfo.innerTemperature ?? operationStatus.innerTemperature),
+    readMetric(dryingSensor.hotAirTemperature, '热风温度', '°C', baseInfo.hotAirTemperature ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature),
+    readMetric(dryingSensor.outletMoisture, '出粮水分', '%', baseInfo.outletMoisture ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture),
+    readMetric(dryingSensor.grainLayerThickness, '粮层厚度', 'm', realtimeSensor.grainLayerThickness)
   ])
 
   dryingTowerData.process.splice(0, dryingTowerData.process.length, ...[
-    { label: '处理粮种', value: processData.grainType || recentBatch.grainType || '--', unit: '', status: operationStatus.runStatus || '运行中' },
-    { label: '处理能力', value: processData.processingCapacity ?? '--', unit: 't/h', status: '正常' },
-    { label: '目标水分', value: processData.targetMoisture ?? recentBatch.targetMoisture ?? '--', unit: '%', status: '正常' },
-    { label: '烘干时长', value: recentBatch.dryingDuration ?? '--', unit: 'min', status: '正常' }
+    { label: '处理粮种', value: dryingProcess.grainType || processData.grainType || recentBatch.grainType || '--', unit: '', status: dryingProcess.runStatus || operationStatus.runStatus || '运行中' },
+    { label: '处理能力', value: dryingProcess.processingCapacity ?? processData.processingCapacity ?? '--', unit: 't/h', status: dryingProcess.status || '正常' },
+    { label: '目标水分', value: dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? '--', unit: '%', status: dryingProcess.status || '正常' },
+    { label: '烘干时长', value: dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? '--', unit: 'min', status: dryingProcess.status || '正常' }
   ])
 
   dryingTowerData.equipment.splice(0, dryingTowerData.equipment.length, ...[
-    { name: '提升机', text: deviceStatus.elevator || '--', status: 'online' },
-    { name: '垂直烘干风机', text: deviceStatus.verticalDryingFan || '--', status: 'online' },
-    { name: '循环风机', text: deviceStatus.circulatingFan || '--', status: 'online' },
-    { name: '燃烧器', text: deviceStatus.burner || '--', status: 'online' },
-    { name: '排风阀', text: deviceStatus.exhaustValve || '--', status: 'online' }
+    { name: '提升机', text: dryingEquipment.elevator?.status || deviceStatus.elevator || '--', status: 'online' },
+    { name: '垂直烘干风机', text: dryingEquipment.verticalDryingFan?.status || deviceStatus.verticalDryingFan || '--', status: 'online' },
+    { name: '循环风机', text: dryingEquipment.circulatingFan?.status || deviceStatus.circulatingFan || '--', status: 'online' },
+    { name: '燃烧器', text: dryingEquipment.burner?.status || deviceStatus.burner || '--', status: 'online' },
+    { name: '排风阀', text: dryingEquipment.exhaustValve?.status || deviceStatus.exhaustValve || '--', status: 'online' }
   ])
 
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
-    { label: '瞬时功率', value: energyConsumption.instantPower ?? '--', unit: 'kW', status: '正常' },
-    { label: '今日耗电', value: energyConsumption.todayPowerConsumption ?? '--', unit: 'kWh', status: '节能' },
-    { label: '燃气流量', value: energyConsumption.gasFlowRate ?? '--', unit: 'm³/h', status: '正常' },
-    { label: '出粮量', value: energyConsumption.outletGrainCount ?? '--', unit: 't', status: '正常' }
+    readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower),
+    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption, energyAlarm.todayPowerConsumption?.tag || '节能'),
+    readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate),
+    readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount)
   ])
 
-  dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor, '烘干塔摄像头'))
+  dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor?.cameras || payload.videoMonitor, '烘干塔摄像头'))
 }
 
 function stripUnit(value) {
@@ -1428,9 +1354,14 @@ function getStorageOverview(facilityId) {
 function bindStorageOverview(data) {
   const payload = data.overview || data.detail || data
   const facility = payload.facility || {}
+  const baseData = payload.baseData || {}
+  const storageSensorData = payload.storageSensorData || {}
+  const locationData = payload.locationData || {}
+  const deviceData = payload.deviceData || {}
+  const stockStatusData = payload.stockStatus || {}
+  const videoMonitorData = payload.videoMonitorData || {}
   const realtimeSensor = payload.realtimeSensor || {}
   const positionStatus = payload.positionStatus || {}
-  const stockStatus = payload.stockStatus || {}
   const stockStats = payload.stockStats || {}
   const deviceStatus = payload.deviceStatus || {}
   const firstStock = Array.isArray(payload.stockList) ? payload.stockList[0] || {} : {}
@@ -1438,35 +1369,35 @@ function bindStorageOverview(data) {
   warehouseData.name = facility.name || payload.name || payload.warehouseName || warehouseData.name
 
   warehouseData.sensors.splice(0, warehouseData.sensors.length, ...[
-    { label: '库内温度', value: realtimeSensor.innerTemperature ?? '--', unit: '°C', status: '正常' },
-    { label: '库内湿度', value: realtimeSensor.innerHumidity ?? '--', unit: '%', status: '正常' },
-    { label: '粮堆温度', value: realtimeSensor.grainTemperature ?? '--', unit: '°C', status: '正常' },
-    { label: '氨气浓度', value: realtimeSensor.ammoniaConcentration ?? '--', unit: 'ppm', status: '正常' }
+    readMetric(storageSensorData.innerTemperature, '库内温度', '°C', realtimeSensor.innerTemperature ?? stripUnit(baseData.innerTemperature)),
+    readMetric(storageSensorData.innerHumidity, '库内湿度', '%', realtimeSensor.innerHumidity),
+    readMetric(storageSensorData.grainTemperature, '粮堆温度', '°C', realtimeSensor.grainTemperature),
+    readMetric(storageSensorData.ammoniaConcentration, '氨气浓度', 'ppm', realtimeSensor.ammoniaConcentration)
   ])
 
   warehouseData.positions.splice(0, warehouseData.positions.length, ...[
-    { label: '当前库容', value: positionStatus.currentCapacity ?? '--', unit: '%', status: '正常' },
-    { label: '可用库容', value: positionStatus.availableCapacity ?? '--', unit: '%', status: '正常' },
-    { label: '库存总量', value: stockStats.totalStock ?? '--', unit: 't', status: '正常' },
-    { label: '库存批次', value: stockStats.stockCount ?? '--', unit: '批', status: '正常' }
+    readMetric(locationData.currentCapacity, '当前库容', '%', positionStatus.currentCapacity ?? stripUnit(baseData.currentCapacity)),
+    readMetric(locationData.availableCapacity, '可用库容', '%', positionStatus.availableCapacity ?? stripUnit(baseData.availableLocation)),
+    readMetric(locationData.totalStock, '库存总量', 't', stockStats.totalStock ?? stripUnit(baseData.stockWeight)),
+    readMetric(locationData.stockBatch, '库存批次', '批', stockStats.stockCount)
   ])
 
   warehouseData.equipment.splice(0, warehouseData.equipment.length, ...[
-    { name: '通风系统', text: deviceStatus.ventilation || '--', status: 'online' },
-    { name: '湿度控制', text: deviceStatus.humidityControl || '--', status: deviceStatus.humidityControl === '停机' ? 'offline' : 'online' },
-    { name: '门禁状态', text: deviceStatus.doorStatus || '--', status: 'online' },
-    { name: '消防水压', text: formatDeviceValue(deviceStatus.fireWaterPressure ?? '--', 'MPa'), status: 'online' },
-    { name: '安防巡检', text: deviceStatus.securityInspection || '--', status: 'online' }
+    { name: '通风系统', text: deviceData.ventilation?.status || deviceStatus.ventilation || '--', status: 'online' },
+    { name: '湿度控制', text: deviceData.humidityControl?.status || deviceStatus.humidityControl || '--', status: (deviceData.humidityControl?.status || deviceStatus.humidityControl) === '停机' ? 'offline' : 'online' },
+    { name: '门禁状态', text: deviceData.doorStatus?.status || deviceStatus.doorStatus || '--', status: 'online' },
+    metricToDevice(deviceData.fireWaterPressure, '消防水压', 'MPa', deviceStatus.fireWaterPressure),
+    { name: '安防巡检', text: deviceData.securityInspection?.status || deviceStatus.securityInspection || '--', status: 'online' }
   ])
 
   warehouseData.stock.splice(0, warehouseData.stock.length, ...[
-    { label: '库存粮种', value: stockStatus.grainType || firstStock.grainType || '--', unit: '', status: '正常' },
-    { label: '库存重量', value: stockStatus.stockWeight ?? stockStats.totalStock ?? '--', unit: 't', status: '正常' },
-    { label: '入库批次', value: stockStatus.entryBatchCount ?? stockStats.stockCount ?? '--', unit: '批', status: '正常' },
-    { label: '异常告警', value: stockStatus.abnormalAlertCount ?? stockStats.warningCount ?? '0', unit: '条', status: '正常' }
+    { label: '库存粮种', value: stockStatusData.grainType?.status || firstStock.grainType || '--', unit: '', status: '正常' },
+    readMetric(stockStatusData.stockWeight, '库存重量', 't', stockStats.totalStock ?? stripUnit(baseData.stockWeight)),
+    readMetric(stockStatusData.entryBatchCount, '入库批次', '批', stockStats.stockCount),
+    readMetric(stockStatusData.abnormalAlertCount, '异常告警', '条', stockStats.warningCount ?? '0')
   ])
 
-  warehouseData.videos.splice(0, warehouseData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor, '仓库摄像头'))
+  warehouseData.videos.splice(0, warehouseData.videos.length, ...normalizeVideoMonitor(videoMonitorData.cameras || payload.videoMonitor, '仓库摄像头'))
 }
 
 
