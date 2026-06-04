@@ -4,8 +4,8 @@
     <div class="data-card">
       <div class="data-video">
         切换摄像头
-        <select v-model="streamUrl">
-          <option :value="item.url" v-bind:key="index" v-for="(item,index) in streams">{{item.name}}</option>
+        <select v-model.number="selectedStreamIndex">
+          <option :value="index" v-bind:key="index" v-for="(item,index) in streams">{{item.name}}</option>
         </select>
       </div>
       <Video :streams="selStream"></Video>
@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Video from './COMS/Video.vue'
 const props = defineProps({
   title: String,
@@ -38,24 +38,27 @@ const defaultStreams = [{
   url: 'http://localhost/live/stream4.flv'
 }]
 
-const streamUrl = ref('')
+const selectedStreamIndex = ref(0)
 
 const streams = computed(() => {
-  return props.data && props.data.length ? props.data : defaultStreams
+  return props.data && props.data.length ? props.data : []
 })
 
 const selStream = computed(() => {
-  return streams.value.find(item => item.url === streamUrl.value)
+  return streams.value[selectedStreamIndex.value] || null
 })
 
 watch(streams, (newStreams) => {
-  streamUrl.value = newStreams[0]?.url || ''
+  if (!newStreams.length) {
+    selectedStreamIndex.value = 0
+    return
+  }
+  if (selectedStreamIndex.value >= newStreams.length) {
+    selectedStreamIndex.value = 0
+  }
 }, {
-  immediate: true
-})
-
-onMounted(() => {
-  streamUrl.value = streams.value[0]?.url || ''
+  immediate: true,
+  deep: true
 })
 
 </script>
