@@ -26,6 +26,10 @@
         <div class="info-pill" @click="toggleAllDrawers">
           <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
         </div>
+        <div class="info-pill alert-entry" @click="openAlertDetail(defaultAlert)">
+          <span class="status-dot red pulse"></span>
+          <span>紧急预警：{{ defaultAlert.type }} · 点击查看详情</span>
+        </div>
         <!-- <div class="info-pill">
           <span class="status-dot"></span>
           <span>系统在线</span>
@@ -132,6 +136,34 @@
       </template>
     </template>
 
+    <!-- 报警面板（可点击跳转详情） -->
+    <aside v-if="activeAlerts.length" class="alert-panel" :class="{ collapsed: alertPanelCollapsed }">
+      <div class="alert-panel-header" @click="alertPanelCollapsed = !alertPanelCollapsed">
+        <span>🚨 最新报警（{{ activeAlerts.length }}） <span class="src-tag">前端模拟数据</span></span>
+        <span class="toggle">{{ alertPanelCollapsed ? '▲' : '▼' }}</span>
+      </div>
+      <transition name="fade">
+        <div v-if="!alertPanelCollapsed" class="alert-panel-body">
+          <div
+            v-for="item in activeAlerts"
+            :key="item.code"
+            class="alert-item"
+            :data-level="item.level"
+            @click="openAlertDetail(item)"
+          >
+            <div class="alert-item-left">
+              <div class="alert-item-type">{{ item.type }}</div>
+              <div class="alert-item-msg">{{ item.message }}</div>
+            </div>
+            <div class="alert-item-right">
+              <span class="alert-level">{{ item.level }}</span>
+              <span class="alert-time">{{ item.triggeredAt }}</span>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </aside>
+
     <!-- 底部菜单 -->
     <nav class="bottom-menu" v-if="menus && menus.length">
       <div v-for="menu in menus" :key="menu.id" class="menu-group">
@@ -155,8 +187,10 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/modules/app';
 const appStore = useAppStore();
+const router = useRouter();
 
 import CesiumMap from '@/components/CesiumMap.vue'
 import ThreeScene from '@/components/ThreeScene.vue'
@@ -198,6 +232,97 @@ const currentModel = ref({})
 const activeModelDevice = ref(null)
 
 const dashData = ref({})
+
+const alertPanelCollapsed = ref(false)
+
+const defaultAlert = reactive({
+  code: 'E-HIGH-TEMP-001',
+  type: '烘干塔温度异常',
+  level: '严重',
+  message: '塔内温度持续高于阈值上限（>72°C），持续时长超过 15 分钟',
+  triggeredAt: new Date(Date.now() - 18 * 60 * 1000).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+  durationMin: 18,
+  threshold: { min: 45, max: 72, unit: '°C' },
+  currentValue: 78.4,
+  status: '未处理',
+  handler: null
+})
+
+const activeAlerts = reactive([
+  { ...defaultAlert },
+  {
+    code: 'W-HUMID-002',
+    type: '仓库湿度偏高',
+    level: '警告',
+    message: '仓库 A 区湿度持续高于 65%，已达 1 小时',
+    triggeredAt: new Date(Date.now() - 70 * 60 * 1000).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+    durationMin: 70,
+    threshold: { min: 40, max: 65, unit: '%' },
+    currentValue: 71,
+    status: '未处理',
+    handler: null
+  },
+  {
+    code: 'I-POWER-003',
+    type: '灌溉功率异常',
+    level: '提示',
+    message: '2 号水泵瞬时功率波动大于正常范围 15%',
+    triggeredAt: new Date(Date.now() - 140 * 60 * 1000).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+    durationMin: 8,
+    threshold: { min: 30, max: 60, unit: 'kW' },
+    currentValue: 64.2,
+    status: '已解决',
+    handler: '王工'
+  }
+])
+
+const defaultDeviceForAlert = {
+  id: 'DEV-20260601-001',
+  name: '烘干塔主机',
+  model: '5H-30',
+  type: 'dryingTower',
+  location: '泰兴市根思乡烘干车间',
+  lon: 120.089928,
+  lat: 32.244513,
+  manufacturer: '中储粮精工',
+  installedAt: '2024-08-12',
+  maintainer: '王工 / 13800000000',
+  facilityId: 9
+}
+
+function openAlertDetail(alertItem) {
+  // 根据报警类型组装设备信息（此处复用示例设备作为演示，真实项目中可由接口返回）
+  const device = { ...defaultDeviceForAlert }
+  if (alertItem.code?.startsWith('W-HUMID')) {
+    Object.assign(device, {
+      id: 'DEV-WAREHOUSE-002',
+      name: '仓库 A 区',
+      model: 'WH-A1',
+      type: 'warehouse',
+      location: '泰兴市根思乡仓储区'
+    })
+  } else if (alertItem.code?.startsWith('I-POWER')) {
+    Object.assign(device, {
+      id: 'DEV-IRRIGATION-003',
+      name: '2 号水泵',
+      model: 'IRR-P-2',
+      type: 'irrigation',
+      location: '维明农场试验田东侧'
+    })
+  }
+  const payload = {
+    device,
+    alert: alertItem,
+    history: activeAlerts.slice(0, 8)
+  }
+  router.push({
+    path: '/alert-detail',
+    query: { data: encodeURIComponent(JSON.stringify(payload)) }
+  })
+}
+
+// 旧版简化版跳转已统一为完整版路径，函数保留便于切换
+// function openAlertDetailLite(alertItem) { ... }
 
 function toggleAllDrawers() {
   allDrawersOpen.value = !allDrawersOpen.value
@@ -1878,5 +2003,170 @@ body {
 .submenu-btn:hover {
   background: var(--light-green);
   color: var(--primary-green);
+}
+
+/* 紧急预警入口 */
+.info-pill.alert-entry {
+  background: #fdecea;
+  color: #c0392b;
+  border: 1px solid #e74c3c;
+  font-weight: 600;
+  animation: alert-entry-pulse 1.6s ease-in-out infinite;
+}
+.info-pill.alert-entry:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+.status-dot.red {
+  background: #e74c3c;
+}
+.status-dot.pulse {
+  animation: status-dot-blink 1s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+}
+@keyframes status-dot-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.8); }
+}
+@keyframes alert-entry-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.45); }
+  50%      { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
+}
+
+/* 报警浮窗 */
+.alert-panel {
+  position: absolute;
+  right: 14px;
+  bottom: 80px;
+  width: 320px;
+  max-height: 360px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 110;
+  box-shadow: 0 8px 30px rgba(20, 40, 60, 0.12);
+  transition: max-height 0.3s ease;
+}
+.alert-panel.collapsed {
+  max-height: 44px;
+}
+.alert-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fdecea, #fff0ed);
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.alert-panel-header .toggle {
+  font-size: 10px;
+  color: #c0392b;
+  opacity: 0.8;
+}
+.alert-panel-body {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+.alert-panel-body::-webkit-scrollbar { width: 6px; }
+.alert-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(231, 76, 60, 0.35);
+  border-radius: 999px;
+}
+.alert-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px;
+  border-radius: 8px;
+  margin: 4px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid #bdc3c7;
+  background: #fff;
+}
+.alert-item:hover {
+  transform: translateX(-2px);
+  background: #f8f9fa;
+  box-shadow: -4px 4px 12px rgba(20, 40, 60, 0.08);
+}
+.alert-item[data-level="严重"] {
+  border-left-color: #e74c3c;
+  background: #fff5f5;
+}
+.alert-item[data-level="警告"] {
+  border-left-color: #e67e22;
+  background: #fff8f0;
+}
+.alert-item[data-level="提示"] {
+  border-left-color: #f1c40f;
+  background: #fffef0;
+}
+.alert-item-left {
+  flex: 1;
+  min-width: 0;
+}
+.alert-item-type {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 3px;
+}
+.alert-item-msg {
+  font-size: 11px;
+  color: #7f8c8d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.alert-level {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: #95a5a6;
+  font-weight: 600;
+}
+.alert-item[data-level="严重"] .alert-level { background: #e74c3c; }
+.alert-item[data-level="警告"] .alert-level { background: #e67e22; }
+.alert-item[data-level="提示"] .alert-level { background: #f1c40f; color: #5a4a00; }
+.alert-time {
+  font-size: 10px;
+  color: #95a5a6;
+  font-family: "Courier New", monospace;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transform-origin: top;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: scaleY(0.6);
+}
+
+.src-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #d48806;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 </style>

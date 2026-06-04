@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
+import AlertDetail from '../views/AlertDetail.vue'
 import { useAppStore } from '@/store/modules/app';
 
 const routes = [
@@ -7,6 +8,11 @@ const routes = [
     path: '/',
     name: 'Home',
     component: Home
+  },
+  {
+    path: '/alert-detail',
+    name: 'AlertDetail',
+    component: AlertDetail
   }
 ]
 
