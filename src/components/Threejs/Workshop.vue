@@ -625,7 +625,10 @@ function applyInternalScene(value, shouldMoveCamera = true) {
   })
 
   removeLine()
-  createLine()
+  if (props.data.facilityType == 3) {
+    // 烘干塔绘制模拟线路
+    createLine()
+  }
 
   if (shouldMoveCamera) {
     moveToCamera(config.inCamera)
