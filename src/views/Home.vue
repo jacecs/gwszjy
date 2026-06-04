@@ -1100,7 +1100,7 @@ function bindOverviewData(data) {
   dashData.value = data
 
   if (Array.isArray(data.menus)) {
-    // menus.splice(0, menus.length, ...data.menus)
+    menus.splice(0, menus.length, ...data.menus)
   }
   gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
 
