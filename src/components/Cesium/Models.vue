@@ -6,7 +6,7 @@
 
 <script setup>
 // 模型
-import { reactive, ref, onMounted, onUnmounted, watch, getCurrentInstance } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ModelDebugger from './../ModelDebugger.vue'
 import ViewerEvents from '@/utils/ViewerEvents.js'
 import GLOBAL from '@/utils/GLOBAL.js'
@@ -130,13 +130,14 @@ const props = defineProps({
 })
 const emit = defineEmits(['callback'])
 
-const modelEntitys = ref([])
-const billboardEntities = ref([])
-const overviewParticleEntities = ref([])
+const modelEntitys = []
+const billboardEntities = []
+const overviewParticleEntities = []
 const areaParticleGroups = new Map()
 let cameraChangedRemove = null
-let particleTimer = null
+let preRenderRemove = null
 let particleClock = 0
+let lastVisibilityUpdate = 0
 const overviewParticleHideHeight = 1800
 watch(() => props.entity, (newMode) => {
 
@@ -144,39 +145,55 @@ watch(() => props.entity, (newMode) => {
 watch(() => [props.currentMode, props.activeAreaId], () => {
   updateParticleVisibility()
 })
+watch(() => props.gltfs, () => {
+  init()
+})
 
 onMounted(() => {
   init()
 
   ViewerEvents.add('LEFT_CLICK', onClick)
   cameraChangedRemove = viewer?.camera?.changed?.addEventListener(updateParticleVisibility)
-  particleTimer = setInterval(() => {
+  preRenderRemove = viewer?.scene?.preRender?.addEventListener(() => {
     particleClock = performance.now() / 1000
-    updateParticleVisibility()
-  }, 80)
+    const now = performance.now()
+    if (now - lastVisibilityUpdate > 250) {
+      lastVisibilityUpdate = now
+      updateParticleVisibility()
+    }
+  })
 })
 
 onUnmounted(() => {
-  // 删除
-  for (let index = 0; index < modelEntitys.value.length; index++) {
-    const entity = modelEntitys.value[index];
-    viewer.entities.remove(entity)
-  }
-  for (let index = 0; index < billboardEntities.value.length; index++) {
-    viewer.entities.remove(billboardEntities.value[index])
-  }
-  for (let index = 0; index < overviewParticleEntities.value.length; index++) {
-    viewer.entities.remove(overviewParticleEntities.value[index])
-  }
-  areaParticleGroups.forEach((entities) => {
-    entities.forEach((entity) => viewer.entities.remove(entity))
-  })
+  clearEntities()
   ViewerEvents.off('LEFT_CLICK', onClick)
   if (cameraChangedRemove) cameraChangedRemove()
-  if (particleTimer) clearInterval(particleTimer)
+  if (preRenderRemove) preRenderRemove()
 })
 
+function clearEntities() {
+  for (let index = 0; index < modelEntitys.length; index++) {
+    const entity = modelEntitys[index];
+    viewer?.entities?.remove(entity)
+  }
+  for (let index = 0; index < billboardEntities.length; index++) {
+    viewer?.entities?.remove(billboardEntities[index])
+  }
+  for (let index = 0; index < overviewParticleEntities.length; index++) {
+    viewer?.entities?.remove(overviewParticleEntities[index])
+  }
+  areaParticleGroups.forEach((entities) => {
+    entities.forEach((entity) => viewer?.entities?.remove(entity))
+  })
+  modelEntitys.length = 0
+  billboardEntities.length = 0
+  overviewParticleEntities.length = 0
+  areaParticleGroups.clear()
+}
+
 function init() {
+  if (!viewer) return
+  clearEntities()
   createOverviewParticles()
   for (let index = 0; index < props.gltfs.length; index++) {
     const gltf = props.gltfs[index];
@@ -266,12 +283,13 @@ function renderGlb(gltf) {
         density: 60.0,                             // 立柱密度（越长/越大的多边形建议改大此值）
         // bloom: true                                // 自动开启发光特效
       });
+      if (fence1) modelEntitys.push(fence1)
     }
     if (gltf.id == 'Warehouse3') {
       modelEntity1.value = modelEntity
      
     }
-    modelEntitys.value.push(modelEntity)
+    modelEntitys.push(modelEntity)
     createBillboardParticles(gltf)
     // viewer.flyTo(modelEntity)
   }
@@ -346,7 +364,7 @@ function createOverviewParticles() {
         disableDepthTestDistance: Number.POSITIVE_INFINITY
       }
     })
-    overviewParticleEntities.value.push(entity)
+    overviewParticleEntities.push(entity)
   }
 }
 
@@ -368,7 +386,7 @@ function createBillboardParticles(gltf) {
         disableDepthTestDistance: Number.POSITIVE_INFINITY
       }
     })
-    billboardEntities.value.push(entity)
+    billboardEntities.push(entity)
   }
 }
 
@@ -437,7 +455,7 @@ function updateParticleVisibility() {
   const activeAreaId = getActiveAreaId()
   const height = viewer.camera.positionCartographic.height
   const showOverviewParticles = !activeAreaId && height >= overviewParticleHideHeight
-  overviewParticleEntities.value.forEach((entity) => {
+  overviewParticleEntities.forEach((entity) => {
     entity.show = showOverviewParticles
   })
   areaParticleGroups.forEach((entities, id) => {

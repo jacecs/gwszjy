@@ -19,6 +19,7 @@ const container = ref(null)
 const modelEntity = ref(null)
 let viewer = null
 let Cesium = null
+let mapClickHandler = null
 const emit = defineEmits(['mapClick', 'initSuccess'])
 
 const locations = {
@@ -153,7 +154,7 @@ async function initCesium() {
     })
 
     // 监听地图点击事件，获取动态经纬度
-    ViewerEvents.add('LEFT_CLICK', (click) => {
+    mapClickHandler = (click) => {
       const ray = viewer.camera.getPickRay(click.position)
       const cartesian = scene.globe.pick(ray, scene)
       if (cartesian) {
@@ -184,7 +185,8 @@ async function initCesium() {
         roll: +roll.toFixed(1)
       });
 
-    })
+    }
+    ViewerEvents.add('LEFT_CLICK', mapClickHandler)
 
     console.log('✅ Cesium initialized')
   } catch (e) {
@@ -328,6 +330,10 @@ onMounted(() => {
 // }
 
 onUnmounted(() => {
+  if (mapClickHandler) {
+    ViewerEvents.off('LEFT_CLICK', mapClickHandler)
+    mapClickHandler = null
+  }
   if (viewer) {
     // emit('initSuccess', false)
     // viewer.destroy()

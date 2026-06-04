@@ -88,13 +88,13 @@
           <ThreeScene ref="threeScene" :currentMode="currentMode" @popup="handlePopup" @flyToBuilding="handleFlyToBuilding" @initSuccess="initThreeJS" />
           <template v-if="threejsStatus">
 
-            <template v-if="['Warehouse', 'Warehouse2', 'Warehouse3' ].includes(currentMode)">
+            <template v-if="['Warehouse', 'Warehouse3' ].includes(currentMode)">
               <ThreeWarehouse :data="currentModel"></ThreeWarehouse>
             </template>
             <template v-if="['Farm', 'Farm2', 'Farm3'].includes(currentMode)">
               <ThreeFarm :data="currentModel" />
             </template>
-            <template v-if="['Workshop', 'Workshop2', 'Workshop3'].includes(currentMode)">
+            <template v-if="['Workshop', 'Workshop2', 'Workshop3', 'Warehouse2'].includes(currentMode)">
               <ThreeWorkshop :data="currentModel" @device-drill="handleDeviceDrill" />
             </template>
 
@@ -117,7 +117,7 @@
 
     <!-- cesium绘制区域 -->
     <template v-if="cesiumStatus">
-      <Models :current-mode="currentMode" :gltf="gltfModels" :active-area-id="activeParticleArea" @callback="cesiumClick"></Models>
+      <Models :current-mode="currentMode" :gltfs="gltfModels" :active-area-id="activeParticleArea" @callback="cesiumClick"></Models>
       <template v-if="currentMode == 'overview'">
         <!-- 总览 -->
         <Main></Main>
@@ -210,263 +210,326 @@ const currentDate = ref('2026-04-02')
 const currentWeek = ref('星期四')
 
 const menus = reactive([
-  // {
-  //   id: 'overview',
-  //   name: '总览', icon: '🌍',
-  //   position: {
-  //     lon: "120.07",
-  //     lat: "32.18"
-  //   },
-  //   camera: {
-  //     "lon": 120.06647,
-  //     "lat": 32.18264,
-  //     "height": 9700.3,
-  //     "heading": 0,
-  //     "pitch": -50,
-  //     "roll": 0
-  //   }
-  // },
-  // {
-  //   id: 'nongtian1', name: '维明农场', icon: '🌱',
-  //   children: [
-  //     {
-  //       id: 'Farm', name: '试验田', icon: '🌱',
-  //       facilityId: 1,
-  //       position: {
-  //         lon: "120.097",
-  //         lat: "32.250"
-  //       },
-  //       gltfs: [
-  //         {
-  //           id: "监控农田",
-  //           url: './static/glb/试验田_1.glb',
-  //           x: 0,
-  //           y: 0,
-  //           z: 0,
-  //           scale: 1,
-  //         },
-  //       ],
-  //       threeCamera: {
-  //         x: 0,
-  //         y: 50,
-  //         z: 18,
-  //         tx: -11,
-  //         ty: 1.8,
-  //         tz: -50,
-  //       },
-  //       waterPump: {
-  //         url: './static/glb/水泵.glb',
-  //         scale: 35,
-  //         offset: { x: 0, y: 8, z: 0 }
-  //       },
-  //       pestDevice: {
-  //         url: './static/glb/虫情测报仪.glb',
-  //         scale: 35,
-  //         offset: { x: 0, y: 0, z: 0 }
-  //       },
-  //       camera: {
-  //         "lon": 120.09738,
-  //         "lat": 32.24902,
-  //         "height": 422.6,
-  //         "heading": 0,
-  //         "pitch": -50,
-  //         "roll": 0
-  //       }
-  //     },
-  //     {
-  //       id: 'Workshop', name: '烘干车间', icon: '🏭',
-  //       facilityId: 9,
-  //       position: {
-  //         lon: "120.089928",
-  //         lat: "32.244513"
-  //       },
-  //       gltfs: [{
-  //         id: "changfang1",
-  //         url: './static/glb/厂房1.glb',
-  //         x: 0,
-  //         y: 0,
-  //         z: 0,
-  //         scale: 1
-  //       }],
-  //       threeCamera: {
-  //         x: 200,
-  //         y: 200,
-  //         z: -300,
-  //         tx: 200,
-  //         ty: 0,
-  //         tz: 0,
-  //       },
-  //       dryingTowerDetail: {
-  //         url: './static/glb/烘干塔1.glb',
-  //         scale: 1,
-  //         offset: { x: 0, y: 0, z: 0 },
-  //         camera: { distance: 520 }
-  //       },
-  //       camera: {
-  //         "lon": 120.08971,
-  //         "lat": 32.24951,
-  //         "height": 304,
-  //         "heading": 182,
-  //         "pitch": -46.9,
-  //         "roll": 0
-  //       }
-  //     },
-  //     {
-  //       id: 'Workshop2', name: '仓库', icon: '📦',
-  //       facilityId: 7,
-  //       position: {
-  //         lon: "120.089928",
-  //         lat: "32.244513"
-  //       },
-  //       gltfs: [{
-  //         id: "仓库",
-  //         url: './static/glb/厂房1.glb',
-  //         x: 0,
-  //         y: 0,
-  //         z: 0,
-  //         scale: 1
-  //       }],
-  //       threeCamera: {
-  //         x: -120,
-  //         y: 112,
-  //         z: -250,
-  //         tx: -5,
-  //         ty: 0,
-  //         tz: 0,
-  //       },
-  //       camera: {
-  //         "lon": 120.08971,
-  //         "lat": 32.24951,
-  //         "height": 304,
-  //         "heading": 182,
-  //         "pitch": -46.9,
-  //         "roll": 0
-  //       }
-  //     }
-  //   ]
-  // },
-  // {
-  //   id: 'nongtian2', name: '农场2', icon: '🌱',
-  //   children: [
-  //     {
-  //       id: 'Farm2',
-  //       name: '试验田',
-  //       facilityId: 2,
-  //       icon: '🌱',
-  //       position: {
-  //         lon: "120.097",
-  //         lat: "32.250"
-  //       },
-  //       gltfs: [
-  //         {
-  //           id: "试验田2",
-  //           url: './static/glb/试验田_2.glb',
-  //           x: 0,
-  //           y: 0,
-  //           z: 0,
-  //           scale: 1
-  //         },
+  {
+    "id": "overview",
+    "name": "总览",
+    "icon": "🌍",
+    "position": {
+      "lon": "120.07",
+      "lat": "32.18"
+    },
+    "camera": {
+      "lon": 120.06647,
+      "lat": 32.18264,
+      "height": 9700.3,
+      "heading": 0,
+      "pitch": -50,
+      "roll": 0
+    }
+  },
+  {
+    "id": "nongtian1",
+    "name": "维明农场",
+    "icon": "🌱",
+    "children": [
+      {
+        "id": "Farm",
+        "name": "试验田",
+        "icon": "🌱",
+        "facilityId": 1,
+        "facilityType": 1,
+        "position": {
+          "lon": "120.097",
+          "lat": "32.250"
+        },
+        "gltfs": [
+          {
+            "id": "监控农田",
+            "url": "./static/glb/试验田_1.glb",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "scale": 1
+          }
+        ],
+        "threeCamera": {
+          "x": 0,
+          "y": 50,
+          "z": 18,
+          "tx": -11,
+          "ty": 1.8,
+          "tz": -50
+        },
+        "waterPump": {
+          "url": "./static/glb/水泵.glb",
+          "scale": 35,
+          "offset": {
+            "x": 0,
+            "y": 8,
+            "z": 0
+          }
+        },
+        "pestDevice": {
+          "url": "./static/glb/虫情测报仪.glb",
+          "scale": 35,
+          "offset": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        "camera": {
+          "lon": 120.09738,
+          "lat": 32.24902,
+          "height": 422.6,
+          "heading": 0,
+          "pitch": -50,
+          "roll": 0
+        }
+      },
+      {
+        "id": "Workshop",
+        "name": "烘干车间",
+        "icon": "🏭",
+        "facilityId": 9,
+        "facilityType": 3,
+        "position": {
+          "lon": "120.089928",
+          "lat": "32.244513"
+        },
+        "gltfs": [
+          {
+            "id": "changfang1",
+            "url": "./static/glb/厂房1.glb",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "scale": 1
+          }
+        ],
+        "threeCamera": {
+          "x": 200,
+          "y": 200,
+          "z": -300,
+          "tx": 200,
+          "ty": 0,
+          "tz": 0
+        },
+        "dryingTowerDetail": {
+          "url": "./static/glb/烘干塔1.glb",
+          "scale": 1,
+          "offset": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "camera": {
+            "distance": 520
+          }
+        },
+        "camera": {
+          "lon": 120.08971,
+          "lat": 32.24951,
+          "height": 304,
+          "heading": 182,
+          "pitch": -46.9,
+          "roll": 0
+        }
+      },
+      {
+        "id": "Workshop2",
+        "name": "仓库",
+        "icon": "📦",
+        "facilityId": 7,
+        "facilityType": 2,
+        "position": {
+          "lon": "120.089928",
+          "lat": "32.244513"
+        },
+        "gltfs": [
+          {
+            "id": "仓库",
+            "url": "./static/glb/厂房1.glb",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "scale": 1
+          }
+        ],
+        "threeCamera": {
+          // "x": 164,
+          // "y": 42,
+          // "z": 162,
+          // "tx": 179.21,
+          // "ty": 31.91,
+          // "tz": 180.9
 
+          x: 241.42080401198353,
+          y: 91.39342936635393,
+          z: -230.40952717024032,
+          tx: 367.06919394349507,
+          ty: -11.332709226933119,
+          tz: 44.233936624813566
+        },
+        "camera": {
+          "lon": 120.08971,
+          "lat": 32.24951,
+          "height": 304,
+          "heading": 182,
+          "pitch": -46.9,
+          "roll": 0
+        }
+      }
+    ]
+  },
+  {
+    "id": "nongtian2",
+    "name": "红耕农场",
+    "icon": "🌱",
+    "children": [
+      {
+        "id": "Farm2",
+        "name": "试验田",
+        "facilityId": 2,
+        "facilityType": 1,
+        "icon": "🌱",
+        "position": {
+          "lon": "120.097",
+          "lat": "32.250"
+        },
+        "gltfs": [
+          {
+            "id": "试验田2",
+            "url": "./static/glb/试验田_2.glb",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "scale": 1
+          }
+        ],
+        "threeCamera": {
+          "x": 5,
+          "y": 150,
+          "z": -155
+        },
+        "waterPump": {
+          "url": "./static/glb/水泵.glb",
+          "scale": 35,
+          "offset": {
+            "x": 0,
+            "y": 8,
+            "z": 0
+          }
+        },
+        "pestDevice": {
+          "url": "./static/glb/虫情测报仪.glb",
+          "scale": 35,
+          "offset": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        "camera": {
+          "lon": 120.04952,
+          "lat": 32.26108,
+          "height": 793,
+          "heading": 0,
+          "pitch": -51,
+          "roll": 0
+        }
+      },
+      {
+        "id": "Workshop3",
+        "facilityId": 10,
+        "name": "烘干车间",
+        "icon": "🏭",
+        "facilityType": 3,
+        "position": {
+          "lon": "120.089928",
+          "lat": "32.244513"
+        },
+        "gltfs": [
+          {
+            "id": "changfang3",
+            "url": "./static/glb/厂房3-有底图.glb",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "scale": 1
+          }
+        ],
+        "threeCamera": {
 
-  //       ],
-  //       threeCamera: {
-  //         x: 5,
-  //         y: 150,
-  //         z: -155,
-  //       },
-  //       waterPump: {
-  //         url: './static/glb/水泵.glb',
-  //         scale: 35,
-  //         offset: { x: 0, y: 8, z: 0 }
-  //       },
-  //       pestDevice: {
-  //         url: './static/glb/虫情测报仪.glb',
-  //         scale: 35,
-  //         offset: { x: 0, y: 0, z: 0 }
-  //       },
-  //       camera: {
-  //         "lon": 120.04952,
-  //         "lat": 32.26108,
-  //         "height": 793,
-  //         "heading": 0,
-  //         "pitch": -51,
-  //         "roll": 0
-  //       }
-  //     },
-  //     {
-  //       id: 'Workshop3',
-  //       facilityId: 10,
-  //       name: '烘干车间',
-  //       icon: '🏭',
-  //       position: {
-  //         lon: "120.089928",
-  //         lat: "32.244513"
-  //       },
-  //       gltfs: [{
-  //         id: "changfang3",
-  //         url: './static/glb/厂房3-有底图.glb',
-  //         x: 0,
-  //         y: 0,
-  //         z: 0,
-  //         scale: 1
-  //       }],
-  //       threeCamera: {
-  //         x: 10,
-  //         y: 550,
-  //         z: 1020,
-  //       },
-  //       dryingTowerDetail: {
-  //         url: './static/glb/烘干塔1.glb',
-  //         scale: 1,
-  //         offset: { x: 0, y: 0, z: 0 },
-  //         camera: { distance: 520 }
-  //       },
-  //       camera: {
-  //         "lon": 120.01789,
-  //         "lat": 32.25442,
-  //         "height": 101.6,
-  //         "heading": 346.1,
-  //         "pitch": -23,
-  //         "roll": 0
-  //       },
-  //     },
-  //     {
-  //       id: 'Warehouse2', name: '仓库', icon: '📦',
-  //       facilityId: 6,
-  //       position: {
-  //         lon: "120.089928",
-  //         lat: "32.244513"
-  //       },
-  //       gltfs: [{
-  //         id: "仓库2",
-  //         url: './static/glb/厂房2.glb',
-  //         x: 0,
-  //         y: 0,
-  //         z: 0,
-  //         scale: 1
-  //       }],
-  //       threeCamera: {
-  //         x: 61,
-  //         y: 140,
-  //         z: -52,
-  //         tx: 60,
-  //         ty: 21,
-  //         tz: -340
-  //       },
-  //       camera: {
-  //         "lon": 120.0299,
-  //         "lat": 32.25767,
-  //         "height": 123.8,
-  //         "heading": 182.7,
-  //         "pitch": -28.7,
-  //         "roll": 0
-  //       }
-  //     },
+          x:-40.21708620037208,
+          y:396.9229629085448,
+          z:848.1922030425228,
+          tx:192.94146514444802,
+          ty:144.58059352091888,
+          tz:281.8067008580556
+        },
+        "dryingTowerDetail": {
+          "url": "./static/glb/烘干塔1.glb",
+          "scale": 1,
+          "offset": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "camera": {
+            "distance": 520
+          }
+        },
+        "camera": {
+          "lon": 120.01789,
+          "lat": 32.25442,
+          "height": 101.6,
+          "heading": 346.1,
+          "pitch": -23,
+          "roll": 0
+        }
+      },
+      {
+        "id": "Warehouse2",
+        "name": "仓库",
+        "icon": "📦",
+        "facilityId": 6,
+        "facilityType": 2,
+        "position": {
+          "lon": "120.089928",
+          "lat": "32.244513"
+        },
+        "gltfs": [
+          {
+            "id": "changfang31",
+            "url": "./static/glb/厂房3-有底图.glb",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "scale": 1
+          }
+        ],
+        "threeCamera": {
 
-  //   ]
-  // },
+          x: -48.672415510646985,
+          y: 252.19802392178474,
+          z: 757.8528696604492,
+          tx: -121.09090343736256,
+          ty: 84.00540849074727,
+          tz: 218.8440971831276
+        },
+        "camera": {
+          "lon": 120.0299,
+          "lat": 32.25767,
+          "height": 123.8,
+          "heading": 182.7,
+          "pitch": -28.7,
+          "roll": 0
+        }
+      }
+    ]
+  }
 ])
-
 const currentLocation = ref('泰兴市根思乡')
 const currentCoords = ref('32.18°N, 120.07°E')
 
@@ -773,7 +836,7 @@ const rightPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTow
 const rightSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚡ 能耗与告警' : (isWarehouseMode.value ? '📦 库存状态' : (isFarmMode.value ? '💧 灌溉数据' : '📊 墒情数据')))
 const rightSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.energy : (isWarehouseMode.value ? warehouseData.stock : (isFarmMode.value ? activeFieldData.value.irrigation : productionData)))
 const videoPanelTitle = computed(() => isDryingTowerMode.value ? '🎥 烘干塔视频' : (isWarehouseMode.value ? '🎥 仓库视频' : (isFarmMode.value ? '🎥 地块视频' : '📊 视频监控')))
-const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : (dashData.value?.panelData?.videos.cameras ?? []))))
+const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : (dashData.value?.panelData?.videos?.cameras ?? []))))
 const modelDataTitle = computed(() => isDryingTowerMode.value ? dryingTowerData.name : (isWarehouseMode.value ? warehouseData.name : (activeModelDevice.value?.name || currentModel.value?.name || activeFieldName.value || '当前模型')))
 const modelDataSubtitle = computed(() => {
   if (activeModelDevice.value) return activeModelDevice.value.subtitle || '设备下钻视图'
@@ -848,11 +911,11 @@ function switchMode(mode, obj) {
   currentModel.value = obj
 
   if (obj.facilityType == 1) {
-    getTestfieldOverview(obj?.facilityId , mode)
+    getTestfieldOverview(obj?.facilityId, mode)
   } else if (obj.facilityType == 3) {
-    getDryingOverview(obj?.facilityId )
+    getDryingOverview(obj?.facilityId)
   } else if (obj.facilityType == 2) {
-    getStorageOverview(obj?.facilityId )
+    getStorageOverview(obj?.facilityId)
   }
 
 
@@ -1037,7 +1100,7 @@ function bindOverviewData(data) {
   dashData.value = data
 
   if (Array.isArray(data.menus)) {
-    menus.splice(0, menus.length, ...data.menus)
+    // menus.splice(0, menus.length, ...data.menus)
   }
   gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
 
@@ -1105,7 +1168,7 @@ function getTestfieldOverview(facilityId, mode = currentMode.value) {
       bindTestfieldOverview(mode, res.data)
     }
   })
-} 
+}
 
 function bindTestfieldOverview(mode, data) {
   const payload = data.overview || data.detail || data
@@ -1279,7 +1342,7 @@ function getDryingOverview(facilityId) {
       bindDryingOverview(res.data)
     }
   })
-} 
+}
 
 function bindDryingOverview(data) {
   const payload = data.overview || data.detail || data
@@ -1349,7 +1412,7 @@ function getStorageOverview(facilityId) {
       bindStorageOverview(res.data)
     }
   })
-} 
+}
 
 function bindStorageOverview(data) {
   const payload = data.overview || data.detail || data

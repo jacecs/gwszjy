@@ -17,10 +17,10 @@ const router = createRouter({
 
 
 // 全局前置守卫
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
   // 示例：检查用户是否登录
   // const isLoggedIn = store.state.user.isLoggedIn; 
-  next();
+  return true
   // return 
   // const appStore = useAppStore();
   // console.log(`导航从 ${from.path} 到 ${to.path}`);
