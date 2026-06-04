@@ -1,14 +1,15 @@
 <template>
   <div class="monitor-grid" :class="'grid-' + grid">
     <div class="video-item">
-      <video ref="videoRef" autoplay muted playsinline controls></video>
+      <video v-show="!streamTip" ref="videoRef" autoplay muted playsinline controls></video>
+      <div v-if="streamTip" class="stream-tip">{{ streamTip }}</div>
       <!-- <div class="title">{{ item.name }}</div> -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, onBeforeUnmount, watch, nextTick } from 'vue'
 import flvjs from 'flv.js'
 
 const props = defineProps({
@@ -24,9 +25,14 @@ const props = defineProps({
 })
 
 const videoRef = ref(null)
+const streamTip = ref('')
 const players = []
 
+const isRtspStream = (url = '') => /^rtsp:\/\//i.test(url)
+const isFlvStream = (url = '') => /\.flv($|\?)/i.test(url)
+
 const createPlayer = (video, url) => {
+  console.log('视频信息', video, url)
   if (!video || !url) return null
   if (flvjs.isSupported()) {
     const player = flvjs.createPlayer({
@@ -53,6 +59,7 @@ const createPlayer = (video, url) => {
   }
 }
 async function loadStream() {
+  streamTip.value = ''
   players.forEach(p => {
     if (p) {
       p.pause()
@@ -66,21 +73,32 @@ async function loadStream() {
   const video = videoRef.value
   const url = props.streams?.url
   console.log('video', video)
-  if (video && url) {
+  if (!url) {
+    streamTip.value = '暂无视频地址'
+    return
+  }
+  if (isRtspStream(url)) {
+    streamTip.value = '浏览器不能直接播放 RTSP，请先转换为 HTTP-FLV、HLS 或 WebRTC 地址'
+    return
+  }
+  if (video && isFlvStream(url)) {
     createPlayer(video, url)
+    return
+  }
+  if (video) {
+    video.src = url
+    video.load()
+    video.play?.()
   }
 }
 
-// watch(() => props.streams, loadStream,
-//   {
-//     deep: true
-//   }
-// )
+watch(() => props.streams, loadStream,
+  {
+    deep: true,
+    immediate: true
+  }
+)
 
-
-onMounted(() => {
-  // loadStream()
-})
 
 onBeforeUnmount(() => {
   players.forEach(p => {
@@ -123,6 +141,20 @@ video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.stream-tip {
+  min-height: 160px;
+  height: 100%;
+  padding: 20px;
+  color: #ffffff;
+  background: #111111;
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .title {

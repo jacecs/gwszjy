@@ -133,7 +133,7 @@
     </template>
 
     <!-- 底部菜单 -->
-    <nav class="bottom-menu">
+    <nav class="bottom-menu" v-if="menus && menus.length">
       <div v-for="menu in menus" :key="menu.id" class="menu-group">
         <!-- 一级菜单按钮 -->
         <button class="menu-btn" :class="{ active: currentMode === menu.id || (activeParentMenu === menu.id && menu.children)  }" @click="switchMode(menu.id, menu)">
@@ -687,7 +687,7 @@ const fieldPanelData = reactive({
   }
 })
 
-const isFarmMode = computed(() => ['Farm', 'Farm2', 'Farm3'].includes(currentMode.value))
+const isFarmMode = computed(() => currentModel.value.facilityType == 1)
 const activeFieldData = computed(() => fieldPanelData[currentMode.value] || fieldPanelData.Farm)
 const activeFieldName = computed(() => activeFieldData.value.name)
 const dryingTowerData = reactive({
@@ -729,7 +729,7 @@ const dryingTowerData = reactive({
     { name: '烘干塔出粮口', url: 'http://localhost/live/dryer-outlet.flv' }
   ]
 })
-const isDryingTowerMode = computed(() => ['Workshop', 'Workshop3'].includes(currentMode.value) || activeModelDevice.value?.type === 'dryingTower')
+const isDryingTowerMode = computed(() => currentModel.value.facilityType == 3 || activeModelDevice.value?.type === 'dryingTower')
 const warehouseData = reactive({
   name: '仓库',
   sensors: [
@@ -763,7 +763,7 @@ const warehouseData = reactive({
     { name: '仓库B区', url: 'http://localhost/live/warehouse-b.flv' }
   ]
 })
-const isWarehouseMode = computed(() => ['Workshop2', 'Warehouse', 'Warehouse2', 'Warehouse3'].includes(currentMode.value))
+const isWarehouseMode = computed(() => currentModel.value.facilityType == 2)
 const leftPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌡 烘干塔传感器' : (isWarehouseMode.value ? '📡 仓库传感器' : (isFarmMode.value ? `📡 ${activeFieldName.value}传感器` : '🌡 环境监测')))
 const leftPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.sensors : (isWarehouseMode.value ? warehouseData.sensors : (isFarmMode.value ? activeFieldData.value.sensors : envData)))
 const leftSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌾 烘干工艺数据' : (isWarehouseMode.value ? '📍 库位与位置' : (isFarmMode.value ? '🌱 土壤数据' : '🌱 土壤监测')))
@@ -773,7 +773,7 @@ const rightPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTow
 const rightSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚡ 能耗与告警' : (isWarehouseMode.value ? '📦 库存状态' : (isFarmMode.value ? '💧 灌溉数据' : '📊 墒情数据')))
 const rightSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.energy : (isWarehouseMode.value ? warehouseData.stock : (isFarmMode.value ? activeFieldData.value.irrigation : productionData)))
 const videoPanelTitle = computed(() => isDryingTowerMode.value ? '🎥 烘干塔视频' : (isWarehouseMode.value ? '🎥 仓库视频' : (isFarmMode.value ? '🎥 地块视频' : '📊 视频监控')))
-const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : [])))
+const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : (dashData.value?.panelData?.videos.cameras ?? []))))
 const modelDataTitle = computed(() => isDryingTowerMode.value ? dryingTowerData.name : (isWarehouseMode.value ? warehouseData.name : (activeModelDevice.value?.name || currentModel.value?.name || activeFieldName.value || '当前模型')))
 const modelDataSubtitle = computed(() => {
   if (activeModelDevice.value) return activeModelDevice.value.subtitle || '设备下钻视图'
