@@ -13,11 +13,21 @@
         </div>
       </div>
       <div class="actions">
-        <button class="btn ghost" @click="refreshRealtime">
-          <span>🔄</span>
-          <span>刷新实时数据</span>
-        </button>
-        <button class="btn primary" :disabled="aiAnalyzing" @click="runAiAnalysis">
+        <select
+          class="model-select"
+          :disabled="loadingModels"
+          :value="store.activeModel"
+          @change="onModelChange"
+        >
+          <option v-if="loadingModels" value="" disabled>正在加载模型列表…</option>
+          <option
+            v-for="m in availableModels"
+            :key="m.key"
+            :value="m.key"
+            :disabled="m.available === false"
+          >{{ m.label }}{{ m.available === false ? '（未配置）' : '' }}</option>
+        </select>
+        <button class="btn primary" :disabled="aiAnalyzing || !canRunAnalysis" @click="runAiAnalysis">
           <span v-if="aiAnalyzing" class="loading-dot"></span>
           <span>{{ aiAnalyzing ? 'AI 分析中…' : (aiResult ? '重新分析' : '智能分析') }}</span>
         </button>
@@ -81,7 +91,7 @@
       <!-- 底部跨列：AI 智能分析 -->
       <section class="card ai-card span-2">
         <div class="card-header">
-          <span class="card-title">AI 智能分析 <span class="sub-subtle">（{{ aiSourceLabel }}）</span></span>
+          <span class="card-title">AI 智能分析 <span class="sub-subtle">（当前模型：{{ activeModelLabel }}）</span></span>
           <div class="export-actions">
             <button class="btn small" :disabled="!aiResult" @click="downloadAiText">导出 TXT</button>
             <button class="btn small" :disabled="!aiResult" @click="downloadAiPdf">导出 PDF</button>
@@ -89,6 +99,25 @@
         </div>
 
         <div class="ai-scroll">
+          <!-- 匹配到的企业预案（提示用户 AI 分析时会参考这些预案） -->
+          <div v-if="matchedPlaybooks && matchedPlaybooks.length" class="playbook-hint">
+            <div class="playbook-title">已匹配企业预案：{{ matchedPlaybooks.map(p => p.name).join('、') }}（优先级 {{ matchedPlaybooks.map(p => p.priority).join(' → ') }}）</div>
+            <details v-for="(pb, idx) in matchedPlaybooks" :key="idx" class="playbook-item">
+              <summary>{{ pb.name }}（优先级 {{ pb.priority }}）</summary>
+              <div v-if="pb.solutions && pb.solutions.length" class="pb-group">
+                <div class="pb-label">处置步骤：</div>
+                <ol><li v-for="(s, i) in pb.solutions" :key="i">{{ s }}</li></ol>
+              </div>
+              <div v-if="pb.suggestions && pb.suggestions.length" class="pb-group">
+                <div class="pb-label">长期建议：</div>
+                <ul><li v-for="(s, i) in pb.suggestions" :key="i">{{ s }}</li></ul>
+              </div>
+              <div v-if="pb.notes" class="pb-group"><div class="pb-label">注意：</div><div>{{ pb.notes }}</div></div>
+              <div v-if="pb.riskLevel" class="pb-group"><div class="pb-label">建议风险级别：</div><div>{{ pb.riskLevel }}</div></div>
+              <div v-if="pb.estimatedRecoveryMinutes" class="pb-group"><div class="pb-label">建议预计恢复：</div><div>{{ pb.estimatedRecoveryMinutes }} 分钟</div></div>
+            </details>
+          </div>
+
           <div v-if="aiAnalyzing" class="ai-skeleton">
             <div class="sk-line w1"></div>
             <div class="sk-line w2"></div>
@@ -126,7 +155,7 @@
           </div>
 
           <div v-else class="ai-empty">
-            尚未发起分析。点击右上角「智能分析」，系统将把设备信息、告警数据与实时读数提交给 DeepSeek 大模型，并给出结构化的原因、方案与建议。
+            尚未发起分析。点击右上角「智能分析」，系统将把设备信息、告警数据与实时读数提交给「{{ activeModelLabel }}」大模型，并给出结构化的原因、方案与建议。
           </div>
         </div>
       </section>
@@ -144,24 +173,36 @@ const router = useRouter();
 const store = useAlertDetailStore();
 
 const device = computed(() => store.device);
-const alert = computed(() => store.alert);
+const alert = computed(() => store.alertInfo);
 const severityColor = computed(() => store.severityColor);
 const aiAnalyzing = computed(() => store.aiAnalyzing);
 const aiResult = computed(() => store.aiResult);
 const aiError = computed(() => store.aiError);
+const matchedPlaybooks = computed(() => store.matchedPlaybooks);
 
 const updatedAt = ref(new Date());
 const updatedAtText = computed(() => updatedAt.value.toLocaleTimeString('zh-CN', { hour12: false }));
 
 const dataSourceLabel = computed(() => '前端模拟数据（等待 IoT 接口接入）');
-const aiSourceLabel = computed(() => (store.useRealDeepSeek ? 'DeepSeek 真实 API' : '本地演示 Mock'));
+
+const loadingModels = computed(() => store.loadingModels);
+const availableModels = computed(() => store.availableModels);
+const activeModelLabel = computed(() => {
+  const m = (store.availableModels || []).find((x) => x.key === store.activeModel);
+  return m ? m.label : store.activeModel;
+});
+const canRunAnalysis = computed(() => {
+  // 当前选中的模型必须存在且 available !== false
+  const current = (store.availableModels || []).find((m) => m.key === store.activeModel);
+  return !!current && current.available !== false;
+});
+
+function onModelChange(evt) {
+  const key = evt && evt.target && evt.target.value;
+  if (key) store.setActiveModel(key);
+}
 
 let rtTimer = null;
-
-function refreshRealtime() {
-  store.updateRealtime();
-  updatedAt.value = new Date();
-}
 
 function runAiAnalysis() {
   store.runAiAnalysis();
@@ -194,8 +235,8 @@ function consumeRouteParams() {
 
 onMounted(async () => {
   consumeRouteParams();
-  // 每 30 秒后台刷新一次实时读数
-  rtTimer = setInterval(refreshRealtime, 30000);
+  // 初始化：从后端获取可用模型列表（DeepSeek / 豆包等）
+  await store.refreshModelList();
 });
 
 onBeforeUnmount(() => {
@@ -283,6 +324,24 @@ onBeforeUnmount(() => {
 .sub-subtle { font-size: 11px; color: #7f8c8d; font-weight: 500; }
 
 .actions { display: flex; gap: 10px; }
+
+.model-select {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #dfe4ea;
+  color: #2c3e50;
+  font-size: 13px;
+  padding: 8px 28px 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .2s;
+  background-image: linear-gradient(45deg, transparent 50%, #95a5a6 50%), linear-gradient(135deg, #95a5a6 50%, transparent 50%);
+  background-position: right 12px center, right 8px center;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+.model-select:hover { border-color: #2ecc71; }
+.model-select:focus { outline: none; border-color: #2ecc71; box-shadow: 0 0 0 3px rgba(46,204,113,0.15); }
 
 /* 主体区：两列 + 底部跨列 AI 区 */
 .page-body {
@@ -445,4 +504,56 @@ onBeforeUnmount(() => {
 .ai-body { font-size: 13px; color: #34495e; line-height: 1.8; }
 .ai-list { margin: 0; padding-left: 20px; font-size: 13px; color: #34495e; line-height: 1.8; }
 .ai-list li { margin-bottom: 3px; }
+/* ============================================================
+   企业预案匹配面板
+   ============================================================ */
+.playbook-hint {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(46, 204, 113, 0.08));
+  border: 1px solid rgba(52, 152, 219, 0.25);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.playbook-title {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 6px;
+}
+.playbook-item {
+  margin-top: 6px;
+  padding: 6px 0;
+  border-top: 1px dashed rgba(52, 152, 219, 0.2);
+}
+.playbook-item summary {
+  cursor: pointer;
+  color: #2980b9;
+  font-weight: 500;
+  padding: 4px 0;
+  user-select: none;
+}
+.playbook-item summary:hover {
+  color: #1e6fa0;
+}
+.pb-group {
+  margin-top: 8px;
+  padding-left: 12px;
+  font-size: 12.5px;
+  color: #34495e;
+}
+.pb-group .pb-label {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 3px;
+}
+.pb-group ol,
+.pb-group ul {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+.pb-group li {
+  margin: 2px 0;
+}
+
 </style>

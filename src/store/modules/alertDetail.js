@@ -1,8 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { analyzeDeviceAlert, buildPromptPayload, USE_MOCK_FALLBACK } from '@/utils/deepseek';
+import {
+  analyzeDeviceAlert,
+  buildPromptPayload,
+  listModels,
+  matchPlaybooksFor
+} from '@/utils/llm';
 
-const useRealDeepSeek = !USE_MOCK_FALLBACK;
+// ============================================================
+// Mock 数据（真实接入后可从业务后端拉）
+// ============================================================
 
 const mockDevice = {
   id: 'DEV-20260601-001',
@@ -55,9 +62,14 @@ function genTimeSeries(base, noise, anomalyIndex, anomalyDelta) {
   return points;
 }
 
+// ============================================================
+// Store
+// ============================================================
+
 export const useAlertDetailStore = defineStore('alertDetail', () => {
+  // —— 基础数据 ——
   const device = ref({ ...mockDevice });
-  const alert = ref({ ...mockAlert });
+  const alertInfo = ref({ ...mockAlert });
   const historyList = ref([...mockHistory]);
   const historyPage = ref(1);
   const historySize = ref(5);
@@ -73,23 +85,40 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
     power: genTimeSeries(38, 4, 4, 10)
   });
 
+  // —— AI 分析状态 ——
   const aiAnalyzing = ref(false);
   const aiResult = ref(null);
   const aiError = ref('');
+  /** 当前告警匹配到的企业预案（供页面展示 + prompt 注入） */
+  const matchedPlaybooks = ref([]);
 
+  // —— 多模型切换 ——
+  /** 当前选中的模型 key（默认 deepseek-chat，等模型列表拉回来后会自动更新为第一个可用模型） */
+  const activeModel = ref('deepseek-chat');
+  /** 从后端拉到的模型列表：[{ key, label, available }] */
+  const availableModels = ref([]);
+  /** 模型列表是否在加载（用于页面 loading） */
+  const loadingModels = ref(false);
+
+  // —— 历史分页计算 ——
   const historyTotal = computed(() => historyList.value.length);
-  const historyPages = computed(() => Math.ceil(historyTotal.value / historySize.value));
+  const historyPages = computed(() => Math.ceil(historyTotal.value / historySize.value || 1));
   const pagedHistory = computed(() => {
     const start = (historyPage.value - 1) * historySize.value;
     return historyList.value.slice(start, start + historySize.value);
   });
 
+  // —— 告警级别配色 ——
   const severityColor = computed(() => {
-    const level = alert.value.level || '';
+    const level = alertInfo.value.level || '';
     if (level.includes('严重')) return { main: '#e74c3c', bg: 'rgba(231,76,60,0.08)', label: '严重' };
     if (level.includes('警告')) return { main: '#e67e22', bg: 'rgba(230,126,34,0.08)', label: '警告' };
     return { main: '#2ecc71', bg: 'rgba(46,204,113,0.08)', label: '提示' };
   });
+
+  // ============================================================
+  // 动作：数据更新
+  // ============================================================
 
   function setDevice(payload) {
     if (!payload) return;
@@ -98,9 +127,19 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
 
   function setAlert(payload) {
     if (!payload) return;
-    alert.value = { ...mockAlert, ...payload };
+    alertInfo.value = { ...mockAlert, ...payload };
     aiResult.value = null;
     aiError.value = '';
+    // 告警变更时重新匹配预案
+    const payloadForMatch = {
+      device: device.value,
+      'alert': alertInfo.value,
+      metrics: {
+        normal: normalMetrics.value,
+        abnormal: abnormalMetrics.value
+      }
+    };
+    matchedPlaybooks.value = matchPlaybooksFor(payloadForMatch);
   }
 
   function setHistory(list) {
@@ -113,7 +152,6 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
   }
 
   function updateRealtime() {
-    // 模拟实时数据联动：轻微抖动，用于体现与主页面同步更新
     const now = new Date();
     const label = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     ['temperature', 'humidity', 'power'].forEach((key) => {
@@ -126,16 +164,60 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
     });
   }
 
+  // ============================================================
+  // 动作：模型列表 & 切换
+  // ============================================================
+
+  async function refreshModelList() {
+    loadingModels.value = true;
+    try {
+      const list = await listModels();
+      availableModels.value = Array.isArray(list) ? list : [];
+      // 若当前 activeModel 在列表里不可用，自动切换到第一个可用模型
+      const current = availableModels.value.find((m) => m.key === activeModel.value);
+      if (!current || current.available === false) {
+        const firstReady = availableModels.value.find((m) => m.available !== false);
+        if (firstReady) activeModel.value = firstReady.key;
+      }
+    } catch (e) {
+      availableModels.value = [];
+    } finally {
+      loadingModels.value = false;
+    }
+  }
+
+  function setActiveModel(modelKey) {
+    if (!modelKey) return;
+    activeModel.value = modelKey;
+    aiResult.value = null;
+    aiError.value = '';
+  }
+
+  // 页面挂载后立刻算一次匹配的预案（因为 device/alert 初始化就是完整 mock 数据）
+  const payloadForInit = {
+    device: device.value,
+    'alert': alertInfo.value,
+    metrics: {
+      normal: normalMetrics.value,
+      abnormal: abnormalMetrics.value
+    }
+  };
+  matchedPlaybooks.value = matchPlaybooksFor(payloadForInit);
+
+  // ============================================================
+  // 动作：AI 分析
+  // ============================================================
+
   async function runAiAnalysis() {
     aiAnalyzing.value = true;
     aiError.value = '';
     aiResult.value = null;
     try {
-      const payload = buildPromptPayload(device.value, alert.value, {
+      const payload = buildPromptPayload(device.value, alertInfo.value, {
         normal: normalMetrics.value,
         abnormal: abnormalMetrics.value
       });
-      const res = await analyzeDeviceAlert(payload);
+      const res = await analyzeDeviceAlert(activeModel.value, payload);
       aiResult.value = res;
     } catch (e) {
       aiError.value = (e && e.message) || 'AI 分析请求失败，请稍后重试';
@@ -144,14 +226,18 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
     }
   }
 
+  // ============================================================
+  // 动作：导出
+  // ============================================================
+
   function exportAiAsText() {
     if (!aiResult.value) return '';
     const lines = [];
     lines.push(`【设备预警智能分析报告】`);
     lines.push(`设备：${device.value.name}（${device.value.id}）`);
     lines.push(`位置：${device.value.location}`);
-    lines.push(`告警：${alert.value.type} / 级别：${alert.value.level}`);
-    lines.push(`触发时间：${alert.value.triggeredAt}，持续时长：${alert.value.durationMin} 分钟`);
+    lines.push(`告警：${alertInfo.value.type} / 级别：${alertInfo.value.level}`);
+    lines.push(`触发时间：${alertInfo.value.triggeredAt}，持续时长：${alertInfo.value.durationMin} 分钟`);
     lines.push('');
     lines.push('=== 原因分析 ===');
     lines.push(aiResult.value.reason || '');
@@ -184,20 +270,6 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
     URL.revokeObjectURL(url);
   }
 
-  function downloadAiPdf() {
-    // 以 HTML -> print 的轻量方式实现 PDF 导出：打开新窗口并触发打印，浏览器可另存为 PDF
-    const html = buildPrintableHtml();
-    const win = window.open('', '_blank', 'width=900,height=800');
-    if (!win) return;
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => {
-      win.focus();
-      try { win.print(); } catch (e) { /* 部分浏览器限制，提示用户手动 Ctrl+P */ }
-    }, 400);
-  }
-
   function buildPrintableHtml() {
     const r = aiResult.value || { reason: '', solutions: [], suggestions: [] };
     return `<!doctype html><html><head><meta charset="utf-8"><title>设备预警智能分析报告</title>
@@ -216,9 +288,9 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
         <p><b>设备编号：</b>${device.value.id}</p>
         <p><b>型号：</b>${device.value.model}</p>
         <p><b>安装位置：</b>${device.value.location}</p>
-        <p><b>告警类型：</b>${alert.value.type}<span class="tag">${alert.value.level}</span></p>
-        <p><b>触发时间：</b>${alert.value.triggeredAt}，持续时长：${alert.value.durationMin} 分钟</p>
-        <p><b>告警描述：</b>${alert.value.message}</p>
+        <p><b>告警类型：</b>${alertInfo.value.type}<span class="tag">${alertInfo.value.level}</span></p>
+        <p><b>触发时间：</b>${alertInfo.value.triggeredAt}，持续时长：${alertInfo.value.durationMin} 分钟</p>
+        <p><b>告警描述：</b>${alertInfo.value.message}</p>
       </div>
       <h2>一、原因分析</h2>
       <p>${(r.reason || '').replace(/\n/g, '<br/>')}</p>
@@ -230,9 +302,27 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
       </body></html>`;
   }
 
+  function downloadAiPdf() {
+    const html = buildPrintableHtml();
+    const win = window.open('', '_blank', 'width=900,height=800');
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => {
+      win.focus();
+      try { win.print(); } catch (e) { /* 让用户手动 Ctrl+P */ }
+    }, 400);
+  }
+
+  // ============================================================
+  // 对外导出
+  // ============================================================
+
   return {
+    // 状态
     device,
-    alert,
+    alertInfo,
     historyList,
     historyPage,
     historySize,
@@ -244,14 +334,21 @@ export const useAlertDetailStore = defineStore('alertDetail', () => {
     aiAnalyzing,
     aiResult,
     aiError,
+    matchedPlaybooks,
     severityColor,
-    useRealDeepSeek,
+    activeModel,
+    availableModels,
+    loadingModels,
+
+    // 动作
     setDevice,
     setAlert,
     setHistory,
     gotoHistoryPage,
     updateRealtime,
     runAiAnalysis,
+    setActiveModel,
+    refreshModelList,
     exportAiAsText,
     downloadAiText,
     downloadAiPdf
