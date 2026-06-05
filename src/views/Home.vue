@@ -364,12 +364,12 @@ const menus = reactive([
           // "ty": 31.91,
           // "tz": 180.9
 
-          x: 241.42080401198353,
-          y: 91.39342936635393,
-          z: -230.40952717024032,
-          tx: 367.06919394349507,
-          ty: -11.332709226933119,
-          tz: 44.233936624813566
+          x: 382,
+          y: -5,
+          z: -3,
+          tx: 389,
+          ty: -27,
+          tz: 98
         },
         "camera": {
           "lon": 120.08971,
@@ -511,12 +511,12 @@ const menus = reactive([
         ],
         "threeCamera": {
 
-          x: -48.672415510646985,
-          y: 252.19802392178474,
-          z: 757.8528696604492,
-          tx: -121.09090343736256,
-          ty: 84.00540849074727,
-          tz: 218.8440971831276
+          x: -340,
+          y: 73,
+          z: 290,
+          tx: -78,
+          ty: -5,
+          tz: 120
         },
         "camera": {
           "lon": 120.0299,
@@ -1100,7 +1100,7 @@ function bindOverviewData(data) {
   dashData.value = data
 
   if (Array.isArray(data.menus)) {
-    menus.splice(0, menus.length, ...data.menus)
+   // menus.splice(0, menus.length, ...data.menus)
   }
   gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
 

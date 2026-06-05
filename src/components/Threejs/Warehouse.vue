@@ -79,7 +79,7 @@ const modelUrl = computed(() => {
   }
   return map[props.mode] || '🌾 总览'
 })
-const supportedInternalScene = computed(() => ['Warehouse', 'Warehouse2', 'Warehouse3', 'Workshop2'].includes(currentModel.value?.id))
+const supportedInternalScene = computed(() => ['Warehouse', 'Warehouse3'].includes(currentModel.value?.id))
 watch(() => props.data, (newMode) => {
   if (newMode) {
     gltfStatus.value = false

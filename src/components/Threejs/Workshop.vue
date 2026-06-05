@@ -61,7 +61,7 @@ const gltfStatus = ref(false)
 const currentModel = ref(null)
 const drillDevice = ref(null)
 const isolatedDevice = ref(null)
-const supportedInternalScene = computed(() => ['Workshop', 'Workshop2', 'Workshop3', 'Warehouse2'].includes(currentModel.value?.id))
+const supportedInternalScene = computed(() => ['Workshop',  'Workshop3'].includes(currentModel.value?.id))
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
