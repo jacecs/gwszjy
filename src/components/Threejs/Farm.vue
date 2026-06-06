@@ -68,6 +68,12 @@ const defaultPumpConfig = {
   offset: { x: 0, y: 8, z: 0 }
 }
 
+const defaultPumpStationConfig = {
+  url: './static/glb/泵站.glb',
+  scale: 35,
+  offset: { x: 0, y: 8, z: 0 }
+}
+
 const defaultPestConfig = {
   url: './static/glb/虫情测报仪.glb',
   scale: 35,
@@ -192,7 +198,9 @@ function onClick(item) {
   if (item) {
     const name = getObjectNamePath(item.object)
     console.log('试验田点击对象:', name, item)
-    if (name.indexOf('水井') > -1 || name.indexOf('shuini') > -1) {
+    if (isPumpStationObject(name)) {
+      showPumpStation(item)
+    } else if (name.indexOf('水井') > -1 || name.indexOf('shuini') > -1) {
       showPumpAtWell(item)
     } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
       showPestDevice(item)
@@ -247,6 +255,15 @@ function getModelById(id) {
 
 function getGlb(id) {
   return GLOBAL[id] ?? null
+}
+
+function isPumpStationObject(name) {
+  return name.indexOf('水泵站') > -1
+}
+
+async function showPumpStation(item) {
+  const pumpStationConfig = props.data?.pumpStation ?? defaultPumpStationConfig
+  showDetailModel(item, pumpStationConfig, '泵站')
 }
 
 async function showPumpAtWell(item) {

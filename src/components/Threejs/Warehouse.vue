@@ -148,6 +148,7 @@ function remove() {
 
 function onClick(item) {
   if (item) {
+    return
     const label = showTooltip(item.object, item.point)
   }
 }

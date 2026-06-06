@@ -231,7 +231,7 @@ function renderGlb(gltf) {
     const maxPointSize = 10;
     const minPointSize = 5;
     const modelEntity = viewer.entities.add({
-      name: gltf.id ?? 'model',
+      name: gltf.id + 'model' ,
       position: Cesium.Cartesian3.fromDegrees(gltf.lon, gltf.lat, gltf.height),
       model: {
         show: true,
@@ -239,6 +239,49 @@ function renderGlb(gltf) {
         color: new Cesium.Color(1.2, 1.2, 1.2, 1.0), // 增加RGB值来提亮
         scale: gltf.scale,
       },
+      // label: {
+      //   text: gltf.label || gltf.name, // 显示名称
+      //   font: '14pt Source Han Sans CN, Microsoft YaHei, sans-serif', // 字体
+      //   style: Cesium.LabelStyle.FILL_AND_OUTLINE, // 填充并描边
+      //   fillColor: Cesium.Color.WHITE, // 文字颜色
+      //   outlineColor: Cesium.Color.BLACK, // 描边颜色
+      //   outlineWidth: 2, // 描边宽度
+      //   verticalOrigin: Cesium.VerticalOrigin.BOTTOM, // 垂直对齐方式：底部对齐到位置点
+      //   horizontalOrigin: Cesium.HorizontalOrigin.CENTER, // 水平对齐方式：居中
+      //   pixelOffset: new Cesium.Cartesian2(0, 25), // 像素偏移，向上微调
+      //   disableDepthTestDistance: Number.POSITIVE_INFINITY, // 始终显示在最上层，不被地形遮挡
+      //   showBackground: false, // 是否显示背景框
+      //   backgroundColor: Cesium.Color.fromCssColorString('rgba(0, 0, 0, 0.6)'),
+      //   backgroundPadding: new Cesium.Cartesian2(10, 5),
+      //   scaleByDistance: new Cesium.NearFarScalar(1000, 1.0, 1000000, 0.4),
+      // },
+      // point: {
+      //   pixelSize: 12,
+      //   color: Cesium.Color.RED,
+      //   outlineColor: Cesium.Color.WHITE,
+      //   outlineWidth: 2,
+      //   verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      // },
+      // billboard: {
+      //   image: createBillboardImage(gltf.iconColor || '#00f6ff'),
+      //   width: 40,
+      //   height: 40,
+      //   verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      //   disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      //   scale: new Cesium.CallbackProperty(() => {
+      //     return 1 + Math.sin(particleClock * 3.2 + gltf.lon * 10) * 0.12
+      //   }, false)
+      // },
+    });
+    modelEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr)
+
+    const lon = gltf?.labelPosition?.x ?? gltf.lon
+    const lat = gltf?.labelPosition?.y ?? gltf.lat
+    const height = gltf?.labelPosition?.z ?? gltf.height
+
+    const labelEntity = viewer.entities.add({
+      name: gltf.id ?? 'model',
+      position: Cesium.Cartesian3.fromDegrees(lon, lat, height??0),
       label: {
         text: gltf.label || gltf.name, // 显示名称
         font: '14pt Source Han Sans CN, Microsoft YaHei, sans-serif', // 字体
@@ -269,11 +312,12 @@ function renderGlb(gltf) {
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         scale: new Cesium.CallbackProperty(() => {
-          return 1 + Math.sin(particleClock * 3.2 + gltf.lon * 10) * 0.12
+          return 1 + Math.sin(particleClock * 3.2 + lon * 10) * 0.12
         }, false)
       },
-    });
-    modelEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr)
+    })
+    modelEntitys.push(labelEntity)
+
     if (gltf.lines) {
        const fence1 = ElectronicFence.create(viewer, {
         positions: gltf.lines,
@@ -369,7 +413,7 @@ function createOverviewParticles() {
 }
 
 function createBillboardParticles(gltf) {
-  const center = { lon: gltf.lon, lat: gltf.lat }
+  const center = { lon: gltf?.labelPosition?.x ??gltf.lon , lat: gltf?.labelPosition?.y ??gltf.lat}
   for (let index = 0; index < 12; index++) {
     const phase = (index / 12) * Math.PI * 2
     const entity = viewer.entities.add({

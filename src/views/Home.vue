@@ -191,7 +191,104 @@ const popupStyle = ref({})
 const leftDrawerOpen = ref(true)
 const rightDrawerOpen = ref(true)
 const allDrawersOpen = ref(true)
-const gltfModels = ref([])
+const gltfModels = ref([
+      {
+        url: "./static/glb/厂房1.glb",
+        label: "维明农场",
+        id: "Workshop",
+        lon: 120.08935,
+        lat: 32.24715,
+        height: 10,
+        scale: 0.285,
+        heading: 88,
+        pitch: 0,
+        roll: 0,
+        labelPosition: {
+          x:120.08935,
+          y:32.24715
+        },
+        lines: [
+          120.088662, 32.247261,  // 点1 (经度, 纬度)
+          120.088779, 32.246539,  // 点2
+          120.090681, 32.246755,  // 点3
+          120.090565, 32.247514,  // 点4
+          120.088662, 32.247261   // 闭合回点1
+        ]
+      },
+      {
+        url: "./static/glb/试验田_1.glb",
+        // url: "./static/glb/场景/监控农田.glb",
+        label: "维明农场试验田",
+        id: "Farm",
+        lon: 120.0973,
+        lat: 32.2517,
+        height: 0,
+        scale: 1.8,
+        heading: 89,
+        pitch: 0,
+        roll: 0,
+        point: [120.097195,32.252956],
+        labelPosition: {
+          x:120.097127,
+          y:32.252929
+        },
+        lines: [
+          120.096171, 32.253432,  // 点1 (经度, 纬度)
+          120.097299, 32.253475,  // 点2
+          120.097368, 32.253085,  // 点3
+          120.098644, 32.253255,  // 点4
+          120.098756, 32.252505,   // 闭合回点1
+          120.096226, 32.252444, // 闭合回点1
+          120.096171, 32.253432,
+        ]
+      },
+      {
+        url: "./static/glb/厂房3-无底图.glb",
+        name: "红耕农场",
+        id: "Workshop3",
+        lon: 120.0172,
+        lat: 32.2565,
+        height: 0,
+        scale: 0.088,
+        heading: 87,
+        pitch: 0,
+        roll: 0,
+        labelPosition: {
+          x:120.0172,
+          y:32.2565
+        },
+        lines: [
+          120.017523, 32.256777,  // 点1 (经度, 纬度)
+          120.016665, 32.256261,  // 点2
+          120.017207, 32.255734,  // 点3
+          120.017947, 32.256303,  // 点4
+          120.017523, 32.256777   // 闭合回点1
+        ]
+      },
+      {
+        url: "./static/glb/试验田_2.glb",
+        label: "红耕农场试验田",
+        id: "Farm2",
+        lon: 120.0289,
+        lat: 32.2574,
+        height: 0,
+        scale: 1.72,
+        heading: 89,
+        pitch: 0,
+        roll: 0,
+        labelPosition: {
+          x:120.028316,
+          y:32.258015
+        },
+        lines: [
+          120.027347, 32.258261,  // 点1 (经度, 纬度)
+          120.029314, 32.259169,  // 点2
+          120.029424, 32.257773,  // 点3
+          120.027429, 32.256879,  // 点4
+          120.027347, 32.258261   // 闭合回点1
+        ]
+      }
+    ])
 
 const activeParentMenu = ref(null)
 const currentModel = ref({})
@@ -262,6 +359,15 @@ const menus = reactive([
         },
         "waterPump": {
           "url": "./static/glb/水泵.glb",
+          "scale": 35,
+          "offset": {
+            "x": 0,
+            "y": 8,
+            "z": 0
+          }
+        },
+        "pumpStation": {
+          "url": "./static/glb/泵站.glb",
           "scale": 35,
           "offset": {
             "x": 0,
@@ -357,19 +463,12 @@ const menus = reactive([
           }
         ],
         "threeCamera": {
-          // "x": 164,
-          // "y": 42,
-          // "z": 162,
-          // "tx": 179.21,
-          // "ty": 31.91,
-          // "tz": 180.9
-
-          x: 382,
-          y: -5,
-          z: -3,
-          tx: 389,
-          ty: -27,
-          tz: 98
+          x: 458,
+          y: 33,
+          z: -75,
+          tx: 480,
+          ty: -29,
+          tz: 105
         },
         "camera": {
           "lon": 120.08971,
@@ -431,12 +530,12 @@ const menus = reactive([
           }
         },
         "camera": {
-          "lon": 120.04952,
-          "lat": 32.26108,
-          "height": 793,
-          "heading": 0,
-          "pitch": -51,
-          "roll": 0
+            "lon": 120.02816,
+            "lat": 32.25275,
+            "height": 704.7,
+            "heading": 0,
+            "pitch": -51,
+            "roll": 0
         }
       },
       {
@@ -502,7 +601,7 @@ const menus = reactive([
         "gltfs": [
           {
             "id": "changfang31",
-            "url": "./static/glb/厂房3-有底图.glb",
+            "url": "./static/glb/厂房3-无底图.glb",
             "x": 0,
             "y": 0,
             "z": 0,
@@ -510,13 +609,12 @@ const menus = reactive([
           }
         ],
         "threeCamera": {
-
-          x: -340,
-          y: 73,
-          z: 290,
-          tx: -78,
+          x: -163,
+          y: 58,
+          z: 178,
+          tx: -23,
           ty: -5,
-          tz: 120
+          tz: 108
         },
         "camera": {
           "lon": 120.0299,
@@ -1100,7 +1198,7 @@ function bindOverviewData(data) {
   dashData.value = data
 
   if (Array.isArray(data.menus)) {
-   // menus.splice(0, menus.length, ...data.menus)
+   menus.splice(0, menus.length, ...data.menus)
   }
   gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
 

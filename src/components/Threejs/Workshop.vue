@@ -182,6 +182,7 @@ function onClick(item) {
   if (activeDryingTowerModel) return
   if (item) {
     if (tryDrillDryingTower(item)) return
+    return
     const label = showTooltip(item.object, item.point)
   }
 }
