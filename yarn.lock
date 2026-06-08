@@ -564,7 +564,7 @@ es-set-tostringtag@^2.1.0:
     has-tostringtag "^1.0.2"
     hasown "^2.0.2"
 
-es6-promise@^4.2.8:
+es6-promise@^4.2.5, es6-promise@^4.2.8:
   version "4.2.8"
   resolved "https://registry.npmjs.org/es6-promise/-/es6-promise-4.2.8.tgz"
   integrity sha512-HJDGx5daxeIvxdBxvG2cb9g4tEvwIk3i8+nhX0yGrYmZUzbkdg8QbDevheDB8gd0//uPj4c1EQua8Q+MViT0/w==
@@ -844,6 +844,14 @@ moment@^2.30.1:
   version "2.30.1"
   resolved "https://registry.npmjs.org/moment/-/moment-2.30.1.tgz"
   integrity sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==
+
+mpegts.js@^1.8.0:
+  version "1.8.0"
+  resolved "https://registry.npmjs.org/mpegts.js/-/mpegts.js-1.8.0.tgz"
+  integrity sha512-ZtujqtmTjWgcDDkoOnLvrOKUTO/MKgLHM432zGDI8oPaJ0S+ebPxg1nEpDpLw6I7KmV/GZgUIrfbWi3qqEircg==
+  dependencies:
+    es6-promise "^4.2.5"
+    webworkify-webpack "github:xqq/webworkify-webpack"
 
 ms@^2.1.3:
   version "2.1.3"
@@ -1139,10 +1147,9 @@ webpack-virtual-modules@^0.6.2:
   resolved "https://registry.npmmirror.com/webpack-virtual-modules/-/webpack-virtual-modules-0.6.2.tgz"
   integrity sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==
 
-webworkify-webpack@^2.1.5:
+webworkify-webpack@^2.1.5, "webworkify-webpack@github:xqq/webworkify-webpack":
   version "2.1.5"
-  resolved "https://registry.npmjs.org/webworkify-webpack/-/webworkify-webpack-2.1.5.tgz"
-  integrity sha512-2akF8FIyUvbiBBdD+RoHpoTbHMQF2HwjcxfDvgztAX5YwbZNyrtfUMgvfgFVsgDhDPVTlkbb5vyasqDHfIDPQw==
+  resolved "git+ssh://git@github.com/xqq/webworkify-webpack.git#24d1e719b4a6cac37a518b2bb10fe124527ef4ef"
 
 yaml@^2.4.2, yaml@^2.8.2:
   version "2.8.3"

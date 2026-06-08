@@ -30,6 +30,10 @@
           <span class="status-dot red pulse"></span>
           <span>紧急预警：{{ defaultAlert.type }} · 点击查看详情</span>
         </div>
+        <div class="info-pill camera-entry" @click="openCameraMonitor">
+          <span class="status-dot blue"></span>
+          <span>📹 视频监控中心 · 16 路在线 · 点击查看</span>
+        </div>
         <!-- <div class="info-pill">
           <span class="status-dot"></span>
           <span>系统在线</span>
@@ -318,7 +322,11 @@ function openAlertDetail(alertItem) {
   router.push({
     path: '/alert-detail',
     query: { data: encodeURIComponent(JSON.stringify(payload)) }
-  })
+  });
+}
+
+function openCameraMonitor() {
+  router.push({ path: '/camera-monitor' });
 }
 
 // 旧版简化版跳转已统一为完整版路径，函数保留便于切换
@@ -2017,8 +2025,24 @@ body {
   background: #e74c3c;
   color: #fff;
 }
+/* 视频监控中心入口 */
+.info-pill.camera-entry {
+  background: #e8f4fd;
+  color: #2980b9;
+  border: 1px solid #3498db;
+  font-weight: 600;
+}
+.info-pill.camera-entry:hover {
+  background: #3498db;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+}
 .status-dot.red {
   background: #e74c3c;
+}
+.status-dot.blue {
+  background: #3498db;
+  box-shadow: 0 0 6px rgba(52, 152, 219, 0.6);
 }
 .status-dot.pulse {
   animation: status-dot-blink 1s ease-in-out infinite;

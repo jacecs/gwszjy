@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import AlertDetail from '../views/AlertDetail.vue'
+import CameraMonitor from '../views/CameraMonitor.vue'
 import { useAppStore } from '@/store/modules/app';
 
 const routes = [
@@ -13,6 +14,11 @@ const routes = [
     path: '/alert-detail',
     name: 'AlertDetail',
     component: AlertDetail
+  },
+  {
+    path: '/camera-monitor',
+    name: 'CameraMonitor',
+    component: CameraMonitor
   }
 ]
 
