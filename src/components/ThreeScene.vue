@@ -433,8 +433,28 @@ onUnmounted(() => {
   if (renderer?.domElement) {
     renderer.domElement.removeEventListener('click', onMouseClick)
   }
+  if (labelRenderer?.domElement?.parentNode) {
+    labelRenderer.domElement.parentNode.removeChild(labelRenderer.domElement)
+  }
   if (controls) controls.dispose()
-  if (renderer) renderer.dispose()  
+  if (scene) {
+    scene.traverse((object) => {
+      if (object.geometry) object.geometry.dispose?.()
+      if (object.material) {
+        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        materials.forEach((material) => {
+          Object.values(material).forEach((value) => {
+            if (value?.isTexture) value.dispose()
+          })
+          material.dispose?.()
+        })
+      }
+    })
+  }
+  if (renderer) {
+    renderer.dispose()
+    renderer.forceContextLoss?.()
+  }
 
   emit('initSuccess', false)
 })

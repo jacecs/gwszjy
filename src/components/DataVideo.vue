@@ -57,8 +57,7 @@ watch(streams, (newStreams) => {
     selectedStreamIndex.value = 0
   }
 }, {
-  immediate: true,
-  deep: true
+  immediate: true
 })
 
 </script>

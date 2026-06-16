@@ -14,7 +14,7 @@
         <input type="number" v-model.number="item.dashCount" :step="1" @input="updateModel">
     </div>
   </div> -->
-  <template v-if="gltfStatus && ['Workshop','Workshop3'].includes(currentModel.id) ">
+  <template v-if="gltfStatus && supportedInternalScene">
     <label class="internal-scene-btn" :class="{ active: inStatus }">
       <input type="checkbox" v-model="inStatus" @change="changeStatus" />
       内部场景
@@ -61,6 +61,7 @@ const gltfStatus = ref(false)
 const currentModel = ref(null)
 const drillDevice = ref(null)
 const isolatedDevice = ref(null)
+const supportedInternalScene = computed(() => ['Workshop',  'Workshop3'].includes(currentModel.value?.id))
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
@@ -181,6 +182,7 @@ function onClick(item) {
   if (activeDryingTowerModel) return
   if (item) {
     if (tryDrillDryingTower(item)) return
+    return
     const label = showTooltip(item.object, item.point)
   }
 }
@@ -515,6 +517,13 @@ function setObjectVisibleWithCache(object, visible) {
 }
 
 function getInternalSceneConfig() {
+  const currentCamera = currentModel.value?.threeCamera
+  const outCamera = currentCamera
+    ? {
+        position: [currentCamera.x, currentCamera.y, currentCamera.z],
+        target: [currentCamera.tx ?? 0, currentCamera.ty ?? 0, currentCamera.tz ?? 0]
+      }
+    : null
   const configs = {
     Workshop: {
       model: getModelById('./static/glb/厂房1.glb', 'modelUrl'),
@@ -528,6 +537,18 @@ function getInternalSceneConfig() {
         target: [0, 0, 0]
       }
     },
+    Workshop2: {
+      model: getModelById('./static/glb/厂房1.glb', 'modelUrl'),
+      outsideNames: ['立方体010_4', '立方体010_1', '立方体010_2', '立方体010_3'],
+      inCamera: {
+        position: [241, 91, -230],
+        target: [367, -11, 44]
+      },
+      outCamera: outCamera || {
+        position: [253, 110, -62],
+        target: [370, 0, 35]
+      }
+    },
     Workshop3: {
       model: getModelById('changfang3'),
       outsideNames: ['002', '002039', 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036'],
@@ -539,6 +560,18 @@ function getInternalSceneConfig() {
       outCamera: {
         position: [10, 550, 1020],
         target: [0, 0, 0]
+      }
+    },
+    Warehouse2: {
+      model: getModelById('changfang31') || getModelById('./static/glb/厂房3-有底图.glb', 'modelUrl'),
+      outsideNames: ['002_1','002_3'],
+      inCamera: {
+        position: [-50, 250, 750],
+        target: [-120, 85, 220]
+      },
+      outCamera: outCamera || {
+        position: [61, 140, -52],
+        target: [60, 21, -340]
       }
     }
   }
@@ -593,7 +626,10 @@ function applyInternalScene(value, shouldMoveCamera = true) {
   })
 
   removeLine()
-  createLine()
+  if (props.data.facilityType == 3) {
+    // 烘干塔绘制模拟线路
+    createLine()
+  }
 
   if (shouldMoveCamera) {
     moveToCamera(config.inCamera)
@@ -648,7 +684,7 @@ function isolateDryingTowerAndHeater(target) {
 
 // 进入到内部
 function changeStatus(e) {
-  console.log(1111111, props.data )
+  console.log(1111111, props.data , inStatus.value)
   restoreIsolatedVisibility()
   isolatedDevice.value = null
   applyInternalScene(inStatus.value)

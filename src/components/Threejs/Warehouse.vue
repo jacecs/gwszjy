@@ -16,7 +16,7 @@
   </div> -->
 
   <template v-if="gltfStatus && supportedInternalScene">
-    <label style="position: fixed; left: 300px; bottom: 100px;z-index: 9999; padding: 5px">
+    <label class="internal-scene-btn" :class="{ active: inStatus }">
       <input type="checkbox" v-model="inStatus" @change="changeStatus" />
       内部场景
     </label>
@@ -79,7 +79,7 @@ const modelUrl = computed(() => {
   }
   return map[props.mode] || '🌾 总览'
 })
-const supportedInternalScene = computed(() => ['Workshop', 'Workshop3'].includes(currentModel.value?.id))
+const supportedInternalScene = computed(() => ['Warehouse', 'Warehouse3'].includes(currentModel.value?.id))
 watch(() => props.data, (newMode) => {
   if (newMode) {
     gltfStatus.value = false
@@ -138,20 +138,6 @@ function remove() {
 
       if (modelScene) {
         scene.remove(modelScene);
-
-        // 【重要】遍历模型，释放几何体和材质，防止内存泄漏
-        modelScene.traverse((object) => {
-          if (object.geometry) {
-            object.geometry.dispose();
-          }
-          if (object.material) {
-            if (Array.isArray(object.material)) {
-              object.material.forEach(material => material.dispose());
-            } else {
-              object.material.dispose();
-            }
-          }
-        });
       }
     }
   }
@@ -162,6 +148,7 @@ function remove() {
 
 function onClick(item) {
   if (item) {
+    return
     const label = showTooltip(item.object, item.point)
   }
 }
@@ -200,89 +187,110 @@ async function renderModel(obj) {
       GLOBAL[key].scene.scale.set(gltf.scale, gltf.scale, gltf.scale);
       GLOBAL[key].scene.position.set(gltf.x, gltf.y, gltf.z);
     }
+    gltfStatus.value = true
   }
 
 }
 
-function getModelById(id) {
-  return pageModels.find(item => item.modelId === id)
+function getModelById(id, key = 'modelId') {
+  return pageModels.find(item => item[key] === id)
 }
 
+function getCurrentCameraConfig() {
+  const currentCamera = currentModel.value?.threeCamera
+  if (!currentCamera) return null
+  return {
+    position: [currentCamera.x, currentCamera.y, currentCamera.z],
+    target: [currentCamera.tx ?? 0, currentCamera.ty ?? 0, currentCamera.tz ?? 0]
+  }
+}
+
+function getInternalSceneConfig() {
+  const outCamera = getCurrentCameraConfig()
+  const configs = {
+    Warehouse: {
+      model: getModelById('仓库') || getModelById('./static/glb/仓库1.glb', 'modelUrl'),
+      outsideNames: ['立方体010_4'],
+      inCamera: {
+        position: [241, 91, -230],
+        target: [367, -11, 44]
+      },
+      outCamera
+    },
+    Warehouse2: {
+      model: getModelById('仓库2') || getModelById('changfang31') || getModelById('./static/glb/厂房3-有底图.glb', 'modelUrl'),
+      outsideNames: ['Box002029', '002', '002_1'],
+      inCamera: {
+        position: [-50, 305, 105],
+        target: [170, 45, 100]
+      },
+      outCamera
+    },
+    Warehouse3: {
+      model: getModelById('仓库3') || getModelById('./static/glb/仓库3.glb', 'modelUrl'),
+      outsideNames: ['Box002008', 'Box002009'],
+      inCamera: {
+        position: [0, 80, 120],
+        target: [0, 20, 0]
+      },
+      outCamera
+    },
+    Workshop2: {
+      model: getModelById('./static/glb/厂房1.glb', 'modelUrl'),
+      outsideNames: ['立方体010_4'],
+      inCamera: {
+        position: [241, 91, -230],
+        target: [367, -11, 44]
+      },
+      outCamera
+    }
+  }
+  return configs[props.data.id]
+}
+
+function setOutsideVisible(config, visible) {
+  config.outsideNames?.forEach((name) => {
+    const object = getModal(config.model.scene, name)
+    if (!object) return
+    object.traverse((child) => { child.visible = visible })
+    object.visible = visible
+  })
+
+  config.outsideKeywords?.forEach((keyword) => {
+    config.model.scene.traverse((object) => {
+      if (!String(object.name || '').includes(keyword)) return
+      object.traverse((child) => { child.visible = visible })
+      object.visible = visible
+    })
+  })
+}
+
+function moveToCamera(config) {
+  if (!config) return
+  flyTo(
+    new THREE.Vector3(...config.position),
+    new THREE.Vector3(...config.target)
+  )
+}
 
 // 进入到内部
 function changeStatus(e) {
-  console.log(1111111, props.data)
-  if (props.data.id == 'Workshop') {
+  const config = getInternalSceneConfig()
+  const value = inStatus.value
 
-    const model = getModelById('./static/glb/厂房1.glb', 'modelUrl')
-    if (model) {
-      const value = inStatus.value
-      console.log(inStatus.value, e)
-      const outList = ['太阳能', '太阳能002', '厂房', , '厂房001']
-      for (let index = 0; index < outList.length; index++) {
-        const name = outList[index];
-        let obj
-        obj = getModal(model.scene, name)
-        obj && obj.traverse((child) => { child.visible = !value });
-        obj && (obj.visible = !value)
-      }
+  console.log(1111111, props.data, config)
+  if (!config?.model?.scene) {
+    inStatus.value = false
+    // removeLine()
+    return
+  }
 
-      if (value) {
-        // 定位
-        const targetPos = new THREE.Vector3(90, 220, -10)
-        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        // 模型加载成功后触发
-        removeLine()
-        createLine()
-      } else {
-        // 定位
-        const targetPos = new THREE.Vector3(56, 500, -400)
-        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        removeLine()
-      }
-
-    }
-  } else if (props.data.id == 'Workshop3') {
-    const model = getModelById('changfang3')
-    if (model) {
-      const value = inStatus.value
-      console.log(inStatus.value, e)
-      const outList = ['002', '002039', , 'Cylinder002002', 'Cylinder002002_1', '窗户003', '002041', '002036']
-      for (let index = 0; index < outList.length; index++) {
-        const name = outList[index];
-        let obj
-        obj = getModal(model.scene, name)
-        obj && obj.traverse((child) => { child.visible = !value });
-        obj && (obj.visible = !value)
-      }
-
-      if (value) {
-        // 定位
-        const targetPos = new THREE.Vector3(-50, 305, 105)
-        const targetLookAt = new THREE.Vector3(170, 45, 100); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        // 模型加载成功后触发
-        removeLine()
-        createLine()
-      } else {
-        // 定位
-        const targetPos = new THREE.Vector3(10, 550, 1020)
-        const targetLookAt = new THREE.Vector3(0, 0, 0); // 假设看着 Z 轴更小的地方
-
-        // const focusPoint = 
-        flyTo(targetPos, targetLookAt)
-        removeLine()
-      }
-
-    }
+  setOutsideVisible(config, !value)
+  removeLine()
+  if (value) {
+    moveToCamera(config.inCamera)
+  } else {
+    moveToCamera(config.outCamera)
   }
 }
 
@@ -708,3 +716,37 @@ function animate() {
 animate();
 
 </script>
+
+<style scoped>
+.internal-scene-btn {
+  position: fixed;
+  left: 300px;
+  bottom: 96px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  color: #eaffff;
+  background: rgba(4, 14, 20, 0.78);
+  border: 1px solid rgba(64, 240, 180, 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+}
+
+.internal-scene-btn input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #69ffc5;
+}
+
+.internal-scene-btn:hover,
+.internal-scene-btn.active {
+  color: #07100d;
+  background: #69ffc5;
+}
+</style>

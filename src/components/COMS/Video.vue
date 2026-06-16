@@ -92,9 +92,8 @@ async function loadStream() {
   }
 }
 
-watch(() => props.streams, loadStream,
+watch(() => props.streams?.url, loadStream,
   {
-    deep: true,
     immediate: true
   }
 )
@@ -109,6 +108,11 @@ onBeforeUnmount(() => {
       p.destroy()
     }
   })
+  players.length = 0
+  if (videoRef.value) {
+    videoRef.value.removeAttribute('src')
+    videoRef.value.load()
+  }
 })
 </script>
 
