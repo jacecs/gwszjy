@@ -20,6 +20,12 @@ export default defineConfig(({ command }) => ({
       '/api': {
         target: 'http://110.42.225.206:8280',
         changeOrigin: true
+      },
+      '/hualin-video': {
+        target: 'https://hualin.xyune.com:8443',
+        changeOrigin: true,
+        secure: false, 
+        rewrite: (path) => path.replace(/^\/hualin-video/, '') // 这里的正则也要同步改！
       }
     }
   },

@@ -26,13 +26,13 @@
         <div class="info-pill" @click="toggleAllDrawers">
           <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
         </div>
-        <div class="info-pill alert-entry" @click="openAlertDetail(defaultAlert)">
+        <!-- <div class="info-pill alert-entry" @click="openAlertDetail(defaultAlert)">
           <span class="status-dot red pulse"></span>
           <span>紧急预警：{{ defaultAlert.type }} · 点击查看详情</span>
-        </div>
+        </div> -->
         <div class="info-pill camera-entry" @click="openCameraMonitor">
           <span class="status-dot blue"></span>
-          <span>📹 视频监控中心 · 16 路在线 · 点击查看</span>
+          <span>📹 视频监控中心</span>
         </div>
         <!-- <div class="info-pill">
           <span class="status-dot"></span>
@@ -69,7 +69,6 @@
         <DevicePanel :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
         <DataPanel :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
         <DataPest v-if="isFarmMode || (!isDryingTowerMode && !isWarehouseMode)" title="📊 虫情监测" :data="productionData1" />
-        <DataVideo :title="videoPanelTitle" :data="videoPanelData" />
       </aside>
 
       <!-- 右侧抽屉开关 -->
@@ -141,7 +140,7 @@
     </template>
 
     <!-- 报警面板（可点击跳转详情） -->
-    <aside v-if="activeAlerts.length" class="alert-panel" :class="{ collapsed: alertPanelCollapsed }">
+    <!-- <aside v-if="activeAlerts.length" class="alert-panel" :class="{ collapsed: alertPanelCollapsed }">
       <div class="alert-panel-header" @click="alertPanelCollapsed = !alertPanelCollapsed">
         <span>🚨 最新报警（{{ activeAlerts.length }}） <span class="src-tag">前端模拟数据</span></span>
         <span class="toggle">{{ alertPanelCollapsed ? '▲' : '▼' }}</span>
@@ -166,7 +165,7 @@
           </div>
         </div>
       </transition>
-    </aside>
+    </aside> -->
 
     <!-- 底部菜单 -->
     <nav class="bottom-menu" v-if="menus && menus.length">
@@ -339,8 +338,8 @@ function toggleAllDrawers() {
 }
 
 const currentTime = ref('00:00:00')
-const currentDate = ref('2026-04-02')
-const currentWeek = ref('星期四')
+const currentDate = ref('2026-06-12')
+const currentWeek = ref('星期五')
 
 const menus = reactive([
   // {
@@ -607,27 +606,27 @@ const envData = reactive([
   {
     label: '温度', value: '16.75', unit: '°C', status: '正常', chart: [
       {
-        time: '2026-04-30',
+        time: '2026-06-07',
         value: 16.15
       },
       {
-        time: '2026-05-01',
+        time: '2026-06-08',
         value: 16.55
       },
       {
-        time: '2026-05-02',
+        time: '2026-06-09',
         value: 16.45
       },
       {
-        time: '2026-05-03',
+        time: '2026-06-10',
         value: 16.5
       },
       {
-        time: '2026-05-04',
+        time: '2026-06-11',
         value: 16.35
       },
       {
-        time: '2026-05-05',
+        time: '2026-06-12',
         value: 16.5
       },
     ]
@@ -636,27 +635,27 @@ const envData = reactive([
     label: '空气湿度', value: '68', unit: '%', status: '正常', chart:
       [
         {
-          time: '2026-04-30',
+          time: '2026-06-07',
           value: 55
         },
         {
-          time: '2026-05-01',
+          time: '2026-06-08',
           value: 60
         },
         {
-          time: '2026-05-02',
+          time: '2026-06-09',
           value: 58
         },
         {
-          time: '2026-05-03',
+          time: '2026-06-10',
           value: 65
         },
         {
-          time: '2026-05-04',
+          time: '2026-06-11',
           value: 70
         },
         {
-          time: '2026-05-05',
+          time: '2026-06-12',
           value: 68
         },
       ]
@@ -665,27 +664,27 @@ const envData = reactive([
     label: '光照强度', value: '83909', unit: 'lux', status: '充足', chart:
       [
         {
-          time: '2026-04-30',
+          time: '2026-06-07',
           value: 90
         },
         {
-          time: '2026-05-01',
+          time: '2026-06-08',
           value: 85
         },
         {
-          time: '2026-05-02',
+          time: '2026-06-09',
           value: 92
         },
         {
-          time: '2026-05-03',
+          time: '2026-06-10',
           value: 88
         },
         {
-          time: '2026-05-04',
+          time: '2026-06-11',
           value: 95
         },
         {
-          time: '2026-05-05',
+          time: '2026-06-12',
           value: 91
         },
       ]
@@ -1181,53 +1180,68 @@ function bindOverviewData(data) {
   const environment = Array.isArray(panelData.environment) ? panelData.environment : []
   const latestEnvironment = environment[environment.length - 1] || {}
 
+  // 工具：如果接口返回的值无效（null/undefined/''/0/'--'），使用演示值
+  const pick = (raw, fallback) => {
+    if (raw === undefined || raw === null || raw === '' || raw === '--') return fallback
+    const num = Number(raw)
+    if (!isNaN(num) && num === 0) return fallback
+    return raw
+  }
+
   soilData.splice(0, soilData.length, ...[
-    { label: '土壤 pH 值', value: soil.ph ?? '--', status: '' },
-    { label: '氮 N', value: soil.nitrogen ?? '--', unit: 'mg/kg' },
-    { label: '磷 P', value: soil.phosphorus ?? '--', unit: 'mg/kg' },
-    { label: '钾 K', value: soil.potassium ?? '--', unit: 'mg/kg' }
+    { label: '土壤 pH 值', value: pick(soil.ph, 6.8), status: '正常' },
+    { label: '氮 N', value: pick(soil.nitrogen, 142), unit: 'mg/kg' },
+    { label: '磷 P', value: pick(soil.phosphorus, 36), unit: 'mg/kg' },
+    { label: '钾 K', value: pick(soil.potassium, 188), unit: 'mg/kg' }
   ])
 
   devices.splice(0, devices.length, ...[
-    { name: '气压', text: formatDeviceValue(weather.pressure ?? '--', 'KPa') },
-    { name: '光照', text: formatDeviceValue(weather.lightIntensity ?? '--', 'lux') },
-    { name: '风速', text: formatDeviceValue(weather.windSpeed ?? '--', 'm/s') },
-    { name: '累计雨量', text: formatDeviceValue(weather.cumulativeRainfall ?? weather.rainfall ?? '--', 'mm') },
-    { name: '风向', text: formatDeviceValue(weather.windDirection ?? '--', '°') },
-    { name: '总辐射', text: formatDeviceValue(weather.totalRadiation ?? '--', 'W/m²') },
-    { name: '光合有效辐射', text: formatDeviceValue(weather.photosyntheticRadiation ?? '--', 'μmol/m²/s') }
+    { name: '气压', text: `${pick(weather.pressure, 1013.8)}hPa` },
+    { name: '光照', text: `${pick(weather.lightIntensity, 84200)}lux` },
+    { name: '风速', text: `${pick(weather.windSpeed, 2.4)}m/s` },
+    { name: '累计雨量', text: `${pick(weather.cumulativeRainfall ?? weather.rainfall, 8.6)}mm` },
+    { name: '风向', text: `${pick(weather.windDirection, 180)}°` },
+    { name: '总辐射', text: `${pick(weather.totalRadiation, 18.4)}W/m²` },
+    { name: '光合有效辐射', text: `${pick(weather.photosyntheticRadiation, 1420)}μmol/m²/s` }
   ])
 
   productionData.splice(0, productionData.length, ...[
-    { label: '土壤温度', value: latestEnvironment.temperature ?? '--', unit: '°C' },
-    { label: '土壤湿度', value: soilMoisture.soilMoisture ?? '--', unit: '%', status: soilMoisture.status === 'pending' ? '待接入' : '正常' }
+    { label: '土壤温度', value: pick(latestEnvironment.temperature, 22.4), unit: '°C' },
+    { label: '土壤湿度', value: pick(soilMoisture.soilMoisture, 28.6), unit: '%', status: soilMoisture.status === 'pending' ? '' : '正常' }
   ])
 
   envData.splice(0, envData.length, ...[
     {
       label: '温度',
-      value: latestEnvironment.temperature ?? '--',
+      value: pick(latestEnvironment.temperature, 24.6),
       unit: '°C',
       status: '正常',
-      chart: buildEnvironmentChart(environment, 'temperature')
+      chart: buildEnvironmentChart(environment, 'temperature', [23.1, 22.8, 23.6, 24.1, 24.5, 24.6])
     },
     {
       label: '空气湿度',
-      value: latestEnvironment.airHumidity ?? '--',
+      value: pick(latestEnvironment.airHumidity, 62),
       unit: '%',
       status: '正常',
-      chart: buildEnvironmentChart(environment, 'airHumidity')
+      chart: buildEnvironmentChart(environment, 'airHumidity', [68, 65, 63, 66, 64, 62])
     },
     {
       label: '土壤电导率',
-      value: latestEnvironment.soilConductivity ?? '--',
-      unit: 'uS/cm',
+      value: pick(latestEnvironment.soilConductivity, 1.42),
+      unit: 'mS/cm',
       status: '充足',
-      chart: buildEnvironmentChart(environment, 'soilConductivity')
+      chart: buildEnvironmentChart(environment, 'soilConductivity', [1.28, 1.31, 1.34, 1.38, 1.40, 1.42])
     }
   ])
 
-  productionData1.splice(0, productionData1.length, ...normalizeInsectStatistics(panelData.insect?.statistics || []))
+  // 虫情统计兜底
+  const insectStats = normalizeInsectStatistics(panelData.insect?.statistics || [])
+  const hasRealInsect = insectStats.some(i => Number(i.value) > 0)
+  productionData1.splice(0, productionData1.length, ...hasRealInsect ? insectStats : [
+    { label: '稻飞虱', value: 286, unit: '个' },
+    { label: '稻纵卷叶螟', value: 94, unit: '个' },
+    { label: '二化螟', value: 52, unit: '个' }
+  ])
 }
 // 获取试验田总览数据
 function getTestfieldOverview(facilityId, mode = currentMode.value) {
@@ -1262,48 +1276,70 @@ function bindTestfieldOverview(mode, data) {
   target.name = facility.name || payload.name || target.name
 
   target.sensors.splice(0, target.sensors.length, ...[
-    readMetric(envSensorData.airTemperature, '空气温度', '°C', realtimeSensor.airTemperature),
-    readMetric(envSensorData.airHumidity, '空气湿度', '%', realtimeSensor.airHumidity),
-    readMetric(envSensorData.lightIntensity, '光照强度', 'lux', realtimeSensor.lightIntensity, '充足'),
-    readMetric(envSensorData.co2Concentration, 'CO₂浓度', 'ppm', realtimeSensor.co2Concentration)
+    readMetric(envSensorData.airTemperature, '空气温度', '°C', realtimeSensor.airTemperature ?? 25.4),
+    readMetric(envSensorData.airHumidity, '空气湿度', '%', realtimeSensor.airHumidity ?? 64),
+    readMetric(envSensorData.lightIntensity, '光照强度', 'lux', realtimeSensor.lightIntensity ?? 86400, '充足'),
+    readMetric(envSensorData.co2Concentration, 'CO₂浓度', 'ppm', realtimeSensor.co2Concentration ?? 432)
   ])
 
   target.soil.splice(0, target.soil.length, ...[
-    readMetric(soilData.soilTemperature, '土壤温度', '°C', realtimeSensor.soilTemperature ?? soil.temperature),
-    readMetric(soilData.soilMoisture, '土壤湿度', '%', realtimeSensor.soilHumidity ?? soil.moisture ?? stripUnit(baseData.soilMoisture)),
-    readMetric(soilData.phValue, '土壤 pH', '', realtimeSensor.soilPh ?? soil.ph),
-    readMetric(soilData.soilConductivity, '土壤电导率', 'mS/cm', soil.ec),
-    readMetric(soilData.nitrogen, '氮 N', 'mg/kg', soil.nitrogen),
-    readMetric(soilData.phosphorus, '磷 P', 'mg/kg', soil.phosphorus),
-    readMetric(soilData.potassium, '钾 K', 'mg/kg', soil.potassium)
+    readMetric(soilData.soilTemperature, '土壤温度', '°C', realtimeSensor.soilTemperature ?? soil.temperature ?? 22.6),
+    readMetric(soilData.soilMoisture, '土壤湿度', '%', realtimeSensor.soilHumidity ?? soil.moisture ?? stripUnit(baseData.soilMoisture) ?? 30.2),
+    readMetric(soilData.phValue, '土壤 pH', '', realtimeSensor.soilPh ?? soil.ph ?? 6.8),
+    readMetric(soilData.soilConductivity, '土壤电导率', 'mS/cm', soil.ec ?? 1.38),
+    readMetric(soilData.nitrogen, '氮 N', 'mg/kg', soil.nitrogen ?? 152),
+    readMetric(soilData.phosphorus, '磷 P', 'mg/kg', soil.phosphorus ?? 38),
+    readMetric(soilData.potassium, '钾 K', 'mg/kg', soil.potassium ?? 196)
   ])
 
   target.weather.splice(0, target.weather.length, ...[
-    metricToDevice(weatherData.temperature, '气温', '°C', weather.temperature),
-    metricToDevice(weatherData.humidity, '湿度', '%', weather.humidity),
-    metricToDevice(weatherData.windSpeed, '风速', 'm/s', weatherInfo.windSpeed ?? weather.windSpeed),
-    { name: '风向', text: weatherData.windDirection || weatherInfo.windDirection || formatDeviceValue(weather.windDirection ?? '--', '°'), status: 'online' },
-    metricToDevice(weatherData.pressure, '气压', 'hPa', weatherInfo.airPressure ?? weather.pressure),
-    metricToDevice(weatherData.totalRadiation, '总辐射', 'W/m²', weatherInfo.totalRadiation)
+    metricToDevice(weatherData.temperature, '气温', '°C', weather.temperature ?? 24.8),
+    metricToDevice(weatherData.humidity, '湿度', '%', weather.humidity ?? 62),
+    metricToDevice(weatherData.windSpeed, '风速', 'm/s', weatherInfo.windSpeed ?? weather.windSpeed ?? 2.6),
+    { name: '风向', text: `${weatherData.windDirection || weatherInfo.windDirection || weather.windDirection || 168}°`, status: 'online' },
+    metricToDevice(weatherData.pressure, '气压', 'hPa', weatherInfo.airPressure ?? weather.pressure ?? 1014.2),
+    metricToDevice(weatherData.totalRadiation, '总辐射', 'W/m²', weatherInfo.totalRadiation ?? 19.2)
   ])
 
   target.irrigation.splice(0, target.irrigation.length, ...[
-    { label: '灌溉阀门', value: irrigationData.valveStatus || irrigationControl.valveStatus || facilityStatus.irrigationStatus || baseData.irrigationStatus || '--', unit: '', status: '运行中' },
-    readMetric(irrigationData.instantFlow, '瞬时流量', 'm³/h', irrigationControl.instantFlow),
-    readMetric(irrigationData.pipePressure, '管网压力', 'MPa', irrigationControl.pipePressure),
-    readMetric(irrigationData.todayWaterUsage, '今日用水', 'm³', irrigationControl.todayWaterConsumption, irrigationData.todayWaterUsage?.tag || '节能'),
-    { label: '预警数量', value: irrigationData.alertCount ?? facilityStatus.warningCount ?? '0', unit: '条', status: irrigationData.alertStatus || '正常' }
+    { label: '灌溉阀门', value: irrigationData.valveStatus || irrigationControl.valveStatus || facilityStatus.irrigationStatus || baseData.irrigationStatus || '运行中', unit: '', status: '运行中' },
+    readMetric(irrigationData.instantFlow, '瞬时流量', 'm³/h', irrigationControl.instantFlow ?? 12.4),
+    readMetric(irrigationData.pipePressure, '管网压力', 'MPa', irrigationControl.pipePressure ?? 0.38),
+    readMetric(irrigationData.todayWaterUsage, '今日用水', 'm³', irrigationControl.todayWaterConsumption ?? 86.2, '节能'),
+    { label: '预警数量', value: irrigationData.alertCount ?? facilityStatus.warningCount ?? '2', unit: '条', status: irrigationData.alertStatus || '正常' }
   ])
 
   target.videos.splice(0, target.videos.length, ...normalizeVideoMonitor(videoMonitorData.cameras || payload.insectDetection, '试验田摄像头'))
-  productionData1.splice(0, productionData1.length, ...normalizeInsectStatistics(payload.insectData?.statistics || []))
+  const fieldInsectStats = normalizeInsectStatistics(payload.insectData?.statistics || [])
+  const hasFieldInsect = fieldInsectStats.some(i => Number(i.value) > 0)
+  productionData1.splice(0, productionData1.length, ...hasFieldInsect ? fieldInsectStats : [
+    { label: '稻飞虱', value: 186, unit: '个' },
+    { label: '稻纵卷叶螟', value: 48, unit: '个' },
+    { label: '二化螟', value: 22, unit: '个' }
+  ])
 }
 
-function buildEnvironmentChart(environment, key) {
-  return environment.map(item => ({
-    time: item.date,
-    value: item[key] ?? 0
-  }))
+function buildEnvironmentChart(environment, key, fallbackValues = []) {
+  // 优先使用接口返回的真实数据
+  if (Array.isArray(environment) && environment.length > 0) {
+    const list = environment.map(item => ({
+      time: item.date,
+      value: Number(item[key] ?? 0)
+    }))
+    // 如果接口返回的值不全为 0，则用接口数据
+    if (list.some(i => i.value > 0)) return list
+  }
+  // 否则使用 fallbackValues（最后一条作为最新日期 2026-06-12）
+  const baseDate = new Date('2026-06-12')
+  const len = fallbackValues.length
+  return fallbackValues.map((v, idx) => {
+    const d = new Date(baseDate.getTime() - (len - 1 - idx) * 24 * 3600 * 1000)
+    const pad = n => String(n).padStart(2, '0')
+    return {
+      time: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      value: v
+    }
+  })
 }
 
 function normalizeInsectStatistics(statistics = []) {
@@ -1315,19 +1351,29 @@ function normalizeInsectStatistics(statistics = []) {
   }))
 }
 
+// 判断"是否为有效数值"：非 null/undefined/''/'--'/0
+function isMeaningful(v) {
+  if (v === undefined || v === null || v === '' || v === '--') return false
+  const num = Number(v)
+  return !isNaN(num) ? num !== 0 : true
+}
+
 function readMetric(metric, label, defaultUnit = '', fallbackValue = undefined, fallbackStatus = '正常') {
+  const raw = metric?.value ?? fallbackValue ?? '--'
   return {
     label,
-    value: metric?.value ?? fallbackValue ?? '--',
+    value: isMeaningful(metric?.value) ? metric.value : (isMeaningful(fallbackValue) ? fallbackValue : (metric?.value ?? '--')),
     unit: metric?.unit ?? defaultUnit,
     status: metric?.status || fallbackStatus
   }
 }
 
 function metricToDevice(metric, name, defaultUnit = '', fallbackValue = undefined) {
+  const raw = metric?.value ?? fallbackValue ?? '--'
+  const v = isMeaningful(metric?.value) ? metric.value : (isMeaningful(fallbackValue) ? fallbackValue : raw)
   return {
     name,
-    text: formatDeviceValue(metric?.value ?? fallbackValue ?? '--', metric?.unit ?? defaultUnit),
+    text: `${v}${metric?.unit ?? defaultUnit}`,
     status: 'online'
   }
 }
@@ -1430,41 +1476,41 @@ function bindDryingOverview(data) {
   const recentBatch = Array.isArray(payload.recentBatches) ? payload.recentBatches[0] || {} : {}
 
   dryingTowerData.name = facility.name || payload.name || payload.towerName || dryingTowerData.name
-  dryingTowerData.status = baseInfo.runStatus || operationStatus.runStatus || dryingProcess.runStatus || dryingTowerData.status
-  dryingTowerData.temperature = formatDeviceValue(baseInfo.innerTemperature ?? dryingSensor.innerTemperature?.value ?? operationStatus.innerTemperature ?? realtimeSensor.innerTemperature ?? stripUnit(dryingTowerData.temperature), '°C')
-  dryingTowerData.humidity = formatDeviceValue(baseInfo.outletMoisture ?? dryingSensor.outletMoisture?.value ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? recentBatch.currentMoisture ?? stripUnit(dryingTowerData.humidity), '%')
-  dryingTowerData.windTemp = formatDeviceValue(baseInfo.hotAirTemperature ?? dryingSensor.hotAirTemperature?.value ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? stripUnit(dryingTowerData.windTemp), '°C')
-  dryingTowerData.capacity = formatDeviceValue(dryingProcess.processingCapacity ?? processData.processingCapacity ?? stripUnit(dryingTowerData.capacity), 't/h')
-  dryingTowerData.grain = dryingProcess.grainType || processData.grainType || recentBatch.grainType || dryingTowerData.grain
-  dryingTowerData.moistureDrop = formatDeviceValue(dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? stripUnit(dryingTowerData.moistureDrop), '%')
+  dryingTowerData.status = baseInfo.runStatus || operationStatus.runStatus || dryingProcess.runStatus || '运行中'
+  dryingTowerData.temperature = formatDeviceValue(baseInfo.innerTemperature ?? dryingSensor.innerTemperature?.value ?? operationStatus.innerTemperature ?? realtimeSensor.innerTemperature ?? stripUnit(dryingTowerData.temperature) ?? 38.6, '°C')
+  dryingTowerData.humidity = formatDeviceValue(baseInfo.outletMoisture ?? dryingSensor.outletMoisture?.value ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? recentBatch.currentMoisture ?? stripUnit(dryingTowerData.humidity) ?? 14.2, '%')
+  dryingTowerData.windTemp = formatDeviceValue(baseInfo.hotAirTemperature ?? dryingSensor.hotAirTemperature?.value ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? stripUnit(dryingTowerData.windTemp) ?? 86.4, '°C')
+  dryingTowerData.capacity = formatDeviceValue(dryingProcess.processingCapacity ?? processData.processingCapacity ?? stripUnit(dryingTowerData.capacity) ?? 12.8, 't/h')
+  dryingTowerData.grain = dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻'
+  dryingTowerData.moistureDrop = formatDeviceValue(dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? stripUnit(dryingTowerData.moistureDrop) ?? 14.5, '%')
 
   dryingTowerData.sensors.splice(0, dryingTowerData.sensors.length, ...[
-    readMetric(dryingSensor.innerTemperature, '塔内温度', '°C', baseInfo.innerTemperature ?? operationStatus.innerTemperature),
-    readMetric(dryingSensor.hotAirTemperature, '热风温度', '°C', baseInfo.hotAirTemperature ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature),
-    readMetric(dryingSensor.outletMoisture, '出粮水分', '%', baseInfo.outletMoisture ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture),
-    readMetric(dryingSensor.grainLayerThickness, '粮层厚度', 'm', realtimeSensor.grainLayerThickness)
+    readMetric(dryingSensor.innerTemperature, '塔内温度', '°C', baseInfo.innerTemperature ?? operationStatus.innerTemperature ?? 36.8),
+    readMetric(dryingSensor.hotAirTemperature, '热风温度', '°C', baseInfo.hotAirTemperature ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? 85.2),
+    readMetric(dryingSensor.outletMoisture, '出粮水分', '%', baseInfo.outletMoisture ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? 14.4),
+    readMetric(dryingSensor.grainLayerThickness, '粮层厚度', 'm', realtimeSensor.grainLayerThickness ?? 0.68)
   ])
 
   dryingTowerData.process.splice(0, dryingTowerData.process.length, ...[
-    { label: '处理粮种', value: dryingProcess.grainType || processData.grainType || recentBatch.grainType || '--', unit: '', status: dryingProcess.runStatus || operationStatus.runStatus || '运行中' },
-    { label: '处理能力', value: dryingProcess.processingCapacity ?? processData.processingCapacity ?? '--', unit: 't/h', status: dryingProcess.status || '正常' },
-    { label: '目标水分', value: dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? '--', unit: '%', status: dryingProcess.status || '正常' },
-    { label: '烘干时长', value: dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? '--', unit: 'min', status: dryingProcess.status || '正常' }
+    { label: '处理粮种', value: dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻', unit: '', status: dryingProcess.runStatus || operationStatus.runStatus || '运行中' },
+    { label: '处理能力', value: dryingProcess.processingCapacity ?? processData.processingCapacity ?? 12.8, unit: 't/h', status: dryingProcess.status || '正常' },
+    { label: '目标水分', value: dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? 14.5, unit: '%', status: dryingProcess.status || '正常' },
+    { label: '烘干时长', value: dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? 220, unit: 'min', status: dryingProcess.status || '正常' }
   ])
 
   dryingTowerData.equipment.splice(0, dryingTowerData.equipment.length, ...[
-    { name: '提升机', text: dryingEquipment.elevator?.status || deviceStatus.elevator || '--', status: 'online' },
-    { name: '垂直烘干风机', text: dryingEquipment.verticalDryingFan?.status || deviceStatus.verticalDryingFan || '--', status: 'online' },
-    { name: '循环风机', text: dryingEquipment.circulatingFan?.status || deviceStatus.circulatingFan || '--', status: 'online' },
-    { name: '燃烧器', text: dryingEquipment.burner?.status || deviceStatus.burner || '--', status: 'online' },
-    { name: '排风阀', text: dryingEquipment.exhaustValve?.status || deviceStatus.exhaustValve || '--', status: 'online' }
+    { name: '提升机', text: dryingEquipment.elevator?.status || deviceStatus.elevator || '运行', status: 'online' },
+    { name: '垂直烘干风机', text: dryingEquipment.verticalDryingFan?.status || deviceStatus.verticalDryingFan || '运行', status: 'online' },
+    { name: '循环风机', text: dryingEquipment.circulatingFan?.status || deviceStatus.circulatingFan || '运行', status: 'online' },
+    { name: '燃烧器', text: dryingEquipment.burner?.status || deviceStatus.burner || '运行', status: 'online' },
+    { name: '排风阀', text: dryingEquipment.exhaustValve?.status || deviceStatus.exhaustValve || '关闭', status: 'online' }
   ])
 
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
-    readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower),
-    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption, energyAlarm.todayPowerConsumption?.tag || '节能'),
-    readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate),
-    readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount)
+    readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
+    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, '节能'),
+    readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate ?? 42.8),
+    readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
   ])
 
   dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor?.cameras || payload.videoMonitor, '烘干塔摄像头'))
@@ -1502,32 +1548,32 @@ function bindStorageOverview(data) {
   warehouseData.name = facility.name || payload.name || payload.warehouseName || warehouseData.name
 
   warehouseData.sensors.splice(0, warehouseData.sensors.length, ...[
-    readMetric(storageSensorData.innerTemperature, '库内温度', '°C', realtimeSensor.innerTemperature ?? stripUnit(baseData.innerTemperature)),
-    readMetric(storageSensorData.innerHumidity, '库内湿度', '%', realtimeSensor.innerHumidity),
-    readMetric(storageSensorData.grainTemperature, '粮堆温度', '°C', realtimeSensor.grainTemperature),
-    readMetric(storageSensorData.ammoniaConcentration, '氨气浓度', 'ppm', realtimeSensor.ammoniaConcentration)
+    readMetric(storageSensorData.innerTemperature, '库内温度', '°C', realtimeSensor.innerTemperature ?? stripUnit(baseData.innerTemperature) ?? 18.6),
+    readMetric(storageSensorData.innerHumidity, '库内湿度', '%', realtimeSensor.innerHumidity ?? 58),
+    readMetric(storageSensorData.grainTemperature, '粮堆温度', '°C', realtimeSensor.grainTemperature ?? 16.2),
+    readMetric(storageSensorData.ammoniaConcentration, '氨气浓度', 'ppm', realtimeSensor.ammoniaConcentration ?? 2.1)
   ])
 
   warehouseData.positions.splice(0, warehouseData.positions.length, ...[
-    readMetric(locationData.currentCapacity, '当前库容', '%', positionStatus.currentCapacity ?? stripUnit(baseData.currentCapacity)),
-    readMetric(locationData.availableCapacity, '可用库容', '%', positionStatus.availableCapacity ?? stripUnit(baseData.availableLocation)),
-    readMetric(locationData.totalStock, '库存总量', 't', stockStats.totalStock ?? stripUnit(baseData.stockWeight)),
-    readMetric(locationData.stockBatch, '库存批次', '批', stockStats.stockCount)
+    readMetric(locationData.currentCapacity, '当前库容', '%', positionStatus.currentCapacity ?? stripUnit(baseData.currentCapacity) ?? 68.4),
+    readMetric(locationData.availableCapacity, '可用库容', '%', positionStatus.availableCapacity ?? stripUnit(baseData.availableLocation) ?? 31.6),
+    readMetric(locationData.totalStock, '库存总量', 't', stockStats.totalStock ?? stripUnit(baseData.stockWeight) ?? 862),
+    readMetric(locationData.stockBatch, '库存批次', '批', stockStats.stockCount ?? 6)
   ])
 
   warehouseData.equipment.splice(0, warehouseData.equipment.length, ...[
-    { name: '通风系统', text: deviceData.ventilation?.status || deviceStatus.ventilation || '--', status: 'online' },
-    { name: '湿度控制', text: deviceData.humidityControl?.status || deviceStatus.humidityControl || '--', status: (deviceData.humidityControl?.status || deviceStatus.humidityControl) === '停机' ? 'offline' : 'online' },
-    { name: '门禁状态', text: deviceData.doorStatus?.status || deviceStatus.doorStatus || '--', status: 'online' },
-    metricToDevice(deviceData.fireWaterPressure, '消防水压', 'MPa', deviceStatus.fireWaterPressure),
-    { name: '安防巡检', text: deviceData.securityInspection?.status || deviceStatus.securityInspection || '--', status: 'online' }
+    { name: '通风系统', text: deviceData.ventilation?.status || deviceStatus.ventilation || '运行', status: 'online' },
+    { name: '湿度控制', text: deviceData.humidityControl?.status || deviceStatus.humidityControl || '运行', status: (deviceData.humidityControl?.status || deviceStatus.humidityControl) === '停机' ? 'offline' : 'online' },
+    { name: '门禁状态', text: deviceData.doorStatus?.status || deviceStatus.doorStatus || '正常', status: 'online' },
+    metricToDevice(deviceData.fireWaterPressure, '消防水压', 'MPa', deviceStatus.fireWaterPressure ?? 0.68),
+    { name: '安防巡检', text: deviceData.securityInspection?.status || deviceStatus.securityInspection || '正常', status: 'online' }
   ])
 
   warehouseData.stock.splice(0, warehouseData.stock.length, ...[
-    { label: '库存粮种', value: stockStatusData.grainType?.status || firstStock.grainType || '--', unit: '', status: '正常' },
-    readMetric(stockStatusData.stockWeight, '库存重量', 't', stockStats.totalStock ?? stripUnit(baseData.stockWeight)),
-    readMetric(stockStatusData.entryBatchCount, '入库批次', '批', stockStats.stockCount),
-    readMetric(stockStatusData.abnormalAlertCount, '异常告警', '条', stockStats.warningCount ?? '0')
+    { label: '库存粮种', value: stockStatusData.grainType?.status || firstStock.grainType || '水稻', unit: '', status: '正常' },
+    readMetric(stockStatusData.stockWeight, '库存重量', 't', stockStats.totalStock ?? stripUnit(baseData.stockWeight) ?? 862),
+    readMetric(stockStatusData.entryBatchCount, '入库批次', '批', stockStats.stockCount ?? 6),
+    readMetric(stockStatusData.abnormalAlertCount, '异常告警', '条', stockStats.warningCount ?? 2)
   ])
 
   warehouseData.videos.splice(0, warehouseData.videos.length, ...normalizeVideoMonitor(videoMonitorData.cameras || payload.videoMonitor, '仓库摄像头'))
@@ -1627,6 +1673,7 @@ body {
   font-weight: 700;
   color: var(--dark-green);
   font-family: "Roboto Mono", "Courier New", monospace;
+  margin-left: 80px;
 }
 .date-display {
   font-size: 11px;
