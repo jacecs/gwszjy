@@ -8,7 +8,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import moment from 'moment';
 
 const props = defineProps({
   title: {
@@ -30,6 +29,15 @@ const props = defineProps({
 
 const chartRef = ref(null)
 let chartInstance = null
+
+const formatDateLabel = (value) => {
+  const text = String(value ?? '')
+  const dateMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (dateMatch) return `${Number(dateMatch[2])}-${Number(dateMatch[3])}`
+  const shortMatch = text.match(/^(\d{1,2})-(\d{1,2})$/)
+  if (shortMatch) return `${Number(shortMatch[1])}-${Number(shortMatch[2])}`
+  return text
+}
 
 // 初始化图表
 const initChart = () => {
@@ -73,7 +81,7 @@ const updateChart = () => {
       data: props.data.map((item, index) =>item.time), // 示例：生成X轴数据
        axisLabel: {
           formatter: function (value, index) {
-            return moment(value).format('M-D')
+            return formatDateLabel(value)
           }
         },
     },
@@ -97,7 +105,6 @@ const updateChart = () => {
 
   // 如果父组件传入的是完整的 option 对象，可以直接使用:
   // const option = { ...baseOption, ...props.data } 
-  console.log(11111111, option)
   chartInstance.setOption(option, true) // true 表示不合并，完全替换
 }
 
@@ -109,7 +116,6 @@ watch(
       updateChart()
     }
   },
-  { deep: true } // 深度监听，以防数组内部元素变化
 )
 
 // 监听 title 变化

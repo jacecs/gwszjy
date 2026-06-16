@@ -68,8 +68,30 @@ const defaultPumpConfig = {
   offset: { x: 0, y: 8, z: 0 }
 }
 
+const defaultPumpStationConfig = {
+  url: './static/glb/泵站.glb',
+  scale: 35,
+  offset: { x: 0, y: 8, z: 0 },
+  camera: {
+    distance: 550,
+  }
+  
+}
+
 const defaultPestConfig = {
   url: './static/glb/虫情测报仪.glb',
+  scale: 35,
+  offset: { x: 0, y: 0, z: 0 }
+}
+
+const defaultWeatherStationConfig = {
+  url: './static/glb/气象站.glb',
+  scale: 35,
+  offset: { x: 0, y: 0, z: 0 }
+}
+
+const defaultSoilStationConfig = {
+  url: './static/glb/土壤监测站.glb',
   scale: 35,
   offset: { x: 0, y: 0, z: 0 }
 }
@@ -180,10 +202,17 @@ function onClick(item) {
   if (item) {
     const name = getObjectNamePath(item.object)
     console.log('试验田点击对象:', name, item)
-    if (name.indexOf('水井') > -1) {
+    if (isPumpStationObject(name)) {
+      showPumpStation(item)
+      // 定位
+    } else if (name.indexOf('水井') > -1 || name.indexOf('shuini') > -1) {
       showPumpAtWell(item)
     } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
       showPestDevice(item)
+    } else if (name.indexOf('气象') > -1 || name.toLowerCase().indexOf('weather') > -1) {
+      showWeatherStation(item)
+    } else if (name.indexOf('土壤') > -1 || name.toLowerCase().indexOf('soil') > -1) {
+      showSoilStation(item)
     }
   }
 }
@@ -233,6 +262,15 @@ function getGlb(id) {
   return GLOBAL[id] ?? null
 }
 
+function isPumpStationObject(name) {
+  return name.indexOf('水泵站') > -1
+}
+
+async function showPumpStation(item) {
+  const pumpStationConfig = props.data?.pumpStation ?? defaultPumpStationConfig
+  showDetailModel(item, pumpStationConfig, '泵站')
+}
+
 async function showPumpAtWell(item) {
   const pumpConfig = props.data?.waterPump ?? defaultPumpConfig
   showDetailModel(item, pumpConfig, '水泵')
@@ -241,6 +279,16 @@ async function showPumpAtWell(item) {
 async function showPestDevice(item) {
   const pestConfig = props.data?.pestDevice ?? defaultPestConfig
   showDetailModel(item, pestConfig, '虫情测报仪')
+}
+
+async function showWeatherStation(item) {
+  const weatherConfig = props.data?.weatherStation ?? defaultWeatherStationConfig
+  showDetailModel(item, weatherConfig, '气象站')
+}
+
+async function showSoilStation(item) {
+  const soilConfig = props.data?.soilStation ?? defaultSoilStationConfig
+  showDetailModel(item, soilConfig, '土壤监测站')
 }
 
 async function showDetailModel(item, config, modelName) {
