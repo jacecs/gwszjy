@@ -23,6 +23,9 @@
       </div>
       <div class="top-info">
 
+        <div class="info-pill inspection-pill" :class="{ active: autoInspectionRunning }" @click="toggleAutoInspection">
+          <span>{{ autoInspectionRunning ? '⏹ 退出巡检' : '▶ 自动巡检' }}</span>
+        </div>
         <div class="info-pill" @click="toggleAllDrawers">
           <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
         </div>
@@ -184,6 +187,11 @@ const threeScene = ref(null)
 const currentMode = ref('overview')
 const activeParticleArea = ref('')
 const showThreeJS = ref(false)
+const autoInspectionRunning = ref(false)
+const autoInspectionIndex = ref(0)
+const autoInspectionTimer = ref(null)
+const autoInspectionOverviewDelay = 2500
+const autoInspectionModelDelay = 12000
 
 const showPopup = ref(false)
 const popupData = ref({})
@@ -373,6 +381,9 @@ const menus = reactive([
             "x": 0,
             "y": 8,
             "z": 0
+          },
+          camera: {
+            distance: 550,
           }
         },
         "pestDevice": {
@@ -507,9 +518,12 @@ const menus = reactive([
           }
         ],
         "threeCamera": {
-          "x": 5,
-          "y": 150,
-          "z": -155
+          "x": 4,
+          "y": 100,
+          "z": 128,
+          "tx": 1,
+          "ty": 0,
+          "tz": 9,
         },
         "waterPump": {
           "url": "./static/glb/水泵.glb",
@@ -996,6 +1010,7 @@ function switchMode(mode, obj) {
     return
   }
 
+  flyToMenuCamera(obj)
   currentMode.value = mode
   activeParticleArea.value = mode === 'overview' ? '' : mode
   showPopup.value = false
@@ -1039,20 +1054,107 @@ function switchMode(mode, obj) {
     currentCoords.value = `${obj.position?.lon}°E, ${obj.position?.lat}°N`
   }
 
-  // 定位
-  if (obj && obj.camera && GLOBAL.viewer) {
-    const camera = obj.camera
-    GLOBAL.viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(camera.lon, camera.lat, camera.height),
-      orientation: {
-        heading: Cesium.Math.toRadians(camera.heading),
-        pitch: Cesium.Math.toRadians(camera.pitch),
-        roll: camera.roll
-      },
-      duration: 1
-    })
+
+}
+
+function flyToMenuCamera(menu) {
+  if (!menu?.camera || !GLOBAL.viewer) return
+
+  const camera = menu.camera
+  GLOBAL.viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(camera.lon, camera.lat, camera.height),
+    orientation: {
+      heading: Cesium.Math.toRadians(camera.heading),
+      pitch: Cesium.Math.toRadians(camera.pitch),
+      roll: camera.roll
+    },
+    duration: 2
+  })
+}
+
+function toggleAutoInspection() {
+  if (autoInspectionRunning.value) {
+    stopAutoInspection()
+    return
   }
 
+  startAutoInspection()
+}
+
+function startAutoInspection() {
+  const targets = getAutoInspectionTargets()
+  if (!targets.length) return
+
+  clearAutoInspectionTimer()
+  autoInspectionRunning.value = true
+  autoInspectionIndex.value = 0
+  runAutoInspectionOverview()
+}
+
+function stopAutoInspection() {
+  clearAutoInspectionTimer()
+  autoInspectionRunning.value = false
+  const overview = getMenuObjById('overview')
+  if (overview) {
+    switchMode('overview', overview)
+  }
+}
+
+function clearAutoInspectionTimer() {
+  if (autoInspectionTimer.value) {
+    clearTimeout(autoInspectionTimer.value)
+    autoInspectionTimer.value = null
+  }
+}
+
+function setAutoInspectionTimer(callback, delay) {
+  clearAutoInspectionTimer()
+  autoInspectionTimer.value = setTimeout(callback, delay)
+}
+
+function runAutoInspectionOverview() {
+  if (!autoInspectionRunning.value) return
+
+  const targets = getAutoInspectionTargets()
+  if (!targets.length || autoInspectionIndex.value >= targets.length) {
+    stopAutoInspection()
+    return
+  }
+
+  const overview = getMenuObjById('overview')
+  if (overview) {
+    switchMode('overview', overview)
+  }
+
+  setAutoInspectionTimer(runAutoInspectionTarget, autoInspectionOverviewDelay)
+}
+
+function runAutoInspectionTarget() {
+  if (!autoInspectionRunning.value) return
+
+  const targets = getAutoInspectionTargets()
+  if (!targets.length || autoInspectionIndex.value >= targets.length) {
+    stopAutoInspection()
+    return
+  }
+
+  const target = targets[autoInspectionIndex.value]
+  switchMode(target.id, target)
+  autoInspectionIndex.value += 1
+  setAutoInspectionTimer(runAutoInspectionOverview, autoInspectionModelDelay)
+}
+
+function getAutoInspectionTargets() {
+  return menus.flatMap(menu => {
+    if (Array.isArray(menu.children) && menu.children.length) {
+      return menu.children.filter(isAutoInspectionTarget)
+    }
+    return isAutoInspectionTarget(menu) ? [menu] : []
+  })
+}
+
+function isAutoInspectionTarget(menu) {
+  return menu?.id && menu.id !== 'overview' && !menu.children?.length
 }
 
 function isFarmModeId(mode) {
@@ -1564,6 +1666,7 @@ function bindStorageOverview(data) {
 
 onUnmounted(() => {
   if (timeInterval) clearInterval(timeInterval)
+  clearAutoInspectionTimer()
 })
 </script>
 
@@ -1678,6 +1781,23 @@ body {
   font-size: 11px;
   color: var(--dark-green);
   cursor: pointer;
+}
+.inspection-pill {
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  transition: all 0.25s ease;
+}
+.inspection-pill:hover {
+  background: var(--primary-green);
+  color: #fff;
+}
+.inspection-pill.active {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.45);
+  color: var(--accent-red);
+}
+.inspection-pill.active:hover {
+  background: var(--accent-red);
+  color: #fff;
 }
 .status-dot {
   width: 6px;

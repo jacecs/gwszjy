@@ -71,7 +71,11 @@ const defaultPumpConfig = {
 const defaultPumpStationConfig = {
   url: './static/glb/泵站.glb',
   scale: 35,
-  offset: { x: 0, y: 8, z: 0 }
+  offset: { x: 0, y: 8, z: 0 },
+  camera: {
+    distance: 550,
+  }
+  
 }
 
 const defaultPestConfig = {
@@ -200,6 +204,7 @@ function onClick(item) {
     console.log('试验田点击对象:', name, item)
     if (isPumpStationObject(name)) {
       showPumpStation(item)
+      // 定位
     } else if (name.indexOf('水井') > -1 || name.indexOf('shuini') > -1) {
       showPumpAtWell(item)
     } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
