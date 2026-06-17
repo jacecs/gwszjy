@@ -61,7 +61,7 @@ const gltfStatus = ref(false)
 const currentModel = ref(null)
 const drillDevice = ref(null)
 const isolatedDevice = ref(null)
-const supportedInternalScene = computed(() => ['Workshop',  'Workshop3'].includes(currentModel.value?.id))
+const supportedInternalScene = computed(() => ['Workshop', 'Workshop3'].includes(currentModel.value?.id))
 
 const loader = new GLTFLoader();
 // 创建Draco加载器实例
@@ -160,7 +160,7 @@ function remove() {
   if (pageModels && pageModels.length) {
     for (let index = 0; index < pageModels.length; index++) {
       const model = pageModels[index];
-      
+
       const modelScene = model.scene;
 
       if (modelScene) {
@@ -192,8 +192,8 @@ function init(obj) {
   renderModel(obj)
 }
 function centerAt(camera) {
-  const { x, y, z, tx=0, ty=0, tz=0 } = camera ?? {x: 56, y: 500, z: -400, tx: 0, ty: 0, tz: 0}
-   // 定位
+  const { x, y, z, tx = 0, ty = 0, tz = 0 } = camera ?? { x: 56, y: 500, z: -400, tx: 0, ty: 0, tz: 0 }
+  // 定位
   const cameraPos = new THREE.Vector3(x, y, z)
   const lookAt = new THREE.Vector3(tx, ty, tz)
   flyToSmoothly(cameraPos, lookAt)
@@ -230,7 +230,7 @@ async function renderModel(obj) {
   }
 }
 
-function getModelById(id, key='modelId') {
+function getModelById(id, key = 'modelId') {
   return pageModels.find(item => item[key] === id)
 }
 
@@ -520,9 +520,9 @@ function getInternalSceneConfig() {
   const currentCamera = currentModel.value?.threeCamera
   const outCamera = currentCamera
     ? {
-        position: [currentCamera.x, currentCamera.y, currentCamera.z],
-        target: [currentCamera.tx ?? 0, currentCamera.ty ?? 0, currentCamera.tz ?? 0]
-      }
+      position: [currentCamera.x, currentCamera.y, currentCamera.z],
+      target: [currentCamera.tx ?? 0, currentCamera.ty ?? 0, currentCamera.tz ?? 0]
+    }
     : null
   const configs = {
     Workshop: {
@@ -564,7 +564,7 @@ function getInternalSceneConfig() {
     },
     Warehouse2: {
       model: getModelById('changfang31') || getModelById('./static/glb/厂房3-有底图.glb', 'modelUrl'),
-      outsideNames: ['002_1','002_3'],
+      outsideNames: ['002_1', '002_3'],
       inCamera: {
         position: [-50, 250, 750],
         target: [-120, 85, 220]
@@ -646,8 +646,8 @@ function isolateDryingTowerAndHeater(target) {
   const towerCenter = new THREE.Vector3()
   target.getWorldPosition(towerCenter)
   const heaterCenter = target.userData?.heater ? new THREE.Vector3(...target.userData.heater) : towerCenter.clone().add(new THREE.Vector3(-35, -8, -45))
-   //const keepKeywords =['烘干塔主体', '干燥塔', 'drying', 'dryer', 'tower', '加热', '燃烧', '炉', 'heater', 'burner', 'hot']
-  const keepKeywords = ['机器', '机器001','机器002',  '烘干塔主体001','立方体066', 'drying', 'dryer', 'tower', '加热', '燃烧', '炉', 'heater', 'burner', 'hot']
+  //const keepKeywords =['烘干塔主体', '干燥塔', 'drying', 'dryer', 'tower', '加热', '燃烧', '炉', 'heater', 'burner', 'hot']
+  const keepKeywords = ['机器', '机器001', '机器002', '烘干塔主体001', '立方体066', 'drying', 'dryer', 'tower', '加热', '燃烧', '炉', 'heater', 'burner', 'hot']
 
   workshopModel.scene.traverse((object) => {
     if (!object.isMesh && !object.isGroup) return
@@ -684,7 +684,7 @@ function isolateDryingTowerAndHeater(target) {
 
 // 进入到内部
 function changeStatus(e) {
-  console.log(1111111, props.data , inStatus.value)
+  console.log(1111111, props.data, inStatus.value)
   restoreIsolatedVisibility()
   isolatedDevice.value = null
   applyInternalScene(inStatus.value)
@@ -1128,88 +1128,88 @@ function createLine() {
       },
     ]
   } else if (props.data.id == 'Workshop3') {
-    linePoints =  [
-  {
-    points: [
+    linePoints = [
       {
-        x: 205,
-        y: 6,
-        z: 190
+        points: [
+          {
+            x: 205,
+            y: 6,
+            z: 190
+          },
+          {
+            x: 205,
+            y: 50,
+            z: 190
+          },
+          {
+            x: 245,
+            y: 50,
+            z: 165
+          },
+
+          {
+            x: 295,
+            y: 50,
+            z: 240
+          }
+        ],
+        name: 'line1'
       },
       {
-        x: 205,
-        y: 50,
-        z: 190
+        points:
+          [
+            {
+              x: 145,
+              y: 6,
+              z: 75
+            },
+            {
+              x: 145,
+              y: 50,
+              z: 75
+            },
+            {
+              x: 175,
+              y: 50,
+              z: 55
+            },
+
+            {
+              x: 245,
+              y: 50,
+              z: 165
+            }
+          ],
+        name: 'line2'
       },
       {
-        x: 245,
-        y: 50,
-        z: 165
+        points: [
+          {
+            x: 75,
+            y: 6,
+            z: -30
+          },
+          {
+            x: 75,
+            y: 50,
+            z: -30
+          },
+          {
+            x: 105,
+            y: 50,
+            z: -50
+          },
+
+          {
+            x: 175,
+            y: 50,
+            z: 55
+          }
+        ],
+        name: 'line3'
       },
 
-      {
-        x: 295,
-        y: 50,
-        z: 240
-      }
-    ],
-    name: 'line1'
-  },
-  {
-    points:
-      [
-        {
-          x: 145,
-          y: 6,
-          z: 75
-        },
-        {
-          x: 145,
-          y: 50,
-          z: 75
-        },
-        {
-          x: 175,
-          y: 50,
-          z: 55
-        },
-
-        {
-          x: 245,
-          y: 50,
-          z: 165
-        }
-      ],
-    name: 'line2'
-  },
-  {
-    points: [
-      {
-        x: 75,
-        y: 6,
-        z: -30
-      },
-      {
-        x: 75,
-        y: 50,
-        z: -30
-      },
-      {
-        x: 105,
-        y: 50,
-        z: -50
-      },
-
-      {
-        x: 175,
-        y: 50,
-        z: 55
-      }
-    ],
-    name: 'line3'
-  },
-
-]
+    ]
   }
 
   for (let index = 0; index < linePoints.length; index++) {
