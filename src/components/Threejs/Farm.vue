@@ -327,7 +327,8 @@ function focusDetailModel(modelScene, cameraConfig = {}) {
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
   const maxSize = Math.max(size.x, size.y, size.z)
-  const direction = new THREE.Vector3(1, 0.65, 1).normalize()
+    const directionConfig = cameraConfig.direction ?? { x: 1, y: 0.65, z: 1 }
+  const direction = new THREE.Vector3(directionConfig.x, directionConfig.y, directionConfig.z).normalize()
   const distance = cameraConfig.distance ?? Math.max(maxSize * 2.3, 80)
   const targetPos = center.clone().add(direction.multiplyScalar(distance))
 

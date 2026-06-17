@@ -467,7 +467,8 @@ function focusDetailModel(modelScene, cameraConfig = {}) {
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
   const maxSize = Math.max(size.x, size.y, size.z)
-  const direction = new THREE.Vector3(1, 0.7, 1).normalize()
+  const directionConfig = cameraConfig.direction ?? { x: 1, y: 0.7, z: 1 }
+  const direction = new THREE.Vector3(directionConfig.x, directionConfig.y, directionConfig.z).normalize()
   const distance = cameraConfig.distance ?? Math.max(maxSize * 1.6, 140)
   const targetPos = center.clone().add(direction.multiplyScalar(distance))
 
@@ -860,7 +861,7 @@ function create1() {
 
   // 2. 实例化流动线
   const line = new FlowLine(points, {
-    color: 0xff0000,     // 青色流光
+    color: getFlowLineColor(),
     radius: 1.0,         // 管道粗细
     speed: 3.0,          // 流动速度 (数值越大越快)
     dashCount: 10,       // 流光的段数 (密度)
@@ -875,6 +876,10 @@ function create1() {
   // 3. 添加到场景
   scene.add(line);
 
+}
+
+function getFlowLineColor() {
+  return props.data.id === 'Workshop3' ? 0x2ecc71 : 0xff0000
 }
 
 let linePoints = reactive([
@@ -1219,7 +1224,7 @@ function createLine() {
 
     // 2. 实例化流动线
     const line = new FlowLine(points, {
-      color: 0xff0000,     // 青色流光
+      color: getFlowLineColor(),
       radius: 1.0,         // 管道粗细
       speed: 3.0,          // 流动速度 (数值越大越快)
       dashCount: lp.dashCount ?? 10,       // 流光的段数 (密度)

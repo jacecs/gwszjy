@@ -64,7 +64,7 @@
           :modules="overviewSwiperModules"
           :slides-per-view="1"
           :loop="overviewEnvironmentSlides.length > 1"
-          :autoplay="{ delay: 4000, disableOnInteraction: false }"
+          :autoplay="overviewSwiperAutoplay"
           :pagination="{ clickable: true }"
           @slideChange="handleOverviewEnvironmentSlideChange"
         >
@@ -79,7 +79,7 @@
           :modules="overviewSwiperModules"
           :slides-per-view="1"
           :loop="overviewSoilSlides.length > 1"
-          :autoplay="{ delay: 4000, disableOnInteraction: false }"
+          :autoplay="overviewSwiperAutoplay"
           :pagination="{ clickable: true }"
         >
           <SwiperSlide v-for="slide in overviewSoilSlides" :key="slide.id">
@@ -102,7 +102,7 @@
           :modules="overviewSwiperModules"
           :slides-per-view="1"
           :loop="overviewWeatherSlides.length > 1"
-          :autoplay="{ delay: 4000, disableOnInteraction: false }"
+          :autoplay="overviewSwiperAutoplay"
           :pagination="{ clickable: true }"
         >
           <SwiperSlide v-for="slide in overviewWeatherSlides" :key="slide.id">
@@ -117,7 +117,7 @@
           :modules="overviewSwiperModules"
           :slides-per-view="1"
           :loop="overviewPestSlides.length > 1"
-          :autoplay="{ delay: 4000, disableOnInteraction: false }"
+          :autoplay="overviewSwiperAutoplay"
           :pagination="{ clickable: true }"
         >
           <SwiperSlide v-for="slide in overviewPestSlides" :key="slide.id">
@@ -271,6 +271,7 @@ const threeScene = ref(null)
 const currentMode = ref('overview')
 const overviewEnvironmentIndex = ref(0)
 const overviewSwiperModules = [Autoplay, Pagination]
+const overviewSwiperAutoplay = { delay: 8000, disableOnInteraction: false }
 const activeParticleArea = ref('')
 const showThreeJS = ref(false)
 const autoInspectionRunning = ref(false)
@@ -615,7 +616,7 @@ const menus = reactive([
           "tz": 0
         },
         "dryingTowerDetail": {
-          "url": "./static/glb/烘干塔1.glb",
+          "url": "./static/glb/烘干塔.glb",
           "scale": 1,
           "offset": {
             "x": 0,
@@ -623,7 +624,8 @@ const menus = reactive([
             "z": 0
           },
           "camera": {
-            "distance": 520
+            "distance": 100,
+            "direction": { "x": -1, "y": 0.7, "z": -1 }
           }
         },
         "camera": {
@@ -747,7 +749,7 @@ const menus = reactive([
         "gltfs": [
           {
             "id": "changfang3",
-            "url": "./static/glb/厂房3-有底图.glb",
+            "url": "./static/glb/厂房3-无底图.glb",
             "x": 0,
             "y": 0,
             "z": 0,
