@@ -132,17 +132,6 @@
         <span>{{ rightDrawerOpen ? '▶' : '◀' }}</span>
       </button>
 
-      <!-- 控制按钮区域 -->
-      <!-- <div class="control-bar">
-        <button class="control-btn" @click="toggleAllDrawers">
-          <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
-        </button>
-        <label class="toggle-label">
-          <input type="checkbox" v-model="showThreeJS" />
-          <span class="toggle-text">🌐 3D</span>
-        </label>
-      </div> -->
-
       <div class="scene-viewport" :class="{ 'three-only': showThreeJS }">
         <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
         <!-- threejs绘制区域 -->
@@ -184,34 +173,6 @@
         <Warehouse></Warehouse>
       </template>
     </template>
-
-    <!-- 报警面板（可点击跳转详情） -->
-    <!-- <aside v-if="activeAlerts.length" class="alert-panel" :class="{ collapsed: alertPanelCollapsed }">
-      <div class="alert-panel-header" @click="alertPanelCollapsed = !alertPanelCollapsed">
-        <span>🚨 最新报警（{{ activeAlerts.length }}） <span class="src-tag">前端模拟数据</span></span>
-        <span class="toggle">{{ alertPanelCollapsed ? '▲' : '▼' }}</span>
-      </div>
-      <transition name="fade">
-        <div v-if="!alertPanelCollapsed" class="alert-panel-body">
-          <div
-            v-for="item in activeAlerts"
-            :key="item.code"
-            class="alert-item"
-            :data-level="item.level"
-            @click="openAlertDetail(item)"
-          >
-            <div class="alert-item-left">
-              <div class="alert-item-type">{{ item.type }}</div>
-              <div class="alert-item-msg">{{ item.message }}</div>
-            </div>
-            <div class="alert-item-right">
-              <span class="alert-level">{{ item.level }}</span>
-              <span class="alert-time">{{ item.triggeredAt }}</span>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </aside> -->
 
     <!-- 底部菜单 -->
     <nav class="bottom-menu" v-if="menus && menus.length">
@@ -1556,16 +1517,136 @@ function bindOverviewData(data) {
   if (Array.isArray(data.menus)) {
    menus.splice(0, menus.length, ...data.menus)
   }
-  gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
+  gltfModels.value = normalizeGltfModels(Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || []))
+
+  const farmPanels = Array.isArray(data.panelData) ? data.panelData : []
+  if (farmPanels.length) {
+    bindOverviewFarmPanelList(farmPanels)
+    const firstFarm = farmPanels[0] || {}
+    bindOverviewSummaryPanels(firstFarm)
+    return
+  }
 
   const panelData = data.panelData || data
-  const weather = panelData.weather || data.latestRecord || {}
+  bindOverviewSummaryPanels(panelData)
+}
+
+function normalizeGltfModels(models = []) {
+  return models.map(item => ({
+    ...item,
+    label: item.label || item.name || item.id,
+    name: item.name || item.label || item.id
+  }))
+}
+
+function bindOverviewFarmPanelList(farmPanels = []) {
+  farmPanels.forEach((panel, index) => {
+    const farmId = resolvePanelFarmId(panel, index)
+    const target = fieldPanelData[farmId]
+    if (!target) return
+
+    target.name = panel.farmName ? `${panel.farmName}试验田` : target.name
+    target.environment = Array.isArray(panel.environment) ? panel.environment : []
+
+    const latestEnvironment = target.environment[target.environment.length - 1] || {}
+    const weather = panel.weather || {}
+    const soil = panel.soil || {}
+    const pestStats = normalizeInsectStatistics(panel.insect?.statistics || [])
+    const latestPestRecord = panel.insect?.latestRecord || {}
+
+    target.sensors.splice(0, target.sensors.length, ...[
+      overviewMetric('空气温度', latestEnvironment.ambientTemperature ?? latestEnvironment.temperature, '°C'),
+      overviewMetric('空气湿度', latestEnvironment.ambientHumidity ?? latestEnvironment.airHumidity, '%'),
+      overviewMetric('光照强度', weather.lightIntensity, 'lux', '正常', true),
+      overviewMetric('CO₂浓度', weather.co2, 'ppm')
+    ].filter(Boolean))
+
+    target.soil.splice(0, target.soil.length, ...[
+      overviewMetric('土壤 pH', soil.soilPh ?? soil.ph, ''),
+      overviewMetric('土壤温度', soil.soilTemperature ?? latestEnvironment.soilTemperature, '°C'),
+      overviewMetric('土壤湿度', soil.soilMoisture ?? latestEnvironment.soilMoisture, '%'),
+      overviewMetric('土壤电导率', soil.soilConductivity ?? latestEnvironment.soilConductivity, 'mS/cm')
+    ].filter(Boolean))
+
+    target.weather.splice(0, target.weather.length, ...[
+      overviewDevice('气压', weather.pressure, 'KPa'),
+      overviewDevice('光照', weather.lightIntensity, 'lux', true),
+      overviewDevice('风速', weather.windSpeed, 'm/s'),
+      overviewDevice('累计雨量', weather.rainfall ?? weather.cumulativeRainfall, 'mm', true),
+      overviewDevice('露点温度', weather.dewTemp, '°C'),
+      overviewDevice('CO₂', weather.co2, 'ppm')
+    ].filter(Boolean))
+
+    const normalizedPests = pestStats.length ? pestStats : normalizeLatestInsectRecord(latestPestRecord)
+    if (normalizedPests.length) {
+      target.pests.splice(0, target.pests.length, ...normalizedPests)
+    }
+  })
+}
+
+function resolvePanelFarmId(panel = {}, index = 0) {
+  const name = panel.farmName || panel.name || ''
+  if (name.includes('红耕')) return 'Farm2'
+  if (name.includes('维明')) return 'Farm'
+  return overviewEnvironmentFarms[index] || `Farm${index + 1}`
+}
+
+function overviewMetric(label, value, unit = '', status = '正常', allowZero = false) {
+  if (!hasOverviewValue(value, allowZero)) return null
+  return {
+    label,
+    value,
+    unit,
+    status
+  }
+}
+
+function overviewDevice(name, value, unit = '', allowZero = false) {
+  if (!hasOverviewValue(value, allowZero)) return null
+  return {
+    name,
+    text: `${value}${unit}`,
+    status: 'online'
+  }
+}
+
+function hasOverviewValue(value, allowZero = false) {
+  if (value === undefined || value === null || value === '' || value === '--') return false
+  const num = Number(value)
+  if (!Number.isNaN(num) && num === 0) return allowZero
+  return true
+}
+
+function normalizeLatestInsectRecord(record = {}) {
+  if (!record.objectCount) return []
+  return [{
+    label: record.devName || '虫情数量',
+    name: record.devName || '虫情数量',
+    value: record.objectCount,
+    unit: '个'
+  }]
+}
+
+function bindOverviewSummaryPanelsFromFarm(farmId = 'Farm') {
+  const farm = fieldPanelData[farmId] || fieldPanelData.Farm
+  envData.splice(0, envData.length, ...buildOverviewEnvironmentMetrics(farmId, farm))
+  soilData.splice(0, soilData.length, ...buildFieldSoilOverviewData(farm))
+  devices.splice(0, devices.length, ...(farm.weather || []))
+  productionData.splice(0, productionData.length, ...buildFieldMoistureOverviewData(farm))
+  productionData1.splice(0, productionData1.length, ...(farm.pests?.length ? farm.pests : productionData1))
+}
+
+function bindOverviewSummaryPanels(panelData = {}) {
+  if (panelData?.farmName) {
+    bindOverviewSummaryPanelsFromFarm(resolvePanelFarmId(panelData, 0))
+    return
+  }
+  const weather = panelData.weather || panelData.latestRecord || {}
   const soil = panelData.soil || {}
   const soilMoisture = panelData.soilMoisture || {}
   const environment = Array.isArray(panelData.environment) ? panelData.environment : []
   const latestEnvironment = environment[environment.length - 1] || {}
 
-  // 工具：如果接口返回的值无效（null/undefined/''/0/'--'），使用演示值
   const pick = (raw, fallback) => {
     if (raw === undefined || raw === null || raw === '' || raw === '--') return fallback
     const num = Number(raw)
@@ -1574,7 +1655,7 @@ function bindOverviewData(data) {
   }
 
   soilData.splice(0, soilData.length, ...[
-    { label: '土壤 pH 值', value: pick(soil.ph, 6.8), status: '正常' },
+    { label: '土壤 pH 值', value: pick(soil.ph ?? soil.soilPh, 6.8), status: '正常' },
     { label: '氮 N', value: pick(soil.nitrogen, 142), unit: 'mg/kg' },
     { label: '磷 P', value: pick(soil.phosphorus, 36), unit: 'mg/kg' },
     { label: '钾 K', value: pick(soil.potassium, 188), unit: 'mg/kg' }
@@ -1598,14 +1679,14 @@ function bindOverviewData(data) {
   envData.splice(0, envData.length, ...[
     {
       label: '温度',
-      value: pick(latestEnvironment.temperature, 24.6),
+      value: pick(latestEnvironment.temperature ?? latestEnvironment.ambientTemperature, 24.6),
       unit: '°C',
       status: '正常',
       chart: buildEnvironmentChart(environment, 'temperature', [23.1, 22.8, 23.6, 24.1, 24.5, 24.6])
     },
     {
       label: '空气湿度',
-      value: pick(latestEnvironment.airHumidity, 62),
+      value: pick(latestEnvironment.airHumidity ?? latestEnvironment.ambientHumidity, 62),
       unit: '%',
       status: '正常',
       chart: buildEnvironmentChart(environment, 'airHumidity', [68, 65, 63, 66, 64, 62])
@@ -1619,7 +1700,6 @@ function bindOverviewData(data) {
     }
   ])
 
-  // 虫情统计兜底
   const insectStats = normalizeInsectStatistics(panelData.insect?.statistics || [])
   const hasRealInsect = insectStats.some(i => Number(i.value) > 0)
   productionData1.splice(0, productionData1.length, ...hasRealInsect ? insectStats : [
@@ -1643,6 +1723,11 @@ function bindTestfieldOverview(mode, data) {
   const payload = data.overview || data.detail || data
   const target = fieldPanelData[mode]
   if (!target) return
+
+  if (Array.isArray(payload.environment) || payload.weather || payload.soil || payload.insectData) {
+    bindFlatTestfieldOverview(target, payload)
+    return
+  }
 
   const facility = payload.facility || {}
   const baseData = payload.baseData || {}
@@ -1706,12 +1791,66 @@ function bindTestfieldOverview(mode, data) {
   productionData1.splice(0, productionData1.length, ...normalizedPests)
 }
 
+function bindFlatTestfieldOverview(target, payload = {}) {
+  const environment = Array.isArray(payload.environment) ? payload.environment : []
+  const latestEnvironment = environment[environment.length - 1] || {}
+  const soil = payload.soil || {}
+  const weather = payload.weather || {}
+  const valve = payload.valve || {}
+  const waterMeter = payload.waterMeter || {}
+
+  target.environment = environment
+
+  target.sensors.splice(0, target.sensors.length, ...[
+    overviewMetric('空气温度', latestEnvironment.ambientTemperature ?? latestEnvironment.temperature, '°C'),
+    overviewMetric('空气湿度', latestEnvironment.ambientHumidity ?? latestEnvironment.airHumidity, '%'),
+    overviewMetric('光照强度', weather.lightIntensity, 'lux', '正常', true),
+    overviewMetric('CO₂浓度', weather.co2, 'ppm')
+  ].filter(Boolean))
+
+  target.soil.splice(0, target.soil.length, ...[
+    overviewMetric('土壤 pH', soil.soilPh ?? soil.ph, ''),
+    overviewMetric('土壤温度', soil.soilTemperature ?? latestEnvironment.soilTemperature, '°C'),
+    overviewMetric('土壤湿度', soil.soilMoisture ?? latestEnvironment.soilMoisture, '%'),
+    overviewMetric('土壤电导率', soil.soilConductivity ?? latestEnvironment.soilConductivity, 'mS/cm')
+  ].filter(Boolean))
+
+  target.weather.splice(0, target.weather.length, ...[
+    overviewDevice('气压', weather.pressure, 'KPa'),
+    overviewDevice('光照', weather.lightIntensity, 'lux', true),
+    overviewDevice('风速', weather.windSpeed, 'm/s'),
+    overviewDevice('累计雨量', weather.rainfall ?? weather.cumulativeRainfall, 'mm', true),
+    overviewDevice('露点温度', weather.dewTemp, '°C'),
+    overviewDevice('CO₂', weather.co2, 'ppm')
+  ].filter(Boolean))
+
+  target.irrigation.splice(0, target.irrigation.length, ...[
+    overviewMetric('阀门状态', valve.status ?? valve.valveStatus, ''),
+    overviewMetric('瞬时流量', waterMeter.instantFlow ?? valve.instantFlow, 'm³/h'),
+    overviewMetric('累计用水', waterMeter.totalFlow ?? waterMeter.todayWaterUsage, 'm³'),
+    overviewMetric('管网压力', valve.pipePressure ?? waterMeter.pipePressure, 'MPa')
+  ].filter(Boolean))
+
+  const fieldInsectStats = normalizeInsectStatistics(payload.insectData?.statistics || [])
+  const normalizedPests = fieldInsectStats.length ? fieldInsectStats : normalizeLatestInsectRecord(payload.insectData?.latestRecord)
+  if (normalizedPests.length) {
+    target.pests.splice(0, target.pests.length, ...normalizedPests)
+    productionData1.splice(0, productionData1.length, ...normalizedPests)
+  }
+}
+
 function buildEnvironmentChart(environment, key, fallbackValues = []) {
   // 优先使用接口返回的真实数据
   if (Array.isArray(environment) && environment.length > 0) {
+    const keyAliases = {
+      temperature: ['temperature', 'ambientTemperature'],
+      airHumidity: ['airHumidity', 'ambientHumidity', 'humidity'],
+      soilConductivity: ['soilConductivity']
+    }
+    const keys = keyAliases[key] || [key]
     const list = environment.map(item => ({
       time: item.date,
-      value: Number(item[key] ?? 0)
+      value: Number(keys.map(k => item[k]).find(value => value !== undefined && value !== null && value !== '') ?? 0)
     }))
     // 如果接口返回的值不全为 0，则用接口数据
     if (list.some(i => i.value > 0)) return list
@@ -1732,6 +1871,7 @@ function buildEnvironmentChart(environment, key, fallbackValues = []) {
 function buildOverviewEnvironmentMetrics(farmId, farm) {
   const temperature = findSensorMetric(farm?.sensors, ['空气温度', '温度'])
   const humidity = findSensorMetric(farm?.sensors, ['空气湿度', '湿度'])
+  const environment = Array.isArray(farm?.environment) ? farm.environment : []
   const fallbackCharts = {
     Farm: {
       temperature: [16.15, 16.55, 16.45, 16.5, 16.35, Number(temperature?.value) || 16.75],
@@ -1750,14 +1890,14 @@ function buildOverviewEnvironmentMetrics(farmId, farm) {
       value: temperature?.value ?? '16.75',
       unit: temperature?.unit ?? '°C',
       status: temperature?.status || '正常',
-      chart: buildEnvironmentChart([], 'temperature', charts.temperature)
+      chart: buildEnvironmentChart(environment, 'temperature', charts.temperature)
     },
     {
       label: '湿度',
       value: humidity?.value ?? '68',
       unit: humidity?.unit ?? '%',
       status: humidity?.status || '正常',
-      chart: buildEnvironmentChart([], 'airHumidity', charts.humidity)
+      chart: buildEnvironmentChart(environment, 'airHumidity', charts.humidity)
     }
   ]
 }
@@ -1778,12 +1918,20 @@ function buildFieldSoilOverviewData(farm) {
   const nitrogen = findSensorMetric(farm?.soil, ['氮'])
   const phosphorus = findSensorMetric(farm?.soil, ['磷'])
   const potassium = findSensorMetric(farm?.soil, ['钾'])
+  const metrics = [
+    ph && { label: '土壤 pH 值', value: ph.value, unit: ph.unit ?? '', status: ph.status || '正常' },
+    nitrogen && { label: '氮 N', value: nitrogen.value, unit: nitrogen.unit ?? 'mg/kg', status: nitrogen.status },
+    phosphorus && { label: '磷 P', value: phosphorus.value, unit: phosphorus.unit ?? 'mg/kg', status: phosphorus.status },
+    potassium && { label: '钾 K', value: potassium.value, unit: potassium.unit ?? 'mg/kg', status: potassium.status }
+  ].filter(Boolean)
+
+  if (metrics.length) return metrics
 
   return [
-    { label: '土壤 pH 值', value: pickPanelValue(ph?.value, '6.8'), unit: ph?.unit ?? '', status: ph?.status || '正常' },
-    { label: '氮 N', value: pickPanelValue(nitrogen?.value, '142'), unit: nitrogen?.unit ?? 'mg/kg', status: nitrogen?.status },
-    { label: '磷 P', value: pickPanelValue(phosphorus?.value, '36'), unit: phosphorus?.unit ?? 'mg/kg', status: phosphorus?.status },
-    { label: '钾 K', value: pickPanelValue(potassium?.value, '188'), unit: potassium?.unit ?? 'mg/kg', status: potassium?.status }
+    { label: '土壤 pH 值', value: '6.8', unit: '', status: '正常' },
+    { label: '氮 N', value: '142', unit: 'mg/kg' },
+    { label: '磷 P', value: '36', unit: 'mg/kg' },
+    { label: '钾 K', value: '188', unit: 'mg/kg' }
   ]
 }
 
