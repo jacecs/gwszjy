@@ -20,11 +20,12 @@ import * as THREE from 'three'
 import TWEEN from '@tweenjs/tween.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import mpegts from 'mpegts.js'
 import ThreeEvents from '@/utils/ThreeEvents.js'
 import FlowLine from '@/utils/FlowLine.js'; // 引入上面封装的类
 import GLOBAL from '@/utils/GLOBAL.js'
 import { useAppStore } from '@/store/modules/app';
-import { getDeviceValues } from '@/utils/api.js'
+import { getDeviceValues, getListAllDevices } from '@/utils/api.js'
 const appStore = useAppStore();
 
 
@@ -60,6 +61,7 @@ let flowLines = markRaw([])
 
 let label
 let tooltipRequestId = 0
+let tooltipVideoPlayer = null
 let activeDetailModel = null
 const pumpVisible = ref(false)
 
@@ -445,6 +447,7 @@ function showFieldModels() {
 
 function removeTooltip() {
   tooltipRequestId += 1
+  destroyTooltipVideoPlayer()
   if (label) {
     if (label.removeFromParent) {
       label.removeFromParent()
@@ -464,6 +467,65 @@ function updateTooltipPosition() {
   label.element.style.left = `${x}px`
   label.element.style.top = `${y}px`
   label.element.style.display = screenPoint.z < 1 ? 'block' : 'none'
+}
+
+function destroyTooltipVideoPlayer() {
+  if (!tooltipVideoPlayer) return
+  try {
+    tooltipVideoPlayer.pause()
+    tooltipVideoPlayer.unload()
+    tooltipVideoPlayer.detachMediaElement()
+    tooltipVideoPlayer.destroy()
+  } catch (e) {}
+  tooltipVideoPlayer = null
+}
+
+function createTooltipVideoPlayer(video, url) {
+  if (!video || !url) return
+  if (!mpegts.isSupported()) {
+    video.outerHTML = '<div class="farm-video-tip">当前浏览器不支持 MSE/FLV 播放</div>'
+    return
+  }
+  tooltipVideoPlayer = mpegts.createPlayer(
+    { type: 'flv', url, isLive: true, hasAudio: false },
+    {
+      lazyLoad: true,
+      fixAudioTimestampGap: false,
+      enableWorker: false,
+      enableStashBuffer: false,
+      stashInitialSize: 128
+    }
+  )
+  tooltipVideoPlayer.attachMediaElement(video)
+  tooltipVideoPlayer.load()
+  tooltipVideoPlayer.play().catch(() => {})
+  tooltipVideoPlayer.on(mpegts.Events.ERROR, () => {
+    try {
+      tooltipVideoPlayer.unload()
+      tooltipVideoPlayer.load()
+      tooltipVideoPlayer.play().catch(() => {})
+    } catch (e) {}
+  })
+}
+
+function getDeviceVideoUrl(device = {}) {
+  return device.https_flv_url || device.url || device.streamUrl || device.videoUrl || device.flvUrl || ''
+}
+
+async function getCameraDevice(obj) {
+  let list = []
+  try {
+    const res = await getListAllDevices()
+    list = Array.isArray(res?.data) ? res.data : []
+  } catch (e) {
+    console.warn('获取摄像机设备列表失败', e)
+  }
+  const device = list.find(item => String(item.id) === String(obj.id))
+    || (props.data?.videos || []).find(item => getDeviceVideoUrl(item))
+  return {
+    name: device?.name || device?.cameraName || obj.name,
+    url: getDeviceVideoUrl(device)
+  }
 }
 
 function closePumpModel() {
@@ -531,7 +593,8 @@ async function showTooltip(model, point) {
     },
     "视频监控器": {
       name: "视频监控器",
-      id: "2067169374367645696"
+      id: "2067169374367645696",
+      //url: "https://hualin.xyune.com:8443/api/gb/httpflv/live/34020000001310000012.flv?streamtype=1&token=11223344"
     },
 
 
@@ -581,6 +644,42 @@ async function showTooltip(model, point) {
 
   const tooltip = document.createElement('div');
   tooltip.className = 'tooltip';
+  const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
+  const isCameraDevice = name.indexOf("视频监控器") > -1
+
+  if (isCameraDevice) {
+    const cameraDevice = await getCameraDevice(obj)
+    if (currentTooltipRequestId !== tooltipRequestId) return
+    tooltip.innerHTML = `
+      <div class="js-tooltip" style="width: 360px; padding: 10px; color: #ffffff; display: inline-block; transform: translate(-50%, -100%); background: rgba(2, 8, 12, 0.94); border: 1px solid rgba(46, 204, 113, 0.75); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #69ffc5; font-size: 14px; font-weight: 700;">
+          <span>${cameraDevice.name}</span>
+          <span style="font-size: 12px; color: ${cameraDevice.url ? '#2ecc71' : '#e67e22'};">${cameraDevice.url ? '在线' : '无信号'}</span>
+        </div>
+        ${
+          cameraDevice.url
+            ? '<video class="farm-camera-video" style="display: block; width: 100%; height: 210px; background: #000000; object-fit: cover;" autoplay muted playsinline controls></video>'
+            : '<div style="height: 180px; display: flex; align-items: center; justify-content: center; color: #ffffff; background: #111111; font-size: 13px;">暂无视频地址</div>'
+        }
+      </div>
+    `;
+    tooltip.style.position = 'fixed'
+    tooltip.style.left = '0px'
+    tooltip.style.top = '0px'
+    tooltip.style.zIndex = '10000'
+    tooltip.style.pointerEvents = 'auto'
+    document.body.appendChild(tooltip)
+    label = {
+      element: tooltip,
+      point: anchorPoint
+    }
+    updateTooltipPosition()
+    if (cameraDevice.url) {
+      createTooltipVideoPlayer(tooltip.querySelector('.farm-camera-video'), cameraDevice.url)
+    }
+    return label
+  }
+
   const params = {
     deviceId: obj.id
   }
@@ -612,8 +711,6 @@ async function showTooltip(model, point) {
       h: "湿度",
       status: "状态",
     }
-  } else if (name.indexOf("视频监控器") > -1 ) {
-
   }
   let list = []
   if (res.data) {
@@ -647,7 +744,6 @@ async function showTooltip(model, point) {
       </div>
       </div>
   `;
-  const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
   tooltip.style.position = 'fixed'
   tooltip.style.left = '0px'
   tooltip.style.top = '0px'
@@ -823,8 +919,8 @@ animate();
 <style scoped>
 .farm-back-btn {
   position: fixed;
-  top: 96px;
-  right: 420px;
+  bottom: 96px;
+  left: 420px;
   z-index: 10000;
   padding: 10px 18px;
   border: 1px solid rgba(46, 204, 113, 0.55);
