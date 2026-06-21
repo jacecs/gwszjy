@@ -35,6 +35,7 @@ import ThreeEvents from '@/utils/ThreeEvents.js'
 import FlowLine from '@/utils/FlowLine.js'; // 引入上面封装的类
 import GLOBAL from '@/utils/GLOBAL.js'
 import { useAppStore } from '@/store/modules/app';
+import { getFacilityDetail } from '@/utils/api.js';
 const appStore = useAppStore();
 
 
@@ -146,9 +147,9 @@ function remove() {
 
 }
 
+
 function onClick(item) {
   if (item) {
-    return
     const label = showTooltip(item.object, item.point)
   }
 }
@@ -312,19 +313,38 @@ function getModal(obj, name) {
   return tmp
 }
 
+// 显示弹窗
 async function showTooltip(model, point) {
   if (label) {
     label.removeFromParent()
     label = null
   }
 
+  const name = model.name
+
+  const modelList = {
+    '泵站': {
+      name: "泵站",
+      id: "2323423423"
+    }
+  }
+
+  const obj = modelList[name]
+  if (!obj) {
+    return
+  }
+
+
   const tooltip = document.createElement('div');
   tooltip.className = 'tooltip';
-  // const list = await loadData()
+  const params = {
+    id: ""
+  }
+  const list = await loadData(params)
   tooltip.innerHTML = `
       <div class="js-tooltip" style="padding: 10px; pointer-events: none; color: #000; font-size: 16px; display: inline-block;transform: translate(-50%, -100%);background: #ffffff">
         <div class="modal-name" >
-        ${model.name}
+        ${obj.name}
       </div>
       <div class="main-modal-info">
       </div>
@@ -339,9 +359,11 @@ async function showTooltip(model, point) {
   return label
 }
 
-function loadData() {
+function loadData(params) {
   return new Promise(resolve => {
+    getFacilityDetail(params).then(res => { 
         resolve([])
+    })
     // resolve({
     //   "编号": "厂房",
     //   "参数1": "0.00",

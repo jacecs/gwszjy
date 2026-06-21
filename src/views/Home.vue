@@ -110,7 +110,8 @@
           </SwiperSlide>
         </Swiper>
         <DevicePanel v-else :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
-        <!-- <DataPanel :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" /> -->
+        <DataPanel v-if="isFarmMode && activeFieldHydraulicData.length" title="💧 水利设备" :data="activeFieldHydraulicData" />
+        <DataPanel v-if="isDryingTowerMode && rightSecondaryPanelData.length" :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
         <Swiper
           v-if="isOverviewMode"
           class="overview-panel-swiper"
@@ -1027,6 +1028,7 @@ const isFarmMode = computed(() => currentModel.value.facilityType == 1 || !!acti
 const activeFieldData = computed(() => fieldPanelData[activeFieldMode.value] || fieldPanelData.Farm)
 const activeFieldName = computed(() => activeFieldData.value.name)
 const activeFieldPestData = computed(() => activeFieldData.value.pests?.length ? activeFieldData.value.pests : productionData1)
+const activeFieldHydraulicData = computed(() => activeFieldData.value.irrigation || [])
 const dryingTowerData = reactive({
   name: '烘干塔设备',
   status: '运行中',
@@ -1039,8 +1041,7 @@ const dryingTowerData = reactive({
   sensors: [
     { label: '塔内温度', value: '58.6', unit: '°C', status: '正常' },
     { label: '热风温度', value: '72.4', unit: '°C', status: '正常' },
-    { label: '出粮水分', value: '13.2', unit: '%', status: '正常' },
-    { label: '粮层厚度', value: '1.8', unit: 'm', status: '正常' }
+    { label: '出粮水分', value: '13.2', unit: '%', status: '正常' }
   ],
   process: [
     { label: '处理粮种', value: '稻谷', unit: '', status: '运行中' },
@@ -1214,9 +1215,9 @@ function switchMode(mode, obj) {
 
   currentModel.value = obj
 
-  if (obj.facilityType == 1) {
-    getTestfieldOverview(obj?.facilityId, mode)
-  } else if (obj.facilityType == 3) {
+  startActiveMenuDataPolling(mode, obj)
+
+  if (obj.facilityType == 3) {
     getDryingOverview(obj?.facilityId)
   } else if (obj.facilityType == 2) {
     getStorageOverview(obj?.facilityId)
@@ -1428,10 +1429,13 @@ function updateTime() {
   currentWeek.value = weeks[now.getDay()]
 }
 
+const DATA_REFRESH_DELAY = 60 * 1000
 let timeInterval = null
+let dataRefreshInterval = null
 
 onMounted(() => {
-  getOverviewData()
+  const overview = getMenuObjById('overview')
+  startActiveMenuDataPolling('overview', overview)
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
   // Fly to initial location
@@ -1511,11 +1515,41 @@ function getOverviewData() {
   })
 }
 
+function startActiveMenuDataPolling(mode, obj) {
+  stopActiveMenuDataPolling()
+
+  const refresh = getActiveMenuRefreshHandler(mode, obj)
+  if (!refresh) return
+
+  refresh()
+  dataRefreshInterval = setInterval(refresh, DATA_REFRESH_DELAY)
+}
+
+function stopActiveMenuDataPolling() {
+  if (dataRefreshInterval) {
+    clearInterval(dataRefreshInterval)
+    dataRefreshInterval = null
+  }
+}
+
+function getActiveMenuRefreshHandler(mode, obj) {
+  if (mode === 'overview') {
+    return getOverviewData
+  }
+
+  if (obj?.facilityType == 1 || isFarmModeId(mode)) {
+    const facilityId = obj?.facilityId
+    return () => getTestfieldOverview(facilityId, mode)
+  }
+
+  return null
+}
+
 function bindOverviewData(data) {
   dashData.value = data
 
   if (Array.isArray(data.menus)) {
-   menus.splice(0, menus.length, ...data.menus)
+   // menus.splice(0, menus.length, ...data.menus)
   }
   gltfModels.value = normalizeGltfModels(Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || []))
 
@@ -1796,7 +1830,8 @@ function bindFlatTestfieldOverview(target, payload = {}) {
   const latestEnvironment = environment[environment.length - 1] || {}
   const soil = payload.soil || {}
   const weather = payload.weather || {}
-  const valve = payload.valve || {}
+  const valves = Array.isArray(payload.valves) ? payload.valves : []
+  const valve = valves[0] || payload.valve || {}
   const waterMeter = payload.waterMeter || {}
 
   target.environment = environment
@@ -1824,12 +1859,18 @@ function bindFlatTestfieldOverview(target, payload = {}) {
     overviewDevice('CO₂', weather.co2, 'ppm')
   ].filter(Boolean))
 
-  target.irrigation.splice(0, target.irrigation.length, ...[
-    overviewMetric('阀门状态', valve.status ?? valve.valveStatus, ''),
+  const hydraulicData = [
+    ...normalizeValveMetrics(valves),
+    overviewMetric(`${waterMeter.name || '水位计'}水位`, waterMeter.waterLevel, waterMeter.unit || 'cm', normalizeDeviceRunStatus(waterMeter.status), true),
+    overviewMetric('有水状态', normalizeHasWater(waterMeter.hasWater), '', normalizeDeviceRunStatus(waterMeter.status)),
     overviewMetric('瞬时流量', waterMeter.instantFlow ?? valve.instantFlow, 'm³/h'),
     overviewMetric('累计用水', waterMeter.totalFlow ?? waterMeter.todayWaterUsage, 'm³'),
     overviewMetric('管网压力', valve.pipePressure ?? waterMeter.pipePressure, 'MPa')
-  ].filter(Boolean))
+  ].filter(Boolean)
+
+  if (hydraulicData.length) {
+    target.irrigation.splice(0, target.irrigation.length, ...hydraulicData)
+  }
 
   const fieldInsectStats = normalizeInsectStatistics(payload.insectData?.statistics || [])
   const normalizedPests = fieldInsectStats.length ? fieldInsectStats : normalizeLatestInsectRecord(payload.insectData?.latestRecord)
@@ -1972,6 +2013,29 @@ function normalizeInsectStatistics(statistics = []) {
   }))
 }
 
+function normalizeValveMetrics(valves = []) {
+  return valves.map((valve, index) => {
+    const name = valve.name || valve.deviceName || `水阀${index + 1}`
+    return overviewMetric(name, valve.pos ?? valve.opening ?? valve.valveOpening, '%', normalizeDeviceRunStatus(valve.status), true)
+  }).filter(Boolean)
+}
+
+function normalizeDeviceRunStatus(status) {
+  if (status === undefined || status === null || status === '') return '正常'
+  const text = String(status)
+  if (['1', 'online', 'normal', '正常'].includes(text)) return '正常'
+  if (text === '0') return '关闭'
+  if (['offline', '离线'].includes(text)) return '离线'
+  if (text === '关闭') return '关闭'
+  if (['2', 'warning', '告警', '异常'].includes(text)) return '异常'
+  return text
+}
+
+function normalizeHasWater(hasWater) {
+  if (hasWater === undefined || hasWater === null || hasWater === '') return null
+  return ['1', 'true', '有水'].includes(String(hasWater)) ? '有水' : '无水'
+}
+
 // 判断"是否为有效数值"：非 null/undefined/''/'--'/0
 function isMeaningful(v) {
   if (v === undefined || v === null || v === '' || v === '--') return false
@@ -2109,10 +2173,10 @@ function bindDryingOverview(data) {
     readMetric(dryingSensor.innerTemperature, '塔内温度', '°C', baseInfo.innerTemperature ?? operationStatus.innerTemperature ?? 36.8),
     readMetric(dryingSensor.hotAirTemperature, '热风温度', '°C', baseInfo.hotAirTemperature ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? 85.2),
     readMetric(dryingSensor.outletMoisture, '出粮水分', '%', baseInfo.outletMoisture ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? 14.4),
-    readMetric(dryingSensor.grainLayerThickness, '粮层厚度', 'm', realtimeSensor.grainLayerThickness ?? 0.68)
   ])
 
   dryingTowerData.process.splice(0, dryingTowerData.process.length, ...[
+    { label: '运行状态', value: dryingProcess.runStatus || operationStatus.runStatus || baseInfo.runStatus || '运行中', unit: '', status: dryingProcess.status || '正常' },
     { label: '处理粮种', value: dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻', unit: '', status: dryingProcess.runStatus || operationStatus.runStatus || '运行中' },
     { label: '处理能力', value: dryingProcess.processingCapacity ?? processData.processingCapacity ?? 12.8, unit: 't/h', status: dryingProcess.status || '正常' },
     { label: '目标水分', value: dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? 14.5, unit: '%', status: dryingProcess.status || '正常' },
@@ -2123,13 +2187,14 @@ function bindDryingOverview(data) {
     { name: '提升机', text: dryingEquipment.elevator?.status || deviceStatus.elevator || '运行', status: 'online' },
     { name: '垂直烘干风机', text: dryingEquipment.verticalDryingFan?.status || deviceStatus.verticalDryingFan || '运行', status: 'online' },
     { name: '循环风机', text: dryingEquipment.circulatingFan?.status || deviceStatus.circulatingFan || '运行', status: 'online' },
+    { name: '循环风机转速', text: formatDeviceValue(dryingEquipment.circulatingFan?.speed ?? deviceStatus.circulatingFanSpeed ?? '--', '转/分钟'), status: 'online' },
     { name: '燃烧器', text: dryingEquipment.burner?.status || deviceStatus.burner || '运行', status: 'online' },
     { name: '排风阀', text: dryingEquipment.exhaustValve?.status || deviceStatus.exhaustValve || '关闭', status: 'online' }
-  ])
+  ].filter(item => item.text !== '--转/分钟'))
 
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
     readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
-    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, '节能'),
+    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
     readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate ?? 42.8),
     readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
   ])
@@ -2203,6 +2268,7 @@ function bindStorageOverview(data) {
 
 onUnmounted(() => {
   if (timeInterval) clearInterval(timeInterval)
+  stopActiveMenuDataPolling()
   clearAutoInspectionTimer()
 })
 </script>
