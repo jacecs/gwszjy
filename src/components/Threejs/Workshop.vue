@@ -85,10 +85,12 @@ let drillHotspots = markRaw([])
 let isolatedVisibility = markRaw(new Map())
 let internalSceneVisibility = markRaw(new Map())
 let flowLines = markRaw([])
+let monitorSprites = markRaw([])
 let label
 let tooltipRequestId = 0
 let tooltipVideoPlayer = null
 let activeDryingTowerModel = null
+let monitorIconTexture = null
 
 const defaultDryingTowerConfig = {
   url: './static/glb/烘干塔.glb',
@@ -159,6 +161,7 @@ function resetWorkshopState() {
   restoreInternalSceneVisibility()
   removeDryingTowerDetailModel()
   removeLine()
+  removeDryingTowerMonitorSprites()
   inStatus.value = false
   drillDevice.value = null
   isolatedDevice.value = null
@@ -170,6 +173,7 @@ function remove() {
   restoreInternalSceneVisibility()
   removeDryingTowerDetailModel()
   removeLine()
+  removeDryingTowerMonitorSprites()
   drillDevice.value = null
   isolatedDevice.value = null
   removeDryingTowerHotspots()
@@ -309,6 +313,50 @@ function removeDryingTowerHotspots() {
     hotspot.material?.dispose()
   })
   drillHotspots = markRaw([])
+}
+
+function getMonitorIconTexture() {
+  if (!monitorIconTexture) {
+    monitorIconTexture = new THREE.TextureLoader().load('/static/img/icon-jiankong.png')
+    monitorIconTexture.colorSpace = THREE.SRGBColorSpace
+  }
+  return monitorIconTexture
+}
+
+function createDryingTowerMonitorSprites() {
+  removeDryingTowerMonitorSprites()
+  if (!inStatus.value || !['Workshop', 'Workshop3'].includes(props.data.id)) return
+
+  const texture = getMonitorIconTexture()
+  const yOffset = props.data.id === 'Workshop3' ? 58 : 40
+  const zOffset = props.data.id === 'Workshop3' ? 28 : 22
+  getDryingTowerHotspotConfig(props.data.id).forEach((config, index) => {
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    }))
+    sprite.name = `摄像头001-${config.name}`
+    sprite.userData = {
+      type: 'camera',
+      deviceName: `${config.name}监控`,
+      towerName: config.name
+    }
+    sprite.position.set(config.position[0], config.position[1] + yOffset, config.position[2] + zOffset)
+    sprite.scale.set(24, 24, 1)
+    sprite.renderOrder = 20 + index
+    scene.add(sprite)
+    monitorSprites.push(sprite)
+  })
+}
+
+function removeDryingTowerMonitorSprites() {
+  monitorSprites.forEach((sprite) => {
+    scene.remove(sprite)
+    sprite.material?.dispose()
+  })
+  monitorSprites = markRaw([])
 }
 
 function getObjectNamePath(object) {
@@ -645,6 +693,7 @@ function applyInternalScene(value, shouldMoveCamera = true) {
 
   if (!value) {
     removeLine()
+    removeDryingTowerMonitorSprites()
     if (shouldMoveCamera) {
       moveToCamera(config.outCamera)
     }
@@ -675,6 +724,7 @@ function applyInternalScene(value, shouldMoveCamera = true) {
   if (props.data.facilityType == 3) {
     // 烘干塔绘制模拟线路
     createLine()
+    createDryingTowerMonitorSprites()
   }
 
   if (shouldMoveCamera) {
