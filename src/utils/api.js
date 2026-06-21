@@ -4,6 +4,8 @@ import axios from 'axios';
 
 let userId = '', token = localStorage.getItem('token') || '';
 
+let divicesToken = "BCACAFFC658149958B6401A3F0179281"
+
 // let BASE_URL = 'http://182.40.36.93:8900';
 // let BASE_URL = 'http://110.42.225.206:8280';
  let BASE_URL =  ""
@@ -270,6 +272,49 @@ export const getTestfieldSensors= (params={}) => {
   const optionns = objectToUrlParams(params)
   const url =`${BASE_URL}/api/testfield/sensors?${optionns}`
   return axios.get(url, params).then((res) => {
+    return res.data
+  });
+}
+// 获取设施详情
+/**
+ * 
+ * @param {
+ * } params 
+ * @returns 
+ */
+export const getFacilityDetail= (params={}) => {
+  const optionns = objectToUrlParams(params)
+  const url =`${BASE_URL}/api/facility/${params.id}`
+  return axios.get(url, params).then((res) => {
+    return res.data
+  });
+}
+
+// 获取所有设施
+/**
+ * 
+ * @param {
+ * } params 
+ * @returns 
+ */
+export const getListAllDevices= (params={}) => {
+  params.token=divicesToken
+  const url =`${BASE_URL}/hualin-video/api/iot/manage/api/listAllDevices`
+  return axios.post(url, params).then((res) => {
+    return res.data
+  });
+}
+// 获取设施详情
+/**
+ * 
+ * @param {
+ * } params 
+ * @returns 
+ */
+export const getDeviceValues= (params={}) => {
+  params.token=divicesToken
+  const url =`${BASE_URL}/hualin-video/api/iot/manage/api/deviceValues`
+  return axios.post(url, params).then((res) => {
     return res.data
   });
 }

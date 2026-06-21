@@ -4,16 +4,35 @@ class ThreeEvents {
 
     this._events = {
       LEFT_CLICK: [],
+      DOUBLE_CLICK: [],
+      RIGHT_CLICK: [],
       MOUSE_MOVE: [],
       WHEEL: []
     }
   }
+  _getIntersect(mouseEvent) {
+    const { renderer, mouse, raycaster, scene, camera } = this.three
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((mouseEvent.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((mouseEvent.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+      return intersects.find(it => it.object.visible)
+    }
+
+    return ''
+  }
   init(three) {
     this.three = three
-    const { renderer, mouse, raycaster, scene, camera } = three
+    const { renderer } = three
     // 点击事件
 
     let time
+    let clickTimer = null
+    const clickDelay = 300
 
     renderer.domElement.addEventListener('mousedown', (click) => { 
       if (click.button === 0) { 
@@ -26,61 +45,53 @@ class ThreeEvents {
         const currentTime = new Date().getTime()
         if (currentTime - time < 300) {
           time = currentTime
-          // 鼠标
-          const rect = renderer.domElement.getBoundingClientRect();
-          mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-          mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-          // 4. 更新射线并执行检测
-          raycaster.setFromCamera(mouse, camera);
-          // intersectObjects 返回一个按距离排序的相交数组
-          const intersects = raycaster.intersectObjects(scene.children, true);
-          console.log('坐标信息:', intersects[0]?.point);
-          console.log('点击物体信息:', intersects);
-          // 5. 处理交互结果
-          if (intersects.length > 0) {
-            // intersects 是距离相机最近的相交物体
-            const tmp = intersects.find(it => it.object.visible)
-            // intersects 是距离相机最近的相交物体
-             console.log('点击最近物体信息:', tmp);
-              this._events['LEFT_CLICK'].forEach(fn => fn(tmp))
-          } else {
-            // 如果没有点击到任何物体，可以将立方体恢复为绿色
-            this._events['LEFT_CLICK'].forEach(fn => fn(''))
+          if (clickTimer) {
+            clearTimeout(clickTimer)
+            clickTimer = null
           }
+          clickTimer = setTimeout(() => {
+            const tmp = this._getIntersect(click)
+            this._events['LEFT_CLICK'].forEach(fn => fn(tmp))
+            clickTimer = null
+          }, clickDelay)
         }
       }
 
     }, false)
 
+    // 双击事件
+    renderer.domElement.addEventListener('dblclick', (click) => {
+      console.log('双击事件')
+      if (click.button === 0) {
+        if (clickTimer) {
+          clearTimeout(clickTimer)
+          clickTimer = null
+        }
+        const tmp = this._getIntersect(click)
+        this._events['DOUBLE_CLICK'].forEach(fn => fn(tmp))
+      }
+    }, false)
+
+    // 右击事件
+    renderer.domElement.addEventListener('contextmenu', (click) => {
+      click.preventDefault()
+      const tmp = this._getIntersect(click)
+      console.log('右击事件')
+      this._events['RIGHT_CLICK'].forEach(fn => fn(tmp))
+    }, false)
+
     // hover事件
     renderer.domElement.addEventListener('mouseover', (e) => {
 
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // 4. 更新射线并执行检测
-      raycaster.setFromCamera(mouse, camera);
-      // intersectObjects 返回一个按距离排序的相交数组
-      const intersects = raycaster.intersectObjects(scene.children, true);
-
-      // 5. 处理交互结果
-      if (intersects.length > 0) {
-          const tmp = intersects.find(it => it.object.visible)
-        // intersects 是距离相机最近的相交物体
-          console.log('mouseover:', intersects);
-          this._events['MOUSE_MOVE'].forEach(fn => fn(tmp))
-      } else {
-          this._events['MOUSE_MOVE'].forEach(fn => fn(''))
-      }
+      const tmp = this._getIntersect(e)
+      this._events['MOUSE_MOVE'].forEach(fn => fn(tmp))
 
     }, false)
 
   }
 
   add(type, handler) {
-    this._events[type].push(handler)
+    this._events[type]?.push(handler)
   }
 
   Once(type, handler) {

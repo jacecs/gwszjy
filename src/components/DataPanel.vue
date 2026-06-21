@@ -5,7 +5,7 @@
     <div v-for="(item, index) in data" :key="index" class="data-card">
       <div class="data-header">
         <span class="data-label">{{ item.label }}</span>
-        <span v-if="item.status" class="data-status" :class="getStatusClass(item.status)">
+        <span v-if="hasDisplayStatus(item.status)" class="data-status" :class="getStatusClass(item.status)">
           {{ item.status }}
         </span>
       </div>
@@ -35,10 +35,14 @@ defineProps({
   data: Array
 })
 
+function hasDisplayStatus(status) {
+  return status !== undefined && status !== null && status !== ''
+}
+
 function getStatusClass(status) {
   if (status === '正常' || status === '充足' || status === '运行中') return 'status-good'
-  if (status === '节能' || status === '68%') return 'status-warning'
-  if (status === '停机') return 'status-bad'
+  if (status === '节能' || status === '68%' || status === '偏低' || status === '偏高') return 'status-warning'
+  if (status === '停机' || status === '关闭' || status === '离线' || status === '异常' || status === '告警') return 'status-bad'
   return ''
 }
 </script>

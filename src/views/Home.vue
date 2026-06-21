@@ -57,38 +57,81 @@
       <SceneHeader :mode="currentMode" :location="currentLocation" :coords="currentCoords" />
 
       <!-- 左侧数据抽屉 -->
-      <aside class="drawer-panel left-drawer" :class="{ collapsed: !leftDrawerOpen }">
-        <DataPanel :title="leftPrimaryPanelTitle" :data="leftPrimaryPanelData" />
-        <DataPanel :title="leftSecondaryPanelTitle" :data="leftSecondaryPanelData" />
+      <aside v-if="!isWarehouseMode" class="drawer-panel left-drawer" :class="{ collapsed: !leftDrawerOpen }">
+        <Swiper
+          v-if="isOverviewMode"
+          class="overview-env-swiper"
+          :modules="overviewSwiperModules"
+          :slides-per-view="1"
+          :loop="overviewEnvironmentSlides.length > 1"
+          :autoplay="overviewSwiperAutoplay"
+          :pagination="{ clickable: true }"
+          @slideChange="handleOverviewEnvironmentSlideChange"
+        >
+          <SwiperSlide v-for="slide in overviewEnvironmentSlides" :key="slide.id">
+            <DataPanel :title="`🌡 环境监测 · ${slide.name}`" :data="slide.data" />
+          </SwiperSlide>
+        </Swiper>
+        <DataPanel v-else :title="leftPrimaryPanelTitle" :data="leftPrimaryPanelData" />
+        <Swiper
+          v-if="isOverviewMode"
+          class="overview-panel-swiper"
+          :modules="overviewSwiperModules"
+          :slides-per-view="1"
+          :loop="overviewSoilSlides.length > 1"
+          :autoplay="overviewSwiperAutoplay"
+          :pagination="{ clickable: true }"
+        >
+          <SwiperSlide v-for="slide in overviewSoilSlides" :key="slide.id">
+            <DataPanel :title="`🌱 土壤监测 · ${slide.name}`" :data="slide.data" />
+          </SwiperSlide>
+        </Swiper>
+        <DataPanel v-else :title="leftSecondaryPanelTitle" :data="leftSecondaryPanelData" />
       </aside>
 
       <!-- 左侧抽屉开关 -->
-      <button class="drawer-toggle left-toggle" @click="leftDrawerOpen = !leftDrawerOpen">
+      <button v-if="!isWarehouseMode" class="drawer-toggle left-toggle" @click="leftDrawerOpen = !leftDrawerOpen">
         <span>{{ leftDrawerOpen ? '◀' : '▶' }}</span>
       </button>
 
       <!-- 右侧数据抽屉 -->
-      <aside class="drawer-panel right-drawer" :class="{ collapsed: !rightDrawerOpen }">
-        <DevicePanel :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
-        <DataPanel :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
-        <DataPest v-if="isFarmMode || (!isDryingTowerMode && !isWarehouseMode)" title="📊 虫情监测" :data="productionData1" />
+      <aside v-if="!isWarehouseMode" class="drawer-panel right-drawer" :class="{ collapsed: !rightDrawerOpen }">
+        <Swiper
+          v-if="isOverviewMode"
+          class="overview-panel-swiper"
+          :modules="overviewSwiperModules"
+          :slides-per-view="1"
+          :loop="overviewWeatherSlides.length > 1"
+          :autoplay="overviewSwiperAutoplay"
+          :pagination="{ clickable: true }"
+        >
+          <SwiperSlide v-for="slide in overviewWeatherSlides" :key="slide.id">
+            <DevicePanel :title="`⚙️ 气象监测 · ${slide.name}`" :devices="slide.data" />
+          </SwiperSlide>
+        </Swiper>
+        <DevicePanel v-else :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
+        <DataPanel v-if="isFarmMode && activeFieldHydraulicData.length" title="💧 水利设备" :data="activeFieldHydraulicData" />
+        <DataPanel v-if="isDryingTowerMode && rightSecondaryPanelData.length" :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
+        <Swiper
+          v-if="isOverviewMode"
+          class="overview-panel-swiper"
+          :modules="overviewSwiperModules"
+          :slides-per-view="1"
+          :loop="overviewPestSlides.length > 1"
+          :autoplay="overviewSwiperAutoplay"
+          :pagination="{ clickable: true }"
+        >
+          <SwiperSlide v-for="slide in overviewPestSlides" :key="slide.id">
+            <DataPest :title="`📊 虫情监测 · ${slide.name}`" :data="slide.data" />
+          </SwiperSlide>
+        </Swiper>
+        <DataPest v-else-if="isFarmMode || (!isDryingTowerMode && !isWarehouseMode)" title="📊 虫情监测" :data="activeFieldPestData" />
       </aside>
 
       <!-- 右侧抽屉开关 -->
-      <button class="drawer-toggle right-toggle" @click="rightDrawerOpen = !rightDrawerOpen">
+      <button v-if="!isWarehouseMode" class="drawer-toggle right-toggle" @click="rightDrawerOpen = !rightDrawerOpen">
         <span>{{ rightDrawerOpen ? '▶' : '◀' }}</span>
       </button>
-
-      <!-- 控制按钮区域 -->
-      <!-- <div class="control-bar">
-        <button class="control-btn" @click="toggleAllDrawers">
-          <span>{{ allDrawersOpen ? '📊 收起数据' : '📊 展开数据' }}</span>
-        </button>
-        <label class="toggle-label">
-          <input type="checkbox" v-model="showThreeJS" />
-          <span class="toggle-text">🌐 3D</span>
-        </label>
-      </div> -->
 
       <div class="scene-viewport" :class="{ 'three-only': showThreeJS }">
         <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
@@ -99,26 +142,16 @@
           <template v-if="threejsStatus">
 
             <template v-if="['Warehouse', 'Warehouse3' ].includes(currentMode)">
-              <ThreeWarehouse :data="currentModel"></ThreeWarehouse>
+              <ThreeWarehouse :data="currentModel" :videos="videoPanelData"></ThreeWarehouse>
             </template>
             <template v-if="['Farm', 'Farm2', 'Farm3'].includes(currentMode)">
               <ThreeFarm :data="currentModel" />
             </template>
             <template v-if="['Workshop', 'Workshop2', 'Workshop3', 'Warehouse2'].includes(currentMode)">
-              <ThreeWorkshop :data="currentModel" @device-drill="handleDeviceDrill" />
+              <ThreeWorkshop :data="currentModel" :videos="videoPanelData" @device-drill="handleDeviceDrill" />
             </template>
 
           </template>
-          <div class="model-data-card">
-            <!-- <div class="model-data-title">{{ modelDataTitle }}</div> -->
-            <!-- <div class="model-data-subtitle">{{ modelDataSubtitle }}</div> -->
-            <div class="model-data-grid">
-              <div v-for="item in modelDataItems" :key="item.label" class="model-data-item">
-                <span>{{ item.label }}</span>
-                <strong>{{ item.value }}</strong>
-              </div>
-            </div>
-          </div>
         </template>
 
         <BubblePopup v-if="showPopup" :show="showPopup" :data="popupData" :style="popupStyle" @close="showPopup = false" />
@@ -141,34 +174,6 @@
         <Warehouse></Warehouse>
       </template>
     </template>
-
-    <!-- 报警面板（可点击跳转详情） -->
-    <!-- <aside v-if="activeAlerts.length" class="alert-panel" :class="{ collapsed: alertPanelCollapsed }">
-      <div class="alert-panel-header" @click="alertPanelCollapsed = !alertPanelCollapsed">
-        <span>🚨 最新报警（{{ activeAlerts.length }}） <span class="src-tag">前端模拟数据</span></span>
-        <span class="toggle">{{ alertPanelCollapsed ? '▲' : '▼' }}</span>
-      </div>
-      <transition name="fade">
-        <div v-if="!alertPanelCollapsed" class="alert-panel-body">
-          <div
-            v-for="item in activeAlerts"
-            :key="item.code"
-            class="alert-item"
-            :data-level="item.level"
-            @click="openAlertDetail(item)"
-          >
-            <div class="alert-item-left">
-              <div class="alert-item-type">{{ item.type }}</div>
-              <div class="alert-item-msg">{{ item.message }}</div>
-            </div>
-            <div class="alert-item-right">
-              <span class="alert-level">{{ item.level }}</span>
-              <span class="alert-time">{{ item.triggeredAt }}</span>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </aside> -->
 
     <!-- 底部菜单 -->
     <nav class="bottom-menu" v-if="menus && menus.length">
@@ -195,6 +200,10 @@
 import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/modules/app';
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Autoplay, Pagination } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/pagination'
 const appStore = useAppStore();
 const router = useRouter();
 
@@ -222,6 +231,9 @@ const cesiumMap = ref(null)
 const threeScene = ref(null)
 
 const currentMode = ref('overview')
+const overviewEnvironmentIndex = ref(0)
+const overviewSwiperModules = [Autoplay, Pagination]
+const overviewSwiperAutoplay = { delay: 8000, disableOnInteraction: false }
 const activeParticleArea = ref('')
 const showThreeJS = ref(false)
 const autoInspectionRunning = ref(false)
@@ -342,6 +354,7 @@ const activeModelDevice = ref(null)
 const dashData = ref({})
 
 const alertPanelCollapsed = ref(false)
+const isOverviewMode = computed(() => currentMode.value === 'overview')
 
 const defaultAlert = reactive({
   code: 'E-HIGH-TEMP-001',
@@ -565,7 +578,7 @@ const menus = reactive([
           "tz": 0
         },
         "dryingTowerDetail": {
-          "url": "./static/glb/烘干塔1.glb",
+          "url": "./static/glb/烘干塔.glb",
           "scale": 1,
           "offset": {
             "x": 0,
@@ -573,7 +586,8 @@ const menus = reactive([
             "z": 0
           },
           "camera": {
-            "distance": 520
+            "distance": 100,
+            "direction": { "x": -1, "y": 0.7, "z": -1 }
           }
         },
         "camera": {
@@ -921,6 +935,11 @@ const fieldPanelData = reactive({
       { label: '管网压力', value: '0.31', unit: 'MPa', status: '正常' },
       { label: '今日用水', value: '18.6', unit: 'm³', status: '节能' }
     ],
+    pests: [
+      { label: '稻飞虱', value: 186, unit: '个' },
+      { label: '稻纵卷叶螟', value: 48, unit: '个' },
+      { label: '二化螟', value: 22, unit: '个' }
+    ],
     videos: [
       { name: '田块东侧摄像头', url: 'http://localhost/live/farm1-east.flv' },
       { name: '田块西侧摄像头', url: 'http://localhost/live/farm1-west.flv' },
@@ -928,7 +947,7 @@ const fieldPanelData = reactive({
     ]
   },
   Farm2: {
-    name: '农场2试验田',
+    name: '红耕农场试验田',
     sensors: [
       { label: '空气温度', value: '17.20', unit: '°C', status: '正常' },
       { label: '空气湿度', value: '64', unit: '%', status: '正常' },
@@ -953,6 +972,11 @@ const fieldPanelData = reactive({
       { label: '瞬时流量', value: '0.0', unit: 'm³/h', status: '正常' },
       { label: '管网压力', value: '0.28', unit: 'MPa', status: '正常' },
       { label: '今日用水', value: '9.3', unit: 'm³', status: '节能' }
+    ],
+    pests: [
+      { label: '稻飞虱', value: 142, unit: '个' },
+      { label: '稻纵卷叶螟', value: 36, unit: '个' },
+      { label: '二化螟', value: 18, unit: '个' }
     ],
     videos: [
       { name: '田块北侧摄像头', url: 'http://localhost/live/farm2-north.flv' },
@@ -987,6 +1011,11 @@ const fieldPanelData = reactive({
       { label: '管网压力', value: '0.30', unit: 'MPa', status: '正常' },
       { label: '今日用水', value: '16.1', unit: 'm³', status: '节能' }
     ],
+    pests: [
+      { label: '稻飞虱', value: 168, unit: '个' },
+      { label: '稻纵卷叶螟', value: 42, unit: '个' },
+      { label: '二化螟', value: 20, unit: '个' }
+    ],
     videos: [
       { name: '田块入口摄像头', url: 'http://localhost/live/farm3-entry.flv' },
       { name: '田块中心摄像头', url: 'http://localhost/live/farm3-center.flv' }
@@ -994,9 +1023,12 @@ const fieldPanelData = reactive({
   }
 })
 
-const isFarmMode = computed(() => currentModel.value.facilityType == 1)
-const activeFieldData = computed(() => fieldPanelData[currentMode.value] || fieldPanelData.Farm)
+const activeFieldMode = computed(() => resolveFarmMode(currentMode.value, currentModel.value))
+const isFarmMode = computed(() => currentModel.value.facilityType == 1 || !!activeFieldMode.value)
+const activeFieldData = computed(() => fieldPanelData[activeFieldMode.value] || fieldPanelData.Farm)
 const activeFieldName = computed(() => activeFieldData.value.name)
+const activeFieldPestData = computed(() => activeFieldData.value.pests?.length ? activeFieldData.value.pests : productionData1)
+const activeFieldHydraulicData = computed(() => activeFieldData.value.irrigation || [])
 const dryingTowerData = reactive({
   name: '烘干塔设备',
   status: '运行中',
@@ -1009,8 +1041,7 @@ const dryingTowerData = reactive({
   sensors: [
     { label: '塔内温度', value: '58.6', unit: '°C', status: '正常' },
     { label: '热风温度', value: '72.4', unit: '°C', status: '正常' },
-    { label: '出粮水分', value: '13.2', unit: '%', status: '正常' },
-    { label: '粮层厚度', value: '1.8', unit: 'm', status: '正常' }
+    { label: '出粮水分', value: '13.2', unit: '%', status: '正常' }
   ],
   process: [
     { label: '处理粮种', value: '稻谷', unit: '', status: '运行中' },
@@ -1070,15 +1101,39 @@ const warehouseData = reactive({
     { name: '仓库B区', url: 'http://localhost/live/warehouse-b.flv' }
   ]
 })
-const isWarehouseMode = computed(() => currentModel.value.facilityType == 2)
-const leftPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌡 烘干塔传感器' : (isWarehouseMode.value ? '📡 仓库传感器' : (isFarmMode.value ? `📡 ${activeFieldName.value}传感器` : '🌡 环境监测')))
-const leftPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.sensors : (isWarehouseMode.value ? warehouseData.sensors : (isFarmMode.value ? activeFieldData.value.sensors : envData)))
-const leftSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌾 烘干工艺数据' : (isWarehouseMode.value ? '📍 库位与位置' : (isFarmMode.value ? '🌱 土壤数据' : '🌱 土壤监测')))
-const leftSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.process : (isWarehouseMode.value ? warehouseData.positions : (isFarmMode.value ? activeFieldData.value.soil : soilData)))
-const rightPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚙️ 烘干塔设备' : (isWarehouseMode.value ? '⚙️ 仓库设备' : (isFarmMode.value ? '🌤 地块气象' : '⚙️ 气象监测')))
+const isWarehouseMode = computed(() => currentModel.value.facilityType == 2 || isWarehouseModeId(currentMode.value))
+const overviewEnvironmentFarms = ['Farm', 'Farm2']
+const overviewEnvironmentSlides = computed(() => overviewEnvironmentFarms.map((farmId, index) => {
+  const farm = fieldPanelData[farmId] || fieldPanelData.Farm
+  return {
+    id: farmId,
+    name: farm.name?.replace('试验田', '') || `农场${index + 1}`,
+    data: buildOverviewEnvironmentMetrics(farmId, farm)
+  }
+}))
+const overviewSoilSlides = computed(() => buildOverviewFarmSlides(farm => buildFieldSoilOverviewData(farm)))
+const overviewWeatherSlides = computed(() => buildOverviewFarmSlides(farm => farm.weather || []))
+const overviewPestSlides = computed(() => buildOverviewFarmSlides(farm => farm.pests?.length ? farm.pests : productionData1))
+const activeOverviewEnvironmentSlide = computed(() => {
+  const slides = overviewEnvironmentSlides.value
+  return slides[overviewEnvironmentIndex.value % slides.length] || slides[0]
+})
+const currentEnvironmentPanelName = computed(() => {
+  if (isFarmMode.value) return activeFieldName.value?.replace('试验田', '') || ''
+  return activeOverviewEnvironmentSlide.value?.name || ''
+})
+const currentEnvironmentPanelData = computed(() => {
+  if (isFarmMode.value) return buildOverviewEnvironmentMetrics(activeFieldMode.value, activeFieldData.value)
+  return activeOverviewEnvironmentSlide.value?.data || envData
+})
+const leftPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌡 烘干塔传感器' : (isWarehouseMode.value ? '📡 仓库传感器' : `🌡 环境监测 · ${currentEnvironmentPanelName.value}`))
+const leftPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.sensors : (isWarehouseMode.value ? warehouseData.sensors : currentEnvironmentPanelData.value))
+const leftSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌾 烘干工艺数据' : (isWarehouseMode.value ? '📍 库位与位置' : '🌱 土壤监测'))
+const leftSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.process : (isWarehouseMode.value ? warehouseData.positions : (isFarmMode.value ? buildFieldSoilOverviewData(activeFieldData.value) : soilData)))
+const rightPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚙️ 烘干塔设备' : (isWarehouseMode.value ? '⚙️ 仓库设备' : '⚙️ 气象监测'))
 const rightPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.equipment : (isWarehouseMode.value ? warehouseData.equipment : (isFarmMode.value ? activeFieldData.value.weather : devices)))
-const rightSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚡ 能耗与告警' : (isWarehouseMode.value ? '📦 库存状态' : (isFarmMode.value ? '💧 灌溉数据' : '📊 墒情数据')))
-const rightSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.energy : (isWarehouseMode.value ? warehouseData.stock : (isFarmMode.value ? activeFieldData.value.irrigation : productionData)))
+const rightSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚡ 能耗与告警' : (isWarehouseMode.value ? '📦 库存状态' : '📊 墒情数据'))
+const rightSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.energy : (isWarehouseMode.value ? warehouseData.stock : (isFarmMode.value ? buildFieldMoistureOverviewData(activeFieldData.value) : productionData)))
 const videoPanelTitle = computed(() => isDryingTowerMode.value ? '🎥 烘干塔视频' : (isWarehouseMode.value ? '🎥 仓库视频' : (isFarmMode.value ? '🎥 地块视频' : '📊 视频监控')))
 const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : (dashData.value?.panelData?.videos?.cameras ?? []))))
 const modelDataTitle = computed(() => isDryingTowerMode.value ? dryingTowerData.name : (isWarehouseMode.value ? warehouseData.name : (activeModelDevice.value?.name || currentModel.value?.name || activeFieldName.value || '当前模型')))
@@ -1139,6 +1194,11 @@ const modelDataItems = computed(() => {
 
 function switchMode(mode, obj) {
   if (obj.children && obj.children.length) {
+    const defaultChild = obj.children.find(child => child.facilityType == 1 || isFarmModeId(child.id)) || obj.children[0]
+    if (defaultChild) {
+      activeParentMenu.value = obj.id
+      switchMode(defaultChild.id, defaultChild)
+    }
     return
   }
 
@@ -1155,9 +1215,9 @@ function switchMode(mode, obj) {
 
   currentModel.value = obj
 
-  if (obj.facilityType == 1) {
-    getTestfieldOverview(obj?.facilityId, mode)
-  } else if (obj.facilityType == 3) {
+  startActiveMenuDataPolling(mode, obj)
+
+  if (obj.facilityType == 3) {
     getDryingOverview(obj?.facilityId)
   } else if (obj.facilityType == 2) {
     getStorageOverview(obj?.facilityId)
@@ -1293,6 +1353,25 @@ function isFarmModeId(mode) {
   return ['Farm', 'Farm2', 'Farm3'].includes(mode)
 }
 
+function resolveFarmMode(mode, menu = {}) {
+  if (isFarmModeId(mode)) return mode
+
+  const map = {
+    nongtian1: 'Farm',
+    nongtian2: 'Farm2',
+    nongtian3: 'Farm3'
+  }
+  if (map[mode]) return map[mode]
+
+  const farmChild = menu?.children?.find(child => child?.facilityType == 1 || isFarmModeId(child?.id))
+  if (farmChild?.id) return farmChild.id
+
+  if (menu?.facilityType == 1) return mode
+  if (menu?.name?.includes('维明')) return 'Farm'
+  if (menu?.name?.includes('红耕')) return 'Farm2'
+  return ''
+}
+
 function isDryingTowerModeId(mode) {
   return ['Workshop', 'Workshop3'].includes(mode)
 }
@@ -1350,10 +1429,13 @@ function updateTime() {
   currentWeek.value = weeks[now.getDay()]
 }
 
+const DATA_REFRESH_DELAY = 60 * 1000
 let timeInterval = null
+let dataRefreshInterval = null
 
 onMounted(() => {
-  getOverviewData()
+  const overview = getMenuObjById('overview')
+  startActiveMenuDataPolling('overview', overview)
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
   // Fly to initial location
@@ -1375,6 +1457,11 @@ function initCesium(status) {
 function initThreeJS(status) {
   console.log('initThreeJS, ready to load Cesium')
   threejsStatus.value = status
+}
+
+function handleOverviewEnvironmentSlideChange(swiper) {
+  const slideCount = overviewEnvironmentSlides.value.length || 1
+  overviewEnvironmentIndex.value = swiper.realIndex % slideCount
 }
 
 function cesiumClick(obj) {
@@ -1428,22 +1515,172 @@ function getOverviewData() {
   })
 }
 
+function startActiveMenuDataPolling(mode, obj) {
+  stopActiveMenuDataPolling()
+
+  const refresh = getActiveMenuRefreshHandler(mode, obj)
+  if (!refresh) return
+
+  refresh()
+  dataRefreshInterval = setInterval(refresh, DATA_REFRESH_DELAY)
+}
+
+function stopActiveMenuDataPolling() {
+  if (dataRefreshInterval) {
+    clearInterval(dataRefreshInterval)
+    dataRefreshInterval = null
+  }
+}
+
+function getActiveMenuRefreshHandler(mode, obj) {
+  if (mode === 'overview') {
+    return getOverviewData
+  }
+
+  if (obj?.facilityType == 1 || isFarmModeId(mode)) {
+    const facilityId = obj?.facilityId
+    return () => getTestfieldOverview(facilityId, mode)
+  }
+
+  return null
+}
+
 function bindOverviewData(data) {
   dashData.value = data
 
   if (Array.isArray(data.menus)) {
    menus.splice(0, menus.length, ...data.menus)
   }
-  gltfModels.value = Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || [])
+  gltfModels.value = normalizeGltfModels(Array.isArray(data.gltfs) ? data.gltfs : (data.gltfModels || []))
+
+  const farmPanels = Array.isArray(data.panelData) ? data.panelData : []
+  if (farmPanels.length) {
+    bindOverviewFarmPanelList(farmPanels)
+    const firstFarm = farmPanels[0] || {}
+    bindOverviewSummaryPanels(firstFarm)
+    return
+  }
 
   const panelData = data.panelData || data
-  const weather = panelData.weather || data.latestRecord || {}
+  bindOverviewSummaryPanels(panelData)
+}
+
+function normalizeGltfModels(models = []) {
+  return models.map(item => ({
+    ...item,
+    label: item.label || item.name || item.id,
+    name: item.name || item.label || item.id
+  }))
+}
+
+function bindOverviewFarmPanelList(farmPanels = []) {
+  farmPanels.forEach((panel, index) => {
+    const farmId = resolvePanelFarmId(panel, index)
+    const target = fieldPanelData[farmId]
+    if (!target) return
+
+    target.name = panel.farmName ? `${panel.farmName}试验田` : target.name
+    target.environment = Array.isArray(panel.environment) ? panel.environment : []
+
+    const latestEnvironment = target.environment[target.environment.length - 1] || {}
+    const weather = panel.weather || {}
+    const soil = panel.soil || {}
+    const pestStats = normalizeInsectStatistics(panel.insect?.statistics || [])
+    const latestPestRecord = panel.insect?.latestRecord || {}
+
+    target.sensors.splice(0, target.sensors.length, ...[
+      overviewMetric('空气温度', latestEnvironment.ambientTemperature ?? latestEnvironment.temperature, '°C'),
+      overviewMetric('空气湿度', latestEnvironment.ambientHumidity ?? latestEnvironment.airHumidity, '%'),
+      overviewMetric('光照强度', weather.lightIntensity, 'lux', '正常', true),
+      overviewMetric('CO₂浓度', weather.co2, 'ppm')
+    ].filter(Boolean))
+
+    target.soil.splice(0, target.soil.length, ...[
+      overviewMetric('土壤 pH', soil.soilPh ?? soil.ph, ''),
+      overviewMetric('土壤温度', soil.soilTemperature ?? latestEnvironment.soilTemperature, '°C'),
+      overviewMetric('土壤湿度', soil.soilMoisture ?? latestEnvironment.soilMoisture, '%'),
+      overviewMetric('土壤电导率', soil.soilConductivity ?? latestEnvironment.soilConductivity, 'mS/cm')
+    ].filter(Boolean))
+
+    target.weather.splice(0, target.weather.length, ...[
+      overviewDevice('气压', weather.pressure, 'KPa'),
+      overviewDevice('光照', weather.lightIntensity, 'lux', true),
+      overviewDevice('风速', weather.windSpeed, 'm/s'),
+      overviewDevice('累计雨量', weather.rainfall ?? weather.cumulativeRainfall, 'mm', true),
+      overviewDevice('露点温度', weather.dewTemp, '°C'),
+      overviewDevice('CO₂', weather.co2, 'ppm')
+    ].filter(Boolean))
+
+    const normalizedPests = pestStats.length ? pestStats : normalizeLatestInsectRecord(latestPestRecord)
+    if (normalizedPests.length) {
+      target.pests.splice(0, target.pests.length, ...normalizedPests)
+    }
+  })
+}
+
+function resolvePanelFarmId(panel = {}, index = 0) {
+  const name = panel.farmName || panel.name || ''
+  if (name.includes('红耕')) return 'Farm2'
+  if (name.includes('维明')) return 'Farm'
+  return overviewEnvironmentFarms[index] || `Farm${index + 1}`
+}
+
+function overviewMetric(label, value, unit = '', status = '正常', allowZero = false) {
+  if (!hasOverviewValue(value, allowZero)) return null
+  return {
+    label,
+    value,
+    unit,
+    status
+  }
+}
+
+function overviewDevice(name, value, unit = '', allowZero = false) {
+  if (!hasOverviewValue(value, allowZero)) return null
+  return {
+    name,
+    text: `${value}${unit}`,
+    status: 'online'
+  }
+}
+
+function hasOverviewValue(value, allowZero = false) {
+  if (value === undefined || value === null || value === '' || value === '--') return false
+  const num = Number(value)
+  if (!Number.isNaN(num) && num === 0) return allowZero
+  return true
+}
+
+function normalizeLatestInsectRecord(record = {}) {
+  if (!record.objectCount) return []
+  return [{
+    label: record.devName || '虫情数量',
+    name: record.devName || '虫情数量',
+    value: record.objectCount,
+    unit: '个'
+  }]
+}
+
+function bindOverviewSummaryPanelsFromFarm(farmId = 'Farm') {
+  const farm = fieldPanelData[farmId] || fieldPanelData.Farm
+  envData.splice(0, envData.length, ...buildOverviewEnvironmentMetrics(farmId, farm))
+  soilData.splice(0, soilData.length, ...buildFieldSoilOverviewData(farm))
+  devices.splice(0, devices.length, ...(farm.weather || []))
+  productionData.splice(0, productionData.length, ...buildFieldMoistureOverviewData(farm))
+  productionData1.splice(0, productionData1.length, ...(farm.pests?.length ? farm.pests : productionData1))
+}
+
+function bindOverviewSummaryPanels(panelData = {}) {
+  if (panelData?.farmName) {
+    bindOverviewSummaryPanelsFromFarm(resolvePanelFarmId(panelData, 0))
+    return
+  }
+  const weather = panelData.weather || panelData.latestRecord || {}
   const soil = panelData.soil || {}
   const soilMoisture = panelData.soilMoisture || {}
   const environment = Array.isArray(panelData.environment) ? panelData.environment : []
   const latestEnvironment = environment[environment.length - 1] || {}
 
-  // 工具：如果接口返回的值无效（null/undefined/''/0/'--'），使用演示值
   const pick = (raw, fallback) => {
     if (raw === undefined || raw === null || raw === '' || raw === '--') return fallback
     const num = Number(raw)
@@ -1452,7 +1689,7 @@ function bindOverviewData(data) {
   }
 
   soilData.splice(0, soilData.length, ...[
-    { label: '土壤 pH 值', value: pick(soil.ph, 6.8), status: '正常' },
+    { label: '土壤 pH 值', value: pick(soil.ph ?? soil.soilPh, 6.8), status: '正常' },
     { label: '氮 N', value: pick(soil.nitrogen, 142), unit: 'mg/kg' },
     { label: '磷 P', value: pick(soil.phosphorus, 36), unit: 'mg/kg' },
     { label: '钾 K', value: pick(soil.potassium, 188), unit: 'mg/kg' }
@@ -1476,14 +1713,14 @@ function bindOverviewData(data) {
   envData.splice(0, envData.length, ...[
     {
       label: '温度',
-      value: pick(latestEnvironment.temperature, 24.6),
+      value: pick(latestEnvironment.temperature ?? latestEnvironment.ambientTemperature, 24.6),
       unit: '°C',
       status: '正常',
       chart: buildEnvironmentChart(environment, 'temperature', [23.1, 22.8, 23.6, 24.1, 24.5, 24.6])
     },
     {
       label: '空气湿度',
-      value: pick(latestEnvironment.airHumidity, 62),
+      value: pick(latestEnvironment.airHumidity ?? latestEnvironment.ambientHumidity, 62),
       unit: '%',
       status: '正常',
       chart: buildEnvironmentChart(environment, 'airHumidity', [68, 65, 63, 66, 64, 62])
@@ -1497,7 +1734,6 @@ function bindOverviewData(data) {
     }
   ])
 
-  // 虫情统计兜底
   const insectStats = normalizeInsectStatistics(panelData.insect?.statistics || [])
   const hasRealInsect = insectStats.some(i => Number(i.value) > 0)
   productionData1.splice(0, productionData1.length, ...hasRealInsect ? insectStats : [
@@ -1521,6 +1757,11 @@ function bindTestfieldOverview(mode, data) {
   const payload = data.overview || data.detail || data
   const target = fieldPanelData[mode]
   if (!target) return
+
+  if (Array.isArray(payload.environment) || payload.weather || payload.soil || payload.insectData) {
+    bindFlatTestfieldOverview(target, payload)
+    return
+  }
 
   const facility = payload.facility || {}
   const baseData = payload.baseData || {}
@@ -1575,19 +1816,82 @@ function bindTestfieldOverview(mode, data) {
   target.videos.splice(0, target.videos.length, ...normalizeVideoMonitor(videoMonitorData.cameras || payload.insectDetection, '试验田摄像头'))
   const fieldInsectStats = normalizeInsectStatistics(payload.insectData?.statistics || [])
   const hasFieldInsect = fieldInsectStats.some(i => Number(i.value) > 0)
-  productionData1.splice(0, productionData1.length, ...hasFieldInsect ? fieldInsectStats : [
+  const normalizedPests = hasFieldInsect ? fieldInsectStats : [
     { label: '稻飞虱', value: 186, unit: '个' },
     { label: '稻纵卷叶螟', value: 48, unit: '个' },
     { label: '二化螟', value: 22, unit: '个' }
-  ])
+  ]
+  target.pests.splice(0, target.pests.length, ...normalizedPests)
+  productionData1.splice(0, productionData1.length, ...normalizedPests)
+}
+
+function bindFlatTestfieldOverview(target, payload = {}) {
+  const environment = Array.isArray(payload.environment) ? payload.environment : []
+  const latestEnvironment = environment[environment.length - 1] || {}
+  const soil = payload.soil || {}
+  const weather = payload.weather || {}
+  const valves = Array.isArray(payload.valves) ? payload.valves : []
+  const valve = valves[0] || payload.valve || {}
+  const waterMeter = payload.waterMeter || {}
+
+  target.environment = environment
+
+  target.sensors.splice(0, target.sensors.length, ...[
+    overviewMetric('空气温度', latestEnvironment.ambientTemperature ?? latestEnvironment.temperature, '°C'),
+    overviewMetric('空气湿度', latestEnvironment.ambientHumidity ?? latestEnvironment.airHumidity, '%'),
+    overviewMetric('光照强度', weather.lightIntensity, 'lux', '正常', true),
+    overviewMetric('CO₂浓度', weather.co2, 'ppm')
+  ].filter(Boolean))
+
+  target.soil.splice(0, target.soil.length, ...[
+    overviewMetric('土壤 pH', soil.soilPh ?? soil.ph, ''),
+    overviewMetric('土壤温度', soil.soilTemperature ?? latestEnvironment.soilTemperature, '°C'),
+    overviewMetric('土壤湿度', soil.soilMoisture ?? latestEnvironment.soilMoisture, '%'),
+    overviewMetric('土壤电导率', soil.soilConductivity ?? latestEnvironment.soilConductivity, 'mS/cm')
+  ].filter(Boolean))
+
+  target.weather.splice(0, target.weather.length, ...[
+    overviewDevice('气压', weather.pressure, 'KPa'),
+    overviewDevice('光照', weather.lightIntensity, 'lux', true),
+    overviewDevice('风速', weather.windSpeed, 'm/s'),
+    overviewDevice('累计雨量', weather.rainfall ?? weather.cumulativeRainfall, 'mm', true),
+    overviewDevice('露点温度', weather.dewTemp, '°C'),
+    overviewDevice('CO₂', weather.co2, 'ppm')
+  ].filter(Boolean))
+
+  const hydraulicData = [
+    ...normalizeValveMetrics(valves),
+    overviewMetric(`${waterMeter.name || '水位计'}水位`, waterMeter.waterLevel, waterMeter.unit || 'cm', normalizeDeviceRunStatus(waterMeter.status), true),
+    overviewMetric('有水状态', normalizeHasWater(waterMeter.hasWater), '', normalizeDeviceRunStatus(waterMeter.status)),
+    overviewMetric('瞬时流量', waterMeter.instantFlow ?? valve.instantFlow, 'm³/h'),
+    overviewMetric('累计用水', waterMeter.totalFlow ?? waterMeter.todayWaterUsage, 'm³'),
+    overviewMetric('管网压力', valve.pipePressure ?? waterMeter.pipePressure, 'MPa')
+  ].filter(Boolean)
+
+  if (hydraulicData.length) {
+    target.irrigation.splice(0, target.irrigation.length, ...hydraulicData)
+  }
+
+  const fieldInsectStats = normalizeInsectStatistics(payload.insectData?.statistics || [])
+  const normalizedPests = fieldInsectStats.length ? fieldInsectStats : normalizeLatestInsectRecord(payload.insectData?.latestRecord)
+  if (normalizedPests.length) {
+    target.pests.splice(0, target.pests.length, ...normalizedPests)
+    productionData1.splice(0, productionData1.length, ...normalizedPests)
+  }
 }
 
 function buildEnvironmentChart(environment, key, fallbackValues = []) {
   // 优先使用接口返回的真实数据
   if (Array.isArray(environment) && environment.length > 0) {
+    const keyAliases = {
+      temperature: ['temperature', 'ambientTemperature'],
+      airHumidity: ['airHumidity', 'ambientHumidity', 'humidity'],
+      soilConductivity: ['soilConductivity']
+    }
+    const keys = keyAliases[key] || [key]
     const list = environment.map(item => ({
       time: item.date,
-      value: Number(item[key] ?? 0)
+      value: Number(keys.map(k => item[k]).find(value => value !== undefined && value !== null && value !== '') ?? 0)
     }))
     // 如果接口返回的值不全为 0，则用接口数据
     if (list.some(i => i.value > 0)) return list
@@ -1605,6 +1909,101 @@ function buildEnvironmentChart(environment, key, fallbackValues = []) {
   })
 }
 
+function buildOverviewEnvironmentMetrics(farmId, farm) {
+  const temperature = findSensorMetric(farm?.sensors, ['空气温度', '温度'])
+  const humidity = findSensorMetric(farm?.sensors, ['空气湿度', '湿度'])
+  const environment = Array.isArray(farm?.environment) ? farm.environment : []
+  const fallbackCharts = {
+    Farm: {
+      temperature: [16.15, 16.55, 16.45, 16.5, 16.35, Number(temperature?.value) || 16.75],
+      humidity: [55, 60, 58, 65, 70, Number(humidity?.value) || 68]
+    },
+    Farm2: {
+      temperature: [16.6, 16.9, 17.1, 16.85, 17.05, Number(temperature?.value) || 17.2],
+      humidity: [61, 63, 62, 65, 66, Number(humidity?.value) || 64]
+    }
+  }
+  const charts = fallbackCharts[farmId] || fallbackCharts.Farm
+
+  return [
+    {
+      label: '温度',
+      value: temperature?.value ?? '16.75',
+      unit: temperature?.unit ?? '°C',
+      status: temperature?.status || '正常',
+      chart: buildEnvironmentChart(environment, 'temperature', charts.temperature)
+    },
+    {
+      label: '湿度',
+      value: humidity?.value ?? '68',
+      unit: humidity?.unit ?? '%',
+      status: humidity?.status || '正常',
+      chart: buildEnvironmentChart(environment, 'airHumidity', charts.humidity)
+    }
+  ]
+}
+
+function buildOverviewFarmSlides(buildData) {
+  return overviewEnvironmentFarms.map((farmId, index) => {
+    const farm = fieldPanelData[farmId] || fieldPanelData.Farm
+    return {
+      id: farmId,
+      name: farm.name?.replace('试验田', '') || `农场${index + 1}`,
+      data: buildData(farm, farmId, index)
+    }
+  })
+}
+
+function buildFieldSoilOverviewData(farm) {
+  const ph = findSensorMetric(farm?.soil, ['土壤 pH', '土壤 pH 值'])
+  const nitrogen = findSensorMetric(farm?.soil, ['氮'])
+  const phosphorus = findSensorMetric(farm?.soil, ['磷'])
+  const potassium = findSensorMetric(farm?.soil, ['钾'])
+  const metrics = [
+    ph && { label: '土壤 pH 值', value: ph.value, unit: ph.unit ?? '', status: ph.status || '正常' },
+    nitrogen && { label: '氮 N', value: nitrogen.value, unit: nitrogen.unit ?? 'mg/kg', status: nitrogen.status },
+    phosphorus && { label: '磷 P', value: phosphorus.value, unit: phosphorus.unit ?? 'mg/kg', status: phosphorus.status },
+    potassium && { label: '钾 K', value: potassium.value, unit: potassium.unit ?? 'mg/kg', status: potassium.status }
+  ].filter(Boolean)
+
+  if (metrics.length) return metrics
+
+  return [
+    { label: '土壤 pH 值', value: '6.8', unit: '', status: '正常' },
+    { label: '氮 N', value: '142', unit: 'mg/kg' },
+    { label: '磷 P', value: '36', unit: 'mg/kg' },
+    { label: '钾 K', value: '188', unit: 'mg/kg' }
+  ]
+}
+
+function buildFieldMoistureOverviewData(farm) {
+  const soilTemperature = findSensorMetric(farm?.soil, ['土壤温度'])
+  const soilMoisture = findSensorMetric(farm?.soil, ['土壤湿度'])
+
+  return [
+    {
+      label: '土壤温度',
+      value: pickPanelValue(soilTemperature?.value, '22.4'),
+      unit: soilTemperature?.unit ?? '°C',
+      status: soilTemperature?.status
+    },
+    {
+      label: '土壤湿度',
+      value: pickPanelValue(soilMoisture?.value, '28.6'),
+      unit: soilMoisture?.unit ?? '%',
+      status: soilMoisture?.status || '正常'
+    }
+  ]
+}
+
+function pickPanelValue(value, fallback) {
+  return isMeaningful(value) ? value : fallback
+}
+
+function findSensorMetric(sensors = [], labels = []) {
+  return sensors.find(item => labels.some(label => item.label?.includes(label)))
+}
+
 function normalizeInsectStatistics(statistics = []) {
   return statistics.map(item => ({
     label: item.name || item.label || '未知虫害',
@@ -1612,6 +2011,29 @@ function normalizeInsectStatistics(statistics = []) {
     value: item.value ?? item.count ?? 0,
     unit: '个'
   }))
+}
+
+function normalizeValveMetrics(valves = []) {
+  return valves.map((valve, index) => {
+    const name = valve.name || valve.deviceName || `水阀${index + 1}`
+    return overviewMetric(name, valve.pos ?? valve.opening ?? valve.valveOpening, '%', normalizeDeviceRunStatus(valve.status), true)
+  }).filter(Boolean)
+}
+
+function normalizeDeviceRunStatus(status) {
+  if (status === undefined || status === null || status === '') return '正常'
+  const text = String(status)
+  if (['1', 'online', 'normal', '正常'].includes(text)) return '正常'
+  if (text === '0') return '关闭'
+  if (['offline', '离线'].includes(text)) return '离线'
+  if (text === '关闭') return '关闭'
+  if (['2', 'warning', '告警', '异常'].includes(text)) return '异常'
+  return text
+}
+
+function normalizeHasWater(hasWater) {
+  if (hasWater === undefined || hasWater === null || hasWater === '') return null
+  return ['1', 'true', '有水'].includes(String(hasWater)) ? '有水' : '无水'
 }
 
 // 判断"是否为有效数值"：非 null/undefined/''/'--'/0
@@ -1751,10 +2173,10 @@ function bindDryingOverview(data) {
     readMetric(dryingSensor.innerTemperature, '塔内温度', '°C', baseInfo.innerTemperature ?? operationStatus.innerTemperature ?? 36.8),
     readMetric(dryingSensor.hotAirTemperature, '热风温度', '°C', baseInfo.hotAirTemperature ?? operationStatus.hotAirTemperature ?? realtimeSensor.hotAirTemperature ?? 85.2),
     readMetric(dryingSensor.outletMoisture, '出粮水分', '%', baseInfo.outletMoisture ?? operationStatus.outletMoisture ?? realtimeSensor.outletMoisture ?? 14.4),
-    readMetric(dryingSensor.grainLayerThickness, '粮层厚度', 'm', realtimeSensor.grainLayerThickness ?? 0.68)
   ])
 
   dryingTowerData.process.splice(0, dryingTowerData.process.length, ...[
+    { label: '运行状态', value: dryingProcess.runStatus || operationStatus.runStatus || baseInfo.runStatus || '运行中', unit: '', status: dryingProcess.status || '正常' },
     { label: '处理粮种', value: dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻', unit: '', status: dryingProcess.runStatus || operationStatus.runStatus || '运行中' },
     { label: '处理能力', value: dryingProcess.processingCapacity ?? processData.processingCapacity ?? 12.8, unit: 't/h', status: dryingProcess.status || '正常' },
     { label: '目标水分', value: dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? 14.5, unit: '%', status: dryingProcess.status || '正常' },
@@ -1765,13 +2187,14 @@ function bindDryingOverview(data) {
     { name: '提升机', text: dryingEquipment.elevator?.status || deviceStatus.elevator || '运行', status: 'online' },
     { name: '垂直烘干风机', text: dryingEquipment.verticalDryingFan?.status || deviceStatus.verticalDryingFan || '运行', status: 'online' },
     { name: '循环风机', text: dryingEquipment.circulatingFan?.status || deviceStatus.circulatingFan || '运行', status: 'online' },
+    { name: '循环风机转速', text: formatDeviceValue(dryingEquipment.circulatingFan?.speed ?? deviceStatus.circulatingFanSpeed ?? '--', '转/分钟'), status: 'online' },
     { name: '燃烧器', text: dryingEquipment.burner?.status || deviceStatus.burner || '运行', status: 'online' },
     { name: '排风阀', text: dryingEquipment.exhaustValve?.status || deviceStatus.exhaustValve || '关闭', status: 'online' }
-  ])
+  ].filter(item => item.text !== '--转/分钟'))
 
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
     readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
-    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, '节能'),
+    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
     readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate ?? 42.8),
     readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
   ])
@@ -1845,6 +2268,7 @@ function bindStorageOverview(data) {
 
 onUnmounted(() => {
   if (timeInterval) clearInterval(timeInterval)
+  stopActiveMenuDataPolling()
   clearAutoInspectionTimer()
 })
 </script>
@@ -2121,6 +2545,38 @@ body {
     rgba(255, 255, 255, 0.1) 0%,
     rgba(255, 255, 255, 0.05) 100%
   );
+}
+
+.overview-env-swiper,
+.overview-panel-swiper {
+  width: 100%;
+  flex-shrink: 0;
+  padding-bottom: 18px;
+}
+
+.overview-env-swiper .swiper-slide,
+.overview-panel-swiper .swiper-slide {
+  height: auto;
+}
+
+.overview-env-swiper .swiper-pagination,
+.overview-panel-swiper .swiper-pagination {
+  bottom: 0;
+}
+
+.overview-env-swiper .swiper-pagination-bullet,
+.overview-panel-swiper .swiper-pagination-bullet {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+}
+
+.overview-env-swiper .swiper-pagination-bullet-active,
+.overview-panel-swiper .swiper-pagination-bullet-active {
+  width: 16px;
+  border-radius: 999px;
+  background: var(--primary-green);
 }
 
 .left-drawer {

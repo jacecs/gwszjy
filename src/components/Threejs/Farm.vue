@@ -20,11 +20,12 @@ import * as THREE from 'three'
 import TWEEN from '@tweenjs/tween.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import mpegts from 'mpegts.js'
 import ThreeEvents from '@/utils/ThreeEvents.js'
 import FlowLine from '@/utils/FlowLine.js'; // 引入上面封装的类
 import GLOBAL from '@/utils/GLOBAL.js'
 import { useAppStore } from '@/store/modules/app';
+import { getDeviceValues, getListAllDevices } from '@/utils/api.js'
 const appStore = useAppStore();
 
 
@@ -59,6 +60,8 @@ let pageModels = markRaw([])
 let flowLines = markRaw([])
 
 let label
+let tooltipRequestId = 0
+let tooltipVideoPlayer = null
 let activeDetailModel = null
 const pumpVisible = ref(false)
 
@@ -75,7 +78,7 @@ const defaultPumpStationConfig = {
   camera: {
     distance: 550,
   }
-  
+
 }
 
 const defaultPestConfig = {
@@ -97,9 +100,9 @@ const defaultSoilStationConfig = {
 }
 
 const config = reactive({
-  x:0,
-  y:0,
-  z:0,
+  x: 0,
+  y: 0,
+  z: 0,
   scale: 1,
 })
 
@@ -111,7 +114,7 @@ watch(() => props.data, (newMode) => {
 },
   {
     immediate: true
-})
+  })
 
 
 function updateModel() {
@@ -128,6 +131,7 @@ function updateModel() {
 onMounted(() => {
   ThreeEvents.add('LEFT_CLICK', onClick)
   ThreeEvents.add('LEFT_CLICK', onGetInfo)
+  ThreeEvents.add('DOUBLE_CLICK', onDoubleClick)
 })
 
 
@@ -136,6 +140,7 @@ onUnmounted(() => {
   mixers = []
   ThreeEvents.off('LEFT_CLICK', onClick)
   ThreeEvents.off('LEFT_CLICK', onGetInfo)
+  ThreeEvents.off('DOUBLE_CLICK', onDoubleClick)
 
   remove()
   if (animationId) {
@@ -150,10 +155,7 @@ function onGetInfo(e) {
 }
 
 function remove() {
-  if (label) {
-    label.removeFromParent()
-    label = null
-  }
+  removeTooltip()
   if (activeDetailModel) {
     scene.remove(activeDetailModel.scene)
     disposeModel(activeDetailModel.scene)
@@ -163,7 +165,7 @@ function remove() {
   if (pageModels && pageModels.length) {
     for (let index = 0; index < pageModels.length; index++) {
       const model = pageModels[index];
-      
+
       const modelScene = model.scene;
 
       if (modelScene) {
@@ -194,14 +196,14 @@ function disposeModel(modelScene) {
   });
 }
 
-
-
-
+// 单击事件
 function onClick(item) {
+  removeTooltip()
   if (pumpVisible.value) return
   if (item) {
     const name = getObjectNamePath(item.object)
     console.log('试验田点击对象:', name, item)
+
     if (isPumpStationObject(name)) {
       showPumpStation(item)
       // 定位
@@ -209,10 +211,94 @@ function onClick(item) {
       showPumpAtWell(item)
     } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
       showPestDevice(item)
-    } else if (name.indexOf('气象') > -1 || name.toLowerCase().indexOf('weather') > -1) {
+    } else if (name.indexOf('气象') > -1 || name.indexOf('围栏') > -1 || name.toLowerCase().indexOf('weather') > -1) {
       showWeatherStation(item)
     } else if (name.indexOf('土壤') > -1 || name.toLowerCase().indexOf('soil') > -1) {
       showSoilStation(item)
+    }
+  }
+}
+
+// 双击事件
+function onDoubleClick(item) {
+  if (pumpVisible.value) return
+  if (item) {
+    const name = getObjectNamePath(item.object)
+    console.log('试验田点击对象:', name, item)
+    const ids = {
+      // 维明农场
+      "shuini001": {
+        name: "东进水阀",
+        id: "2061751426031288320"
+      },  // 水渠1
+      "shuini007": {
+        name: "西进水阀",
+        id: "2061751464191066112"
+      },  // 水渠1
+      "shuini005": {
+        name: "2061751503294562304",
+        id: "北排水阀"
+      },  // 水渠1
+      "柱体003/虫情测报仪": {
+        name: "虫情测报仪",
+        id: ""
+      },
+      "Cylinder002011_1/气象站": {
+        name: "气象监测",
+        id: "2061329763271704576"
+      },
+      "土壤监测站": {
+        name: "土壤监测站",
+        id: ""
+      },
+
+
+      // 红耕农场
+      "虫情测报仪001": {
+        name: "虫情测报仪",
+        id: ""
+      },
+      "电子水尺": {
+        name: "电子水尺",
+        id: ""
+      },
+      "围栏": {
+        name: "气象监测",
+        id: ""
+      }, // 环境监测
+      "水井/Scene": {
+        name: "排水阀1",
+        id: "2061751164268969984"
+      },// 排水阀1
+      "水井001/Scene": {
+        name: "排水阀2",
+        id: "2061751248582868992"
+      },// 
+      "水井002/Scene": {
+        name: "排水阀3",
+        id: "2061751300424466432"
+      }, // 
+      "水井003/Scene": {
+        name: "排水阀4",
+        id: "2064515476305739776"
+      }, // 排水阀4
+    }
+
+
+    showTooltip(item.object, item.point)
+    return
+
+    if (isPumpStationObject(name)) {
+      showTooltip(item.object, item.point)
+      // 定位
+    } else if (name.indexOf('水井') > -1 || name.indexOf('shuini') > -1) {
+      showTooltip(item)
+    } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
+      showTooltip(item)
+    } else if (name.indexOf('气象') > -1 || name.indexOf('围栏') > -1 || name.toLowerCase().indexOf('weather') > -1) {
+      showTooltip(item)
+    } else if (name.indexOf('土壤') > -1 || name.toLowerCase().indexOf('soil') > -1) {
+      showTooltip(item)
     }
   }
 }
@@ -327,7 +413,8 @@ function focusDetailModel(modelScene, cameraConfig = {}) {
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
   const maxSize = Math.max(size.x, size.y, size.z)
-  const direction = new THREE.Vector3(1, 0.65, 1).normalize()
+  const directionConfig = cameraConfig.direction ?? { x: 1, y: 0.65, z: 1 }
+  const direction = new THREE.Vector3(directionConfig.x, directionConfig.y, directionConfig.z).normalize()
   const distance = cameraConfig.distance ?? Math.max(maxSize * 2.3, 80)
   const targetPos = center.clone().add(direction.multiplyScalar(distance))
 
@@ -359,9 +446,85 @@ function showFieldModels() {
 }
 
 function removeTooltip() {
+  tooltipRequestId += 1
+  destroyTooltipVideoPlayer()
   if (label) {
-    label.removeFromParent()
+    if (label.removeFromParent) {
+      label.removeFromParent()
+    } else if (label.element?.parentNode) {
+      label.element.parentNode.removeChild(label.element)
+    }
     label = null
+  }
+}
+
+function updateTooltipPosition() {
+  if (!label?.element || !label?.point) return
+  const rect = renderer.domElement.getBoundingClientRect()
+  const screenPoint = label.point.clone().project(camera)
+  const x = (screenPoint.x * 0.5 + 0.5) * rect.width + rect.left
+  const y = (-screenPoint.y * 0.5 + 0.5) * rect.height + rect.top
+  label.element.style.left = `${x}px`
+  label.element.style.top = `${y}px`
+  label.element.style.display = screenPoint.z < 1 ? 'block' : 'none'
+}
+
+function destroyTooltipVideoPlayer() {
+  if (!tooltipVideoPlayer) return
+  try {
+    tooltipVideoPlayer.pause()
+    tooltipVideoPlayer.unload()
+    tooltipVideoPlayer.detachMediaElement()
+    tooltipVideoPlayer.destroy()
+  } catch (e) {}
+  tooltipVideoPlayer = null
+}
+
+function createTooltipVideoPlayer(video, url) {
+  if (!video || !url) return
+  if (!mpegts.isSupported()) {
+    video.outerHTML = '<div class="farm-video-tip">当前浏览器不支持 MSE/FLV 播放</div>'
+    return
+  }
+  tooltipVideoPlayer = mpegts.createPlayer(
+    { type: 'flv', url, isLive: true, hasAudio: false },
+    {
+      lazyLoad: true,
+      fixAudioTimestampGap: false,
+      enableWorker: false,
+      enableStashBuffer: false,
+      stashInitialSize: 128
+    }
+  )
+  tooltipVideoPlayer.attachMediaElement(video)
+  tooltipVideoPlayer.load()
+  tooltipVideoPlayer.play().catch(() => {})
+  tooltipVideoPlayer.on(mpegts.Events.ERROR, () => {
+    try {
+      tooltipVideoPlayer.unload()
+      tooltipVideoPlayer.load()
+      tooltipVideoPlayer.play().catch(() => {})
+    } catch (e) {}
+  })
+}
+
+function getDeviceVideoUrl(device = {}) {
+  return device.https_flv_url || device.url || device.streamUrl || device.videoUrl || device.flvUrl || ''
+}
+
+async function getCameraDevice(obj) {
+  let list = []
+  try {
+    const res = await getListAllDevices()
+    list = Array.isArray(res?.data) ? res.data : []
+  } catch (e) {
+    console.warn('获取摄像机设备列表失败', e)
+  }
+  const device = list.find(item => String(item.id) === String(obj.id))
+    || (props.data?.videos || []).find(item => getDeviceVideoUrl(item))
+  return {
+    name: device?.name || device?.cameraName || obj.name,
+    url: getDeviceVideoUrl(device)
   }
 }
 
@@ -397,74 +560,210 @@ function getModal(obj, name) {
 }
 
 async function showTooltip(model, point) {
-  if (label) {
-    label.removeFromParent()
-    label = null
+  removeTooltip()
+  const currentTooltipRequestId = tooltipRequestId
+
+  const name = getObjectNamePath(model)
+  console.log('试验田点击对象:', name, model)
+  const ids = {
+    // 维明农场
+    "shuini001": {
+      name: "东进水阀",
+      id: "2061751426031288320"
+    },  // 水渠1
+    "shuini007": {
+      name: "西进水阀",
+      id: "2061751464191066112"
+    },  // 水渠1
+    "shuini005": {
+      name: "北排水阀",
+      id: "2061751503294562304"
+    },  // 水渠1
+    "柱体003/虫情测报仪": {
+      name: "虫情测报仪",
+      id: ""
+    },
+    "Cylinder002011_1/气象站": {
+      name: "气象监测",
+      id: "2061329763271704576"
+    },
+    "土壤监测站": {
+      name: "土壤监测站",
+      id: ""
+    },
+    "视频监控器": {
+      name: "视频监控器",
+      id: "2067169374367645696",
+      //url: "https://hualin.xyune.com:8443/api/gb/httpflv/live/34020000001310000012.flv?streamtype=1&token=11223344"
+    },
+
+
+    // 红耕农场
+    "虫情测报仪001": {
+      name: "虫情测报仪",
+      id: ""
+    },
+    "电子水尺": {
+      name: "水位计",
+      id: "2061753475154313216"
+    },
+    "围栏": {
+      name: "气象监测",
+      id: "2061329373797023744"
+    }, // 环境监测
+    "水井/Scene": {
+      name: "排水阀1",
+      id: "2061751164268969984"
+    },// 排水阀1
+    "水井001/Scene": {
+      name: "排水阀2",
+      id: "2061751248582868992"
+    },// 
+    "水井002/Scene": {
+      name: "排水阀3",
+      id: "2061751300424466432"
+    }, // 
+    "水井003/Scene": {
+      name: "排水阀4",
+      id: "2064515476305739776"
+    }, // 排水阀4
   }
+
+  let obj
+  for (const key in ids) {
+
+    const item = ids[key];
+    if (name.indexOf(key) > -1) {
+      obj = item
+    }
+  }
+  if (!obj) {
+    return
+  }
+
 
   const tooltip = document.createElement('div');
   tooltip.className = 'tooltip';
-  const list = await loadData()
+  const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
+  const isCameraDevice = name.indexOf("视频监控器") > -1
+
+  if (isCameraDevice) {
+    const cameraDevice = await getCameraDevice(obj)
+    if (currentTooltipRequestId !== tooltipRequestId) return
+    tooltip.innerHTML = `
+      <div class="js-tooltip" style="width: 360px; padding: 10px; color: #ffffff; display: inline-block; transform: translate(-50%, -100%); background: rgba(2, 8, 12, 0.94); border: 1px solid rgba(46, 204, 113, 0.75); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #69ffc5; font-size: 14px; font-weight: 700;">
+          <span>${cameraDevice.name}</span>
+          <span style="font-size: 12px; color: ${cameraDevice.url ? '#2ecc71' : '#e67e22'};">${cameraDevice.url ? '在线' : '无信号'}</span>
+        </div>
+        ${
+          cameraDevice.url
+            ? '<video class="farm-camera-video" style="display: block; width: 100%; height: 210px; background: #000000; object-fit: cover;" autoplay muted playsinline controls></video>'
+            : '<div style="height: 180px; display: flex; align-items: center; justify-content: center; color: #ffffff; background: #111111; font-size: 13px;">暂无视频地址</div>'
+        }
+      </div>
+    `;
+    tooltip.style.position = 'fixed'
+    tooltip.style.left = '0px'
+    tooltip.style.top = '0px'
+    tooltip.style.zIndex = '10000'
+    tooltip.style.pointerEvents = 'auto'
+    document.body.appendChild(tooltip)
+    label = {
+      element: tooltip,
+      point: anchorPoint
+    }
+    updateTooltipPosition()
+    if (cameraDevice.url) {
+      createTooltipVideoPlayer(tooltip.querySelector('.farm-camera-video'), cameraDevice.url)
+    }
+    return label
+  }
+
+  const params = {
+    deviceId: obj.id
+  }
+  const res = await loadData(params)
+  if (currentTooltipRequestId !== tooltipRequestId) return
+  let names = {}
+  if (name.indexOf("水井") > -1 || name.indexOf("shuini") > -1) {
+    names = {
+      v: "工作电压",
+      t2: "温度2",
+      t1: "温度1",
+      status: "状态",
+      s: "阀门状态",
+      protectTorque: "执行器保护扭矩(推力)",
+      pressure2: "压力2",
+      pressure1: "压力1",
+      pos: "阀门开度",
+      i: "执行器保护电流",
+    }
+  } else if(name.indexOf("电子水尺") > -1) {
+    names = {
+      waterLevel: "水位值",
+      hasWater: "水浸状态",
+      status: "状态",
+    }
+  } else if(name.indexOf("气象站") > -1 || name.indexOf("围栏") > -1) {
+    names = {
+      t: "温度",
+      h: "湿度",
+      status: "状态",
+    }
+  }
+  let list = []
+  if (res.data) {
+    for (const key in res.data) {
+      const value = res.data[key];
+      list.push({
+        name: names[key] ?? key,
+        value: value
+
+      })
+    }
+  }
   tooltip.innerHTML = `
       <div class="js-tooltip" style="padding: 10px; pointer-events: none; color: #000; font-size: 16px; display: inline-block;transform: translate(-50%, -100%);background: #ffffff">
         <div class="modal-name" >
-        ${model.name}
+        ${obj.name}
       </div>
       <div class="main-modal-info">
         `
-        +
-         list.map(item => {
-          return `<div class="modal-info" style="display: flex; justify-content: space-between;">
-          <div class="modal-info-name" style="width: 60px">${item.name}：</div>
+    +
+    list.map(item => {
+      return `<div class="modal-info" style="display: flex; justify-content: space-between;">
+          <div class="modal-info-name" style="width: 80px">${item.name}：</div>
           <div class="modal-info-value">${item.value}</div>
         </div>`
-        }).join('')
+    }).join('')
 
-        +
-        
-        `
+    +
+
+    `
       </div>
       </div>
-      `;
-  // 通过CSS3DObject绑定位置
-  label = new CSS2DObject(tooltip);
-  // label.position.set(point.x, point.y, point.z);
-  console.log(label, model.position.x, model.position.y, model.position.z)
-  // scene.add(label);
-  model.add(label)
+  `;
+  tooltip.style.position = 'fixed'
+  tooltip.style.left = '0px'
+  tooltip.style.top = '0px'
+  tooltip.style.zIndex = '10000'
+  tooltip.style.pointerEvents = 'none'
+  document.body.appendChild(tooltip)
+  label = {
+    element: tooltip,
+    point: anchorPoint
+  }
+  updateTooltipPosition()
+  console.log(label, anchorPoint.x, anchorPoint.y, anchorPoint.z)
   return label
 }
 
-function loadData() {
+function loadData(options) {
   return new Promise(resolve => {
-    resolve([])
-    // resolve([{
-    //   "name": "测点",
-    //   "value": "0.00",
-    // }])
-    // getModalInfo().then(res => {
-    //   resolve(res)
-    //   return res
-    // }).catch(() => {
-    //   resolve({
-    //     "样品编号": "YZ02-01",
-    //     "Mad (%)": "0.00",
-    //     "Stad (%)": "0.00",
-    //     "std (%)": "0.00",
-    //     "Vad (%)": "0.00",
-    //     "Vd (%)": "0.00",
-    //     "Aad (%)": "0.00",
-    //     "Ad (%)": "0.00",
-    //     "Qb,ad (MJ/kg)": "28.236",
-    //     "Qgr,ad (MJ/kg)": "28.057",
-    //     "Qgr,d (MJ/kg)": "28.86",
-    //     "Cad (%)": "0.00",
-    //     "Cd (%)": "0.00",
-    //     "Had (%)": "0.00",
-    //     "Nad (%)": "0.00",
-    //     "Nd (%)": "0.00"
-    //   })
-    // })
+    getDeviceValues(options).then(res => {
+      resolve(res)
+    })
   })
 }
 
@@ -600,6 +899,7 @@ let animationId = null;
 function animate() {
   animationId = requestAnimationFrame(animate);
   const time = clock.getElapsedTime();
+  updateTooltipPosition()
 
   // 更新所有流动线路
   if (flowLines && flowLines.length) {
@@ -619,8 +919,8 @@ animate();
 <style scoped>
 .farm-back-btn {
   position: fixed;
-  top: 96px;
-  right: 420px;
+  bottom: 96px;
+  left: 420px;
   z-index: 10000;
   padding: 10px 18px;
   border: 1px solid rgba(46, 204, 113, 0.55);

@@ -217,7 +217,7 @@ onMounted(() => {
 }
 
 .data-chart {
-  height: 100px;
+  height: 150px;
   /* margin-top: 10px;
   display: flex;
   align-items: flex-end;
