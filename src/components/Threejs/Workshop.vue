@@ -31,11 +31,13 @@ import TWEEN from '@tweenjs/tween.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import mpegts from 'mpegts.js'
 import ThreeEvents from '@/utils/ThreeEvents.js'
 import FlowLine from '@/utils/FlowLine.js'; // 引入上面封装的类
 import GLOBAL from '@/utils/GLOBAL.js'
 import { useAppStore } from '@/store/modules/app';
 import { getFacilityDetail } from '@/utils/api.js';
+import { getDeviceValues, getListAllDevices } from '@/utils/api.js'
 const appStore = useAppStore();
 
 
@@ -52,6 +54,10 @@ const props = defineProps({
   data: {
     type: Object,
     default: () => ({})
+  },
+  videos: {
+    type: Array,
+    default: () => []
   }
 })
 const emit = defineEmits(['deviceDrill'])
@@ -80,6 +86,8 @@ let isolatedVisibility = markRaw(new Map())
 let internalSceneVisibility = markRaw(new Map())
 let flowLines = markRaw([])
 let label
+let tooltipRequestId = 0
+let tooltipVideoPlayer = null
 let activeDryingTowerModel = null
 
 const defaultDryingTowerConfig = {
@@ -116,6 +124,7 @@ watch(() => props.data, (newMode) => {
 onMounted(() => {
   ThreeEvents.add('LEFT_CLICK', onClick)
   ThreeEvents.add('LEFT_CLICK', onGetInfo)
+  ThreeEvents.add('DOUBLE_CLICK', onDoubleClick)
 })
 
 
@@ -124,6 +133,7 @@ onUnmounted(() => {
   mixers = []
   ThreeEvents.off('LEFT_CLICK', onClick)
   ThreeEvents.off('LEFT_CLICK', onGetInfo)
+  ThreeEvents.off('DOUBLE_CLICK', onDoubleClick)
 
   resetWorkshopState()
   remove()
@@ -132,6 +142,17 @@ onUnmounted(() => {
     animationId = null;
   }
 })
+
+// 双击事件
+function onDoubleClick(item) {
+  console.log('双击事件1', item)
+  if (item) {
+    const name = getObjectNamePath(item.object)
+    console.log('试验田点击对象:', name, item)
+    if (!isCameraObject(name)) return
+    showTooltip(item.object, item.point)
+  }
+}
 
 function resetWorkshopState() {
   restoreIsolatedVisibility()
@@ -152,10 +173,7 @@ function remove() {
   drillDevice.value = null
   isolatedDevice.value = null
   removeDryingTowerHotspots()
-  if (label) {
-    label.removeFromParent()
-    label = null
-  }
+  removeTooltip()
   console.log('remove', model)
 
   if (pageModels && pageModels.length) {
@@ -180,8 +198,14 @@ function onGetInfo(e) {
 
 
 function onClick(item) {
+  removeTooltip()
   if (activeDryingTowerModel) return
   if (item) {
+    const name = getObjectNamePath(item.object)
+    if (isCameraObject(name)) {
+      showTooltip(item.object, item.point)
+      return
+    }
     if (tryDrillDryingTower(item)) return
     return
     const label = showTooltip(item.object, item.point)
@@ -285,6 +309,21 @@ function removeDryingTowerHotspots() {
     hotspot.material?.dispose()
   })
   drillHotspots = markRaw([])
+}
+
+function getObjectNamePath(object) {
+  const names = []
+  let current = object
+  while (current) {
+    if (current.name) names.push(current.name)
+    current = current.parent
+  }
+  return names.join('/')
+}
+
+function isCameraObject(name = '') {
+  const lowerName = name.toLowerCase()
+  return ['mesh_input003', '摄像头', '摄像机', '视频监控', '视频监控器', 'camera'].some(keyword => lowerName.includes(keyword.toLowerCase()))
 }
 
 function findDryingTowerObject(object) {
@@ -439,10 +478,15 @@ function showWorkshopModels() {
 }
 
 function removeTooltip() {
-  if (label) {
+  tooltipRequestId += 1
+  destroyTooltipVideoPlayer()
+  if (!label) return
+  if (label.removeFromParent) {
     label.removeFromParent()
-    label = null
+  } else if (label.element?.parentNode) {
+    label.element.parentNode.removeChild(label.element)
   }
+  label = null
 }
 
 function disposeModel(modelScene) {
@@ -728,52 +772,232 @@ function ctrlAnimation() {
     });
   }
 }
+
+function getDeviceVideoUrl(device = {}) {
+  return device.https_flv_url || device.url || device.streamUrl || device.videoUrl || device.flvUrl || ''
+}
+
+async function getCameraDevice(obj = {}) {
+  let list = []
+  try {
+    const res = await getListAllDevices()
+    list = Array.isArray(res?.data) ? res.data : []
+  } catch (e) {
+    console.warn('获取摄像机设备列表失败', e)
+  }
+  const localVideos = [
+    ...(Array.isArray(props.videos) ? props.videos : []),
+    ...(Array.isArray(props.data?.videos) ? props.data.videos : [])
+  ]
+  const device = list.find(item => String(item.id) === String(obj.id))
+    || list.find(item => isCameraObject(item.name || item.cameraName || '') && getDeviceVideoUrl(item))
+    || localVideos.find(item => getDeviceVideoUrl(item))
+  return {
+    name: device?.name || device?.cameraName || obj.name || '网络摄像机',
+    url: getDeviceVideoUrl(device)
+  }
+}
+
+function updateTooltipPosition() {
+  if (!label?.element || !label?.point) return
+  const rect = renderer.domElement.getBoundingClientRect()
+  const screenPoint = label.point.clone().project(camera)
+  const x = (screenPoint.x * 0.5 + 0.5) * rect.width + rect.left
+  const y = (-screenPoint.y * 0.5 + 0.5) * rect.height + rect.top
+  label.element.style.left = `${x}px`
+  label.element.style.top = `${y}px`
+  label.element.style.display = screenPoint.z < 1 ? 'block' : 'none'
+}
+
+function destroyTooltipVideoPlayer() {
+  if (!tooltipVideoPlayer) return
+  try {
+    tooltipVideoPlayer.pause()
+    tooltipVideoPlayer.unload()
+    tooltipVideoPlayer.detachMediaElement()
+    tooltipVideoPlayer.destroy()
+  } catch (e) {}
+  tooltipVideoPlayer = null
+}
+
+function createTooltipVideoPlayer(video, url) {
+  if (!video || !url) return
+  if (!mpegts.isSupported()) {
+    video.outerHTML = '<div class="farm-video-tip">当前浏览器不支持 MSE/FLV 播放</div>'
+    return
+  }
+  tooltipVideoPlayer = mpegts.createPlayer(
+    { type: 'flv', url, isLive: true, hasAudio: false },
+    {
+      lazyLoad: true,
+      fixAudioTimestampGap: false,
+      enableWorker: false,
+      enableStashBuffer: false,
+      stashInitialSize: 128
+    }
+  )
+  tooltipVideoPlayer.attachMediaElement(video)
+  tooltipVideoPlayer.load()
+  tooltipVideoPlayer.play().catch(() => {})
+  tooltipVideoPlayer.on(mpegts.Events.ERROR, () => {
+    try {
+      tooltipVideoPlayer.unload()
+      tooltipVideoPlayer.load()
+      tooltipVideoPlayer.play().catch(() => {})
+    } catch (e) {}
+  })
+}
+
 async function showTooltip(model, point) {
-  if (label) {
-    label.removeFromParent()
-    label = null
+  removeTooltip()
+  const currentTooltipRequestId = tooltipRequestId
+
+  const name = getObjectNamePath(model)
+  console.log('试验田点击对象:', name, model)
+  const ids = {
+    // 维明农场
+    "摄像头001": {
+      name: "网络摄像机",
+      id: "2057728640132579328"
+    },  // 水渠1
+
+    // 红耕农场
+    "mesh_input003": {
+      name: "网络摄像机",
+      id:  props.data.id == 'Workshop3' ? '2057757188239130624' : props.data.id == 'Warehouse2' ? "2057757085382213632" : ""
+    },
   }
 
-
-  const name = model.name
-
-  const modelList = {
-    '泵站': {
-      name: "泵站",
-      id: "2323423423"
+  let obj
+  for (const key in ids) {
+    const item = ids[key];
+    if (name.indexOf(key) > -1) {
+      obj = item
     }
   }
 
-  const obj = modelList[name]
   if (!obj) {
     return
   }
 
 
-
   const tooltip = document.createElement('div');
   tooltip.className = 'tooltip';
-  const params = {
-    id: ""
+  const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
+  const isCameraDevice = isCameraObject(name)
+
+  if (isCameraDevice) {
+    const cameraDevice = await getCameraDevice(obj)
+    if (currentTooltipRequestId !== tooltipRequestId) return
+    tooltip.innerHTML = `
+      <div class="js-tooltip" style="width: 360px; padding: 10px; color: #ffffff; display: inline-block; transform: translate(-50%, -100%); background: rgba(2, 8, 12, 0.94); border: 1px solid rgba(46, 204, 113, 0.75); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #69ffc5; font-size: 14px; font-weight: 700;">
+          <span>${cameraDevice.name}</span>
+          <span style="font-size: 12px; color: ${cameraDevice.url ? '#2ecc71' : '#e67e22'};">${cameraDevice.url ? '在线' : '无信号'}</span>
+        </div>
+        ${
+          cameraDevice.url
+            ? '<video class="farm-camera-video" style="display: block; width: 100%; height: 210px; background: #000000; object-fit: cover;" autoplay muted playsinline controls></video>'
+            : '<div style="height: 180px; display: flex; align-items: center; justify-content: center; color: #ffffff; background: #111111; font-size: 13px;">暂无视频地址</div>'
+        }
+      </div>
+    `;
+    tooltip.style.position = 'fixed'
+    tooltip.style.left = '0px'
+    tooltip.style.top = '0px'
+    tooltip.style.zIndex = '10000'
+    tooltip.style.pointerEvents = 'auto'
+    document.body.appendChild(tooltip)
+    label = {
+      element: tooltip,
+      point: anchorPoint
+    }
+    updateTooltipPosition()
+    if (cameraDevice.url) {
+      createTooltipVideoPlayer(tooltip.querySelector('.farm-camera-video'), cameraDevice.url)
+    }
+    return label
   }
-  const list = await loadData(params)
+
+  const params = {
+    deviceId: obj.id
+  }
+  const res = await loadData(params)
+  if (currentTooltipRequestId !== tooltipRequestId) return
+  let names = {}
+  if (name.indexOf("水井") > -1 || name.indexOf("shuini") > -1) {
+    names = {
+      v: "工作电压",
+      t2: "温度2",
+      t1: "温度1",
+      status: "状态",
+      s: "阀门状态",
+      protectTorque: "执行器保护扭矩(推力)",
+      pressure2: "压力2",
+      pressure1: "压力1",
+      pos: "阀门开度",
+      i: "执行器保护电流",
+    }
+  } else if(name.indexOf("电子水尺") > -1) {
+    names = {
+      waterLevel: "水位值",
+      hasWater: "水浸状态",
+      status: "状态",
+    }
+  } else if(name.indexOf("气象站") > -1 || name.indexOf("围栏") > -1) {
+    names = {
+      t: "温度",
+      h: "湿度",
+      status: "状态",
+    }
+  }
+  let list = []
+  if (res.data) {
+    for (const key in res.data) {
+      const value = res.data[key];
+      list.push({
+        name: names[key] ?? key,
+        value: value
+
+      })
+    }
+  }
   tooltip.innerHTML = `
       <div class="js-tooltip" style="padding: 10px; pointer-events: none; color: #000; font-size: 16px; display: inline-block;transform: translate(-50%, -100%);background: #ffffff">
         <div class="modal-name" >
         ${obj.name}
       </div>
       <div class="main-modal-info">
+        `
+    +
+    list.map(item => {
+      return `<div class="modal-info" style="display: flex; justify-content: space-between;">
+          <div class="modal-info-name" style="width: 80px">${item.name}：</div>
+          <div class="modal-info-value">${item.value}</div>
+        </div>`
+    }).join('')
+
+    +
+
+    `
       </div>
       </div>
-      `;
-  // 通过CSS3DObject绑定位置
-  label = new CSS2DObject(tooltip);
-  // label.position.set(point.x, point.y, point.z);
-  console.log(label, model.position.x, model.position.y, model.position.z)
-  // scene.add(label);
-  model.add(label)
+  `;
+  tooltip.style.position = 'fixed'
+  tooltip.style.left = '0px'
+  tooltip.style.top = '0px'
+  tooltip.style.zIndex = '10000'
+  tooltip.style.pointerEvents = 'none'
+  document.body.appendChild(tooltip)
+  label = {
+    element: tooltip,
+    point: anchorPoint
+  }
+  updateTooltipPosition()
+  console.log(label, anchorPoint.x, anchorPoint.y, anchorPoint.z)
   return label
 }
+
 
 function loadData() {
   return new Promise(resolve => {
@@ -1274,6 +1498,7 @@ let animationId = null;
 function animate() {
   animationId = requestAnimationFrame(animate);
   const time = clock.getElapsedTime();
+  updateTooltipPosition()
 
   // 更新所有流动线路
   if (flowLines && flowLines.length) {

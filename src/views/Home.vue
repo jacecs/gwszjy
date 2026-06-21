@@ -142,13 +142,13 @@
           <template v-if="threejsStatus">
 
             <template v-if="['Warehouse', 'Warehouse3' ].includes(currentMode)">
-              <ThreeWarehouse :data="currentModel"></ThreeWarehouse>
+              <ThreeWarehouse :data="currentModel" :videos="videoPanelData"></ThreeWarehouse>
             </template>
             <template v-if="['Farm', 'Farm2', 'Farm3'].includes(currentMode)">
               <ThreeFarm :data="currentModel" />
             </template>
             <template v-if="['Workshop', 'Workshop2', 'Workshop3', 'Warehouse2'].includes(currentMode)">
-              <ThreeWorkshop :data="currentModel" @device-drill="handleDeviceDrill" />
+              <ThreeWorkshop :data="currentModel" :videos="videoPanelData" @device-drill="handleDeviceDrill" />
             </template>
 
           </template>
@@ -711,7 +711,7 @@ const menus = reactive([
         "gltfs": [
           {
             "id": "changfang3",
-            "url": "./static/glb/厂房3-无底图.glb",
+            "url": "./static/glb/厂房3-有底图.glb",
             "x": 0,
             "y": 0,
             "z": 0,
