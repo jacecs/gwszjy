@@ -2,7 +2,7 @@
   <div class="panel">
     <div class="panel-title">{{ title }}</div>
     <div class="data-card">
-      <div class="data-video">
+      <div class="data-video" v-if="streams && streams.length > 1">
         切换摄像头
         <select v-model.number="selectedStreamIndex">
           <option :value="index" v-bind:key="index" v-for="(item,index) in streams">{{item.name}}</option>
