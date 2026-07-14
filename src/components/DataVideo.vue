@@ -17,31 +17,19 @@
 import { computed, ref, watch } from 'vue'
 import Video from './COMS/Video.vue'
 const props = defineProps({
-  title: String,
+  title: {
+    type: String,
+    default: '📊 视频监控'
+  },
   data: Array
 })
 
-const defaultStreams = [{
-  name: '摄像头1',
-  url: 'http://localhost/live/stream1.flv'
-},
-{
-  name: '摄像头2',
-  url: 'http://localhost/live/stream2.flv'
-},
-{
-  name: '摄像头3',
-  url: 'http://localhost/live/stream3.flv'
-},
-{
-  name: '摄像头4',
-  url: 'http://localhost/live/stream4.flv'
-}]
+const defaultStreams = []
 
 const selectedStreamIndex = ref(0)
 
 const streams = computed(() => {
-  return props.data && props.data.length ? props.data : []
+  return props.data && props.data.length ? props.data : defaultStreams
 })
 
 const selStream = computed(() => {

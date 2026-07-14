@@ -87,6 +87,8 @@
           </SwiperSlide>
         </Swiper>
         <DataPanel v-else :title="leftSecondaryPanelTitle" :data="leftSecondaryPanelData" />
+
+        <DataPanel v-if="isFarmMode && activeFieldHydraulicData.length" title="💧 水利设备" :data="activeFieldHydraulicData" />
       </aside>
 
       <!-- 左侧抽屉开关 -->
@@ -110,7 +112,7 @@
           </SwiperSlide>
         </Swiper>
         <DevicePanel v-else :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
-        <DataPanel v-if="isFarmMode && activeFieldHydraulicData.length" title="💧 水利设备" :data="activeFieldHydraulicData" />
+
         <DataPanel v-if="isDryingTowerMode && rightSecondaryPanelData.length" :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
         <Swiper
           v-if="isOverviewMode"
@@ -126,6 +128,21 @@
           </SwiperSlide>
         </Swiper>
         <DataPest v-else-if="isFarmMode || (!isDryingTowerMode && !isWarehouseMode)" title="📊 虫情监测" :data="activeFieldPestData" />
+
+        <Swiper
+          v-if="isOverviewMode"
+          class="overview-panel-swiper"
+          :modules="overviewSwiperModules"
+          :slides-per-view="1"
+          :loop="overviewVideoSlides.length > 1"
+          :autoplay="overviewSwiperAutoplay"
+          :pagination="{ clickable: true }"
+        >
+          <SwiperSlide v-for="slide in overviewVideoSlides" :key="slide.id">
+            <DataVideo :title="`🎥 视频监控 · ${slide.name}`" :data="slide.data" />
+          </SwiperSlide>
+        </Swiper>
+        <DataVideo v-else :title="videoPanelTitle" :data="videoPanelData" />
       </aside>
 
       <!-- 右侧抽屉开关 -->
@@ -1103,6 +1120,19 @@ const warehouseData = reactive({
 })
 const isWarehouseMode = computed(() => currentModel.value.facilityType == 2 || isWarehouseModeId(currentMode.value))
 const overviewEnvironmentFarms = ['Farm', 'Farm2']
+const overviewVideoSlides = computed(() => buildOverviewFarmSlides((farm, farmId, index) => {
+  const panelData = dashData.value?.panelData
+  const panel = Array.isArray(panelData) ? panelData[index] : null
+  const apiVideos = panel
+    ? normalizeVideoMonitor(panel.cameras || panel.videos?.cameras || panel.videoMonitorData?.cameras || panel.videoMonitor?.cameras || panel.videoMonitor, '农场摄像头')
+    : []
+
+  return apiVideos.length ? apiVideos : (farm?.videos || [])
+}))
+const overviewVideoPanelData = computed(() => overviewVideoSlides.value.flatMap(slide => slide.data.map(item => ({
+  ...item,
+  name: `${slide.name} · ${item.name || '摄像头'}`
+}))))
 const overviewEnvironmentSlides = computed(() => overviewEnvironmentFarms.map((farmId, index) => {
   const farm = fieldPanelData[farmId] || fieldPanelData.Farm
   return {
@@ -1135,7 +1165,7 @@ const rightPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTow
 const rightSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚡ 能耗与告警' : (isWarehouseMode.value ? '📦 库存状态' : '📊 墒情数据'))
 const rightSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.energy : (isWarehouseMode.value ? warehouseData.stock : (isFarmMode.value ? buildFieldMoistureOverviewData(activeFieldData.value) : productionData)))
 const videoPanelTitle = computed(() => isDryingTowerMode.value ? '🎥 烘干塔视频' : (isWarehouseMode.value ? '🎥 仓库视频' : (isFarmMode.value ? '🎥 地块视频' : '📊 视频监控')))
-const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : (dashData.value?.panelData?.videos?.cameras ?? []))))
+const videoPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.videos : (isWarehouseMode.value ? warehouseData.videos : (isFarmMode.value ? activeFieldData.value.videos : overviewVideoPanelData.value)))
 const modelDataTitle = computed(() => isDryingTowerMode.value ? dryingTowerData.name : (isWarehouseMode.value ? warehouseData.name : (activeModelDevice.value?.name || currentModel.value?.name || activeFieldName.value || '当前模型')))
 const modelDataSubtitle = computed(() => {
   if (activeModelDevice.value) return activeModelDevice.value.subtitle || '设备下钻视图'
@@ -1615,6 +1645,11 @@ function bindOverviewFarmPanelList(farmPanels = []) {
     if (normalizedPests.length) {
       target.pests.splice(0, target.pests.length, ...normalizedPests)
     }
+
+    const normalizedVideos = normalizeVideoMonitor(panel.cameras || panel.videos?.cameras || panel.videoMonitorData?.cameras || panel.videoMonitor?.cameras || panel.videoMonitor, '农场摄像头')
+    if (normalizedVideos.length) {
+      target.videos.splice(0, target.videos.length, ...normalizedVideos)
+    }
   })
 }
 
@@ -2085,8 +2120,12 @@ function normalizeVideoMonitor(videoMonitor, prefix) {
   if (!videoMonitor) return []
   if (Array.isArray(videoMonitor)) {
     return videoMonitor.map((item, index) => ({
-      name: item.name || item.label || item.cameraName || `${prefix}${index + 1}`,
-      url: item.url || item.streamUrl || item.videoUrl || item.flvUrl || ''
+      name: item.name || item.label || item.cameraName || item.deviceName || `${prefix}${index + 1}`,
+      url: item.url || item.streamUrl || item.videoUrl || item.flvUrl || item.https_flv_url || item.http_flv_url || item.httpsFlvUrl || item.httpFlvUrl || '',
+      deviceId: item.deviceId || item.id,
+      status: item.status,
+      stationName: item.stationName || item.station_name,
+      templateName: item.templateName || item.template_name
     })).filter(item => item.url)
   }
   return Object.entries(videoMonitor).map(([key, value], index) => ({
