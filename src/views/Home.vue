@@ -153,7 +153,7 @@
       </button>
 
       <div class="scene-viewport" :class="{ 'three-only': showThreeJS }">
-        <!-- <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" /> -->
+        <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
         <!-- threejs绘制区域 -->
         <template v-if="showThreeJS ">
           <!-- 总览 -->
