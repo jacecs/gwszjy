@@ -2237,7 +2237,7 @@ function bindDryingOverview(data) {
     readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
     readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
     // readMetric(energyAlarm.gasFlowRate, '燃气流量', '°C', energyConsumption.gasFlowRate ?? 65),
-    readMetric(energyAlarm.gasFlowRate, '管道温度', '°C',  65),
+    readMetric(65, '管道温度', '°C',  65),
     readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
   ])
 
