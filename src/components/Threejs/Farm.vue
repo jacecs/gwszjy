@@ -715,12 +715,16 @@ async function showTooltip(model, point) {
   let list = []
   if (res.data) {
     for (const key in res.data) {
-      const value = res.data[key];
-      list.push({
-        name: names[key] ?? key,
-        value: value
-
-      })
+      let value = res.data[key];
+      if (Object.prototype.toString.call(value) !== '[object Null]') {
+        if (key == 'status') {
+          value = value == 1 ? '在线' : '离线'
+        }
+        list.push({
+          name: names[key] ?? key,
+          value: value
+        })
+      }
     }
   }
   tooltip.innerHTML = `

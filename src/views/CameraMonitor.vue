@@ -805,7 +805,7 @@ function goHome() {
 /* ============ 分组主视图 ============ */
 .cm-groups {
   flex: 1;
-  display: flex;
+  /* display: flex; */
   flex-direction: column;
   gap: 16px;
   padding: 16px 24px;

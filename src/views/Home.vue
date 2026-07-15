@@ -111,7 +111,9 @@
             <DevicePanel :title="`⚙️ 气象监测 · ${slide.name}`" :devices="slide.data" />
           </SwiperSlide>
         </Swiper>
-        <DevicePanel v-else :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
+        <template v-else>
+          <DevicePanel v-if="!isDryingTowerMode" :title="rightPrimaryPanelTitle" :devices="rightPrimaryPanelData" />
+        </template>
 
         <DataPanel v-if="isDryingTowerMode && rightSecondaryPanelData.length" :title="rightSecondaryPanelTitle" :data="rightSecondaryPanelData" />
         <Swiper
@@ -151,7 +153,7 @@
       </button>
 
       <div class="scene-viewport" :class="{ 'three-only': showThreeJS }">
-        <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
+        <!-- <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" /> -->
         <!-- threejs绘制区域 -->
         <template v-if="showThreeJS ">
           <!-- 总览 -->
@@ -1076,7 +1078,7 @@ const dryingTowerData = reactive({
   energy: [
     { label: '瞬时功率', value: '42.6', unit: 'kW', status: '正常' },
     { label: '今日耗电', value: '318', unit: 'kWh', status: '节能' },
-    { label: '燃气流量', value: '21.4', unit: 'm³/h', status: '正常' },
+    { label: '管道温度', value: '65', unit: ' °C', status: '正常' },
     { label: '告警数量', value: '0', unit: '条', status: '正常' }
   ],
   videos: [
@@ -1156,10 +1158,10 @@ const currentEnvironmentPanelData = computed(() => {
   if (isFarmMode.value) return buildOverviewEnvironmentMetrics(activeFieldMode.value, activeFieldData.value)
   return activeOverviewEnvironmentSlide.value?.data || envData
 })
-const leftPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌡 烘干塔传感器' : (isWarehouseMode.value ? '📡 仓库传感器' : `🌡 环境监测 · ${currentEnvironmentPanelName.value}`))
-const leftPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.sensors : (isWarehouseMode.value ? warehouseData.sensors : currentEnvironmentPanelData.value))
-const leftSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌾 烘干工艺数据' : (isWarehouseMode.value ? '📍 库位与位置' : '🌱 土壤监测'))
-const leftSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.process : (isWarehouseMode.value ? warehouseData.positions : (isFarmMode.value ? buildFieldSoilOverviewData(activeFieldData.value) : soilData)))
+const leftPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌾 烘干工艺数据' : (isWarehouseMode.value ? '📡 仓库传感器' : `🌡 环境监测 · ${currentEnvironmentPanelName.value}`))
+const leftPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.process : (isWarehouseMode.value ? warehouseData.sensors : currentEnvironmentPanelData.value))
+const leftSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '🌡 烘干塔传感器' : (isWarehouseMode.value ? '📍 库位与位置' : '🌱 土壤监测'))
+const leftSecondaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.sensors : (isWarehouseMode.value ? warehouseData.positions : (isFarmMode.value ? buildFieldSoilOverviewData(activeFieldData.value) : soilData)))
 const rightPrimaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚙️ 烘干塔设备' : (isWarehouseMode.value ? '⚙️ 仓库设备' : '⚙️ 气象监测'))
 const rightPrimaryPanelData = computed(() => isDryingTowerMode.value ? dryingTowerData.equipment : (isWarehouseMode.value ? warehouseData.equipment : (isFarmMode.value ? activeFieldData.value.weather : devices)))
 const rightSecondaryPanelTitle = computed(() => isDryingTowerMode.value ? '⚡ 能耗与告警' : (isWarehouseMode.value ? '📦 库存状态' : '📊 墒情数据'))
@@ -2215,11 +2217,11 @@ function bindDryingOverview(data) {
   ])
 
   dryingTowerData.process.splice(0, dryingTowerData.process.length, ...[
-    { label: '运行状态', value: dryingProcess.runStatus || operationStatus.runStatus || baseInfo.runStatus || '运行中', unit: '', status: dryingProcess.status || '正常' },
-    { label: '处理粮种', value: dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻', unit: '', status: dryingProcess.runStatus || operationStatus.runStatus || '运行中' },
-    { label: '处理能力', value: dryingProcess.processingCapacity ?? processData.processingCapacity ?? 12.8, unit: 't/h', status: dryingProcess.status || '正常' },
-    { label: '目标水分', value: dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? 14.5, unit: '%', status: dryingProcess.status || '正常' },
-    { label: '烘干时长', value: dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? 220, unit: 'min', status: dryingProcess.status || '正常' }
+    { label: '运行状态', value: '未运行' || dryingProcess.runStatus || operationStatus.runStatus || baseInfo.runStatus || '未运行', unit: '', status: dryingProcess.status || '正常' },
+    { label: '处理粮种', value: '水稻' || dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻', unit: '', status: '未运行' || dryingProcess.runStatus || operationStatus.runStatus || '未运行' },
+    { label: '处理能力', value: 400 ??  dryingProcess.processingCapacity ?? processData.processingCapacity ?? 400, unit: 't/批次', status: dryingProcess.status || '正常' },
+    { label: '目标水分', value: 20 ?? dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? 20, unit: '%', status: dryingProcess.status || '正常' },
+    { label: '烘干时长', value: 20?? dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? 20, unit: 'h', status: dryingProcess.status || '正常' }
   ])
 
   dryingTowerData.equipment.splice(0, dryingTowerData.equipment.length, ...[
@@ -2234,11 +2236,34 @@ function bindDryingOverview(data) {
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
     readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
     readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
-    readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate ?? 42.8),
+    // readMetric(energyAlarm.gasFlowRate, '燃气流量', '°C', energyConsumption.gasFlowRate ?? 65),
+    readMetric(65, '管道温度', '°C',  65),
     readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
   ])
 
-  dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor?.cameras || payload.videoMonitor, '烘干塔摄像头'))
+  // 视频
+  const list= currentMode.value == 'Workshop' ? [
+    {
+      "id": "camera_dry_001",
+      "name": "烘干车间西（球机）",
+      "streamUrl": "https://hualin.xyune.com:8443/api/gb/httpflv/live/34020000001310000010.flv?streamtype=1&token=11223344"
+    },
+
+    {
+      "id": "camera_dry_003",
+      "name": "烘干车间东（球机）",
+      "streamUrl": "https://hualin.xyune.com:8443/api/gb/httpflv/live/34020000001310000003.flv?streamtype=1&token=11223344"
+    }
+  ] : [
+    {
+      "id": "2057757188239130624",
+      "name": "烘干车间（球机）",
+      "streamUrl": "https://hualin.xyune.com:8443/api/gb/httpflv/live/34020000001310000008.flv?streamtype=1&token=11223344"
+    },
+
+  ]
+  // dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...normalizeVideoMonitor(payload.videoMonitor?.cameras || payload.videoMonitor, '烘干塔摄像头'))
+  dryingTowerData.videos.splice(0, dryingTowerData.videos.length, ...list)
 }
 
 function stripUnit(value) {
