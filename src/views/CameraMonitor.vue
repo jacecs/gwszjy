@@ -275,7 +275,12 @@ const fsVideoRef = ref(null)
 let fsPlayer = null
 
 function setVideoRef(el, id) {
-  if (el) videoRefs.value[id] = el
+  if (el) {
+    videoRefs.value[id] = el
+    el.dataset.deviceId = id
+    initVideoObserver()
+    videoObserver.observe(el)
+  }
 }
 
 // 选择合适的图标
@@ -334,9 +339,42 @@ function destroyPlayer(player) {
   } catch (e) {}
 }
 
-// 启动宫格内所有视频流
+// ===== 视口懒加载：只对可见的 video 创建播放器，离开视口自动销毁释放资源 =====
+let videoObserver = null
+
+function initVideoObserver() {
+  if (videoObserver) return
+  videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const video = entry.target
+      const deviceId = video.dataset.deviceId
+      if (!deviceId) return
+      if (entry.isIntersecting) {
+        // 进入视口：按需创建播放器
+        if (!mpegtsPlayers.value[deviceId]) {
+          const device = deviceList.value.find(d => d.id === deviceId)
+          if (device?.https_flv_url) {
+            const p = createFlvPlayer(video, device.https_flv_url)
+            if (p) mpegtsPlayers.value[deviceId] = p
+          }
+        }
+      } else {
+        // 离开视口（含站点折叠 v-show 隐藏）：销毁播放器释放连接
+        if (mpegtsPlayers.value[deviceId]) {
+          destroyPlayer(mpegtsPlayers.value[deviceId])
+          delete mpegtsPlayers.value[deviceId]
+        }
+      }
+    })
+  }, {
+    rootMargin: '100px',  // 提前 100px 预加载，减少滚动时的空白
+    threshold: 0
+  })
+}
+
+// 启动宫格内所有视频流（播放器创建交由 IntersectionObserver 按可见性管理）
 function startGridVideos() {
-  // 销毁不再可见的播放器
+  // 销毁不在当前设备列表中的播放器
   const keepIds = new Set(deviceList.value.map(d => d.id))
   Object.keys(mpegtsPlayers.value).forEach(id => {
     if (!keepIds.has(id)) {
@@ -344,18 +382,8 @@ function startGridVideos() {
       delete mpegtsPlayers.value[id]
     }
   })
-
-  nextTick(() => {
-    deviceList.value.forEach(device => {
-      if (device.https_flv_url && !mpegtsPlayers.value[device.id]) {
-        const video = videoRefs.value[device.id]
-        if (video) {
-          const p = createFlvPlayer(video, device.https_flv_url)
-          if (p) mpegtsPlayers.value[device.id] = p
-        }
-      }
-    })
-  })
+  // 新挂载的 video 元素会通过 setVideoRef 自动注册到 observer，
+  // observer 检测到可见后自动创建播放器
 }
 
 function destroyAllGridVideos() {
@@ -479,6 +507,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
+  if (videoObserver) {
+    videoObserver.disconnect()
+    videoObserver = null
+  }
   destroyAllGridVideos()
   if (fsPlayer) destroyPlayer(fsPlayer)
   window.removeEventListener('keydown', onKeyDown)

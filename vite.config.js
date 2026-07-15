@@ -18,7 +18,8 @@ export default defineConfig(({ command }) => ({
         changeOrigin: true
       },
       '/api': {
-        target: 'http://110.42.225.206:8280',
+        // target: 'http://110.42.225.206:8280',
+        target: 'https://xcloud.xyune.com:8443/smartagriservice',
         changeOrigin: true
       },
       '/hualin-video': {
