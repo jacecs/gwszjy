@@ -153,7 +153,7 @@
       </button>
 
       <div class="scene-viewport" :class="{ 'three-only': showThreeJS }">
-        <!-- <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" /> -->
+        <CesiumMap ref="cesiumMap" @mapClick="handleMapClick" @initSuccess="initCesium" />
         <!-- threejs绘制区域 -->
         <template v-if="showThreeJS ">
           <!-- 总览 -->
@@ -1076,7 +1076,7 @@ const dryingTowerData = reactive({
     { name: '除尘风机', text: '运行中', status: 'online' }
   ],
   energy: [
-    { label: '瞬时功率', value: '42.6', unit: 'kW', status: '正常' },
+    { label: '瞬时功率', value: '--', unit: 'kW', status: '正常' },
     { label: '今日耗电', value: '318', unit: 'kWh', status: '节能' },
     { label: '管道温度', value: '65', unit: ' °C', status: '正常' },
     { label: '告警数量', value: '0', unit: '条', status: '正常' }
@@ -2221,7 +2221,7 @@ function bindDryingOverview(data) {
     { label: '处理粮种', value: '水稻' || dryingProcess.grainType || processData.grainType || recentBatch.grainType || '水稻', unit: '', status: '未运行' || dryingProcess.runStatus || operationStatus.runStatus || '未运行' },
     { label: '处理能力', value: 400 ??  dryingProcess.processingCapacity ?? processData.processingCapacity ?? 400, unit: 't/批次', status: dryingProcess.status || '正常' },
     { label: '目标水分', value: 20 ?? dryingProcess.targetMoisture ?? processData.targetMoisture ?? recentBatch.targetMoisture ?? 20, unit: '%', status: dryingProcess.status || '正常' },
-    { label: '烘干时长', value: 20?? dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? 20, unit: 'h', status: dryingProcess.status || '正常' }
+    { label: '预计烘干时长', value: 20?? dryingProcess.dryingDuration ?? recentBatch.dryingDuration ?? 20, unit: 'h', status: dryingProcess.status || '正常' }
   ])
 
   dryingTowerData.equipment.splice(0, dryingTowerData.equipment.length, ...[
@@ -2234,8 +2234,10 @@ function bindDryingOverview(data) {
   ].filter(item => item.text !== '--转/分钟'))
 
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
-    readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
-    readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
+    readMetric('--', '瞬时功率', 'kW', energyConsumption.instantPower ?? '--'),
+    // readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? '--'),
+    readMetric('--', '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? '--', '正常'),
+    // readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
     // readMetric(energyAlarm.gasFlowRate, '燃气流量', '°C', energyConsumption.gasFlowRate ?? 65),
     readMetric(65, '管道温度', '°C',  65),
     readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
