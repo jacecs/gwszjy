@@ -11,6 +11,19 @@
   <button v-if="pumpVisible" class="farm-back-btn" @click.stop="closePumpModel">
     返回试验田
   </button>
+  <div>
+    <template v-if="currentModalStatus">
+      <div style="position: fixed; top: 200px; left: 300px;z-index: 1000; background:#fff;padding: 10px">
+        <div style="font-size: 20px;font-weight: 500">名称： {{currentModalName}}</div>
+        <template v-if="currentModalList.length">
+          <div v-for="(item, key) in currentModalList" :key="key" class="modal-info" style="display: flex; justify-content: space-between; border: 1px solid #f8f8f8; padding: 4px 8px;font-size: 16px">
+            <div class="modal-info-name" style="width: 160px">{{item.name}}：</div>
+            <div class="modal-info-value" style="width: 120px">{{item.value}}</div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
 </template>
 
 <script setup>
@@ -65,10 +78,16 @@ let tooltipVideoPlayer = null
 let activeDetailModel = null
 const pumpVisible = ref(false)
 
+const currentModalName = ref()
+const currentModalList = ref([])
+const currentModalStatus = ref(false)
+
+let spriteList = markRaw([])
+
 const defaultPumpConfig = {
   url: './static/glb/水泵.glb',
   scale: 35,
-  offset: { x: 0, y: 8, z: 0 }
+  offset: { x: 0, y: 50, z: 17 }
 }
 
 const defaultPumpStationConfig = {
@@ -131,7 +150,6 @@ function updateModel() {
 onMounted(() => {
   ThreeEvents.add('LEFT_CLICK', onClick)
   ThreeEvents.add('LEFT_CLICK', onGetInfo)
-  ThreeEvents.add('DOUBLE_CLICK', onDoubleClick)
 })
 
 
@@ -140,7 +158,6 @@ onUnmounted(() => {
   mixers = []
   ThreeEvents.off('LEFT_CLICK', onClick)
   ThreeEvents.off('LEFT_CLICK', onGetInfo)
-  ThreeEvents.off('DOUBLE_CLICK', onDoubleClick)
 
   remove()
   if (animationId) {
@@ -155,7 +172,9 @@ function onGetInfo(e) {
 }
 
 function remove() {
+  closeModal()
   removeTooltip()
+  removeSprite()
   if (activeDetailModel) {
     scene.remove(activeDetailModel.scene)
     disposeModel(activeDetailModel.scene)
@@ -198,8 +217,10 @@ function disposeModel(modelScene) {
 
 // 单击事件
 function onClick(item) {
-  removeTooltip()
   if (pumpVisible.value) return
+
+  closeModal()
+  removeTooltip()
   if (item) {
     const name = getObjectNamePath(item.object)
     console.log('试验田点击对象:', name, item)
@@ -216,6 +237,8 @@ function onClick(item) {
     } else if (name.indexOf('土壤') > -1 || name.toLowerCase().indexOf('soil') > -1) {
       showSoilStation(item)
     }
+
+    showTooltip(item.object, item.point)
   }
 }
 
@@ -286,20 +309,6 @@ function onDoubleClick(item) {
 
 
     showTooltip(item.object, item.point)
-    return
-
-    if (isPumpStationObject(name)) {
-      showTooltip(item.object, item.point)
-      // 定位
-    } else if (name.indexOf('水井') > -1 || name.indexOf('shuini') > -1) {
-      showTooltip(item)
-    } else if (name.indexOf('虫情') > -1 || name.indexOf('测报') > -1) {
-      showTooltip(item)
-    } else if (name.indexOf('气象') > -1 || name.indexOf('围栏') > -1 || name.toLowerCase().indexOf('weather') > -1) {
-      showTooltip(item)
-    } else if (name.indexOf('土壤') > -1 || name.toLowerCase().indexOf('soil') > -1) {
-      showTooltip(item)
-    }
   }
 }
 
@@ -307,6 +316,15 @@ function init(obj) {
   remove()// 移除所有对象
   centerAt(obj.threeCamera)
   renderModel(obj)
+
+  createSprite(obj.sprites??[])
+  // createSprite([
+  //   {
+  //     x: 1,
+  //     y: 1,
+  //     z:0
+  //   }
+  // ])
 }
 function centerAt(camera) {
   const { x, y, z, tx = 0, ty = 0, tz = 0 } = camera ?? { x: 50, y: 150, z: -150, tx: 0, ty: 0, tz: 0 }
@@ -382,6 +400,7 @@ async function showDetailModel(item, config, modelName) {
   if (!point) return
 
   hideFieldModels()
+  closeModal()
   removeTooltip()
   if (activeDetailModel) {
     scene.remove(activeDetailModel.scene)
@@ -459,6 +478,12 @@ function removeTooltip() {
 }
 
 function updateTooltipPosition() {
+  // if (!label?.element) return
+  // label.element.style.left = '50%'
+  // label.element.style.top = '120px'
+  // label.element.style.transform = 'translateX(-50%)'
+  // label.element.style.display = 'block'
+
   if (!label?.element || !label?.point) return
   const rect = renderer.domElement.getBoundingClientRect()
   const screenPoint = label.point.clone().project(camera)
@@ -476,7 +501,7 @@ function destroyTooltipVideoPlayer() {
     tooltipVideoPlayer.unload()
     tooltipVideoPlayer.detachMediaElement()
     tooltipVideoPlayer.destroy()
-  } catch (e) {}
+  } catch (e) { }
   tooltipVideoPlayer = null
 }
 
@@ -498,13 +523,13 @@ function createTooltipVideoPlayer(video, url) {
   )
   tooltipVideoPlayer.attachMediaElement(video)
   tooltipVideoPlayer.load()
-  tooltipVideoPlayer.play().catch(() => {})
+  tooltipVideoPlayer.play().catch(() => { })
   tooltipVideoPlayer.on(mpegts.Events.ERROR, () => {
     try {
       tooltipVideoPlayer.unload()
       tooltipVideoPlayer.load()
-      tooltipVideoPlayer.play().catch(() => {})
-    } catch (e) {}
+      tooltipVideoPlayer.play().catch(() => { })
+    } catch (e) { }
   })
 }
 
@@ -537,6 +562,16 @@ function closePumpModel() {
   pumpVisible.value = false
   showFieldModels()
   centerAt(props.data?.threeCamera)
+
+  // 隐藏设备信息
+  closeModal()
+  removeTooltip()
+}
+
+function closeModal() {
+  currentModalStatus.value = false
+  currentModalList.value = []
+  currentModalName.value = ''
 }
 
 
@@ -561,6 +596,7 @@ function getModal(obj, name) {
 
 async function showTooltip(model, point) {
   removeTooltip()
+  closeModal()
   const currentTooltipRequestId = tooltipRequestId
 
   const name = getObjectNamePath(model)
@@ -631,36 +667,36 @@ async function showTooltip(model, point) {
 
   let obj
   for (const key in ids) {
-
     const item = ids[key];
     if (name.indexOf(key) > -1) {
       obj = item
     }
   }
   if (!obj) {
+    currentModalStatus.value = false
     return
   }
 
-
-  const tooltip = document.createElement('div');
-  tooltip.className = 'tooltip';
-  const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
   const isCameraDevice = name.indexOf("视频监控器") > -1
 
   if (isCameraDevice) {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
+
+
     const cameraDevice = await getCameraDevice(obj)
     if (currentTooltipRequestId !== tooltipRequestId) return
     tooltip.innerHTML = `
-      <div class="js-tooltip" style="width: 360px; padding: 10px; color: #ffffff; display: inline-block; transform: translate(-50%, -100%); background: rgba(2, 8, 12, 0.94); border: 1px solid rgba(46, 204, 113, 0.75); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);">
+      <div class="js-tooltip" style="width: 360px; padding: 10px; color: #ffffff; display: inline-block; background: rgba(2, 8, 12, 0.94); border: 1px solid rgba(46, 204, 113, 0.75); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #69ffc5; font-size: 14px; font-weight: 700;">
           <span>${cameraDevice.name}</span>
           <span style="font-size: 12px; color: ${cameraDevice.url ? '#2ecc71' : '#e67e22'};">${cameraDevice.url ? '在线' : '无信号'}</span>
         </div>
-        ${
-          cameraDevice.url
-            ? '<video class="farm-camera-video" style="display: block; width: 100%; height: 210px; background: #000000; object-fit: cover;" autoplay muted playsinline controls></video>'
-            : '<div style="height: 180px; display: flex; align-items: center; justify-content: center; color: #ffffff; background: #111111; font-size: 13px;">暂无视频地址</div>'
-        }
+        ${cameraDevice.url
+        ? '<video class="farm-camera-video" style="display: block; width: 100%; height: 210px; background: #000000; object-fit: cover;" autoplay muted playsinline controls></video>'
+        : '<div style="height: 180px; display: flex; align-items: center; justify-content: center; color: #ffffff; background: #111111; font-size: 13px;">暂无视频地址</div>'
+      }
       </div>
     `;
     tooltip.style.position = 'fixed'
@@ -678,89 +714,118 @@ async function showTooltip(model, point) {
       createTooltipVideoPlayer(tooltip.querySelector('.farm-camera-video'), cameraDevice.url)
     }
     return label
-  }
-
-  const params = {
-    deviceId: obj.id
-  }
-  const res = await loadData(params)
-  if (currentTooltipRequestId !== tooltipRequestId) return
-  let names = {}
-  if (name.indexOf("水井") > -1 || name.indexOf("shuini") > -1) {
-    names = {
-      v: "工作电压",
-      t2: "温度2",
-      t1: "温度1",
-      status: "状态",
-      s: "阀门状态",
-      protectTorque: "执行器保护扭矩(推力)",
-      pressure2: "压力2",
-      pressure1: "压力1",
-      pos: "阀门开度",
-      i: "执行器保护电流",
+  } else {
+    currentModalStatus.value = true
+    const params = {
+      deviceId: obj.id
     }
-  } else if(name.indexOf("电子水尺") > -1) {
-    names = {
-      waterLevel: "水位值",
-      hasWater: "水浸状态",
-      status: "状态",
-    }
-  } else if(name.indexOf("气象站") > -1 || name.indexOf("围栏") > -1) {
-    names = {
-      t: "温度",
-      h: "湿度",
-      status: "状态",
-    }
-  }
-  let list = []
-  if (res.data) {
-    for (const key in res.data) {
-      let value = res.data[key];
-      if (Object.prototype.toString.call(value) !== '[object Null]') {
-        if (key == 'status') {
-          value = value == 1 ? '在线' : '离线'
-        }
-        list.push({
-          name: names[key] ?? key,
-          value: value
-        })
+    const res = await loadData(params)
+    if (currentTooltipRequestId !== tooltipRequestId) return
+    let names = {}
+    if (name.indexOf("水井") > -1 || name.indexOf("shuini") > -1) {
+      names = {
+        v: "工作电压",
+        t2: "温度2",
+        t1: "温度1",
+        status: "状态",
+        s: "阀门状态",
+        protectTorque: "执行器保护扭矩(推力)",
+        pressure2: "压力2",
+        pressure1: "压力1",
+        pos: "阀门开度",
+        i: "执行器保护电流",
+      }
+    } else if (name.indexOf("电子水尺") > -1) {
+      names = {
+        waterLevel: "水位值",
+        hasWater: "水浸状态",
+        status: "状态",
+      }
+    } else if (name.indexOf("气象站") > -1 || name.indexOf("围栏") > -1) {
+      names = {
+        t: "温度",
+        h: "湿度",
+        status: "状态",
       }
     }
-  }
-  tooltip.innerHTML = `
-      <div class="js-tooltip" style="padding: 10px; pointer-events: none; color: #000; font-size: 16px; display: inline-block;transform: translate(-50%, -100%);background: #ffffff">
-        <div class="modal-name" >
-        ${obj.name}
-      </div>
-      <div class="main-modal-info">
-        `
-    +
-    list.map(item => {
-      return `<div class="modal-info" style="display: flex; justify-content: space-between;">
-          <div class="modal-info-name" style="width: 80px">${item.name}：</div>
-          <div class="modal-info-value">${item.value}</div>
-        </div>`
-    }).join('')
+    let list = []
+    if (res.data) {
+      if (name.indexOf("水井") > -1 || name.indexOf("shuini") > -1) {
+        const snum = res.data['s']
+        list = getStatusLabel(snum)
+        list.push({
+          name: "状态",
+          value: res.data['status'] == 1 ? '在线' : '离线'
+        })
+      } else {
+        for (const key in res.data) {
+          let value = res.data[key];
+          if (Object.prototype.toString.call(value) !== '[object Null]') {
+            if (key == 'status') {
+              value = value == 1 ? '在线' : '离线'
+            }
+            list.push({
+              name: names[key] ?? key,
+              value: value
+            })
+          }
+        }
+      }
+    }
+    currentModalList.value = list
+    currentModalName.value = obj.name
 
-    +
-
-    `
-      </div>
-      </div>
-  `;
-  tooltip.style.position = 'fixed'
-  tooltip.style.left = '0px'
-  tooltip.style.top = '0px'
-  tooltip.style.zIndex = '10000'
-  tooltip.style.pointerEvents = 'none'
-  document.body.appendChild(tooltip)
-  label = {
-    element: tooltip,
-    point: anchorPoint
   }
-  updateTooltipPosition()
-  console.log(label, anchorPoint.x, anchorPoint.y, anchorPoint.z)
-  return label
+}
+
+function getStatusLabel(s) {
+  const strictValveStatus = [
+    { name: "阀门中间状态", 0: "", 1: "中间" },           // Bit 0
+    { name: "阀门全关状态", 0: "", 1: "全关" },           // Bit 1
+    { name: "阀门全开状态", 0: "", 1: "全开" },           // Bit 2
+    { name: "执行器过热", 0: "", 1: "过热" },           // Bit 3
+    { name: "执行器缺相", 0: "", 1: "缺相" },           // Bit 4
+    { name: "执行器开过力矩", 0: "", 1: "开过力矩" },     // Bit 5
+    { name: "执行器关过力矩", 0: "", 1: "关过力矩" },     // Bit 6
+    { name: "角度超限", 0: "", 1: "角度超限" },       // Bit 7
+    { name: "执行器综合报警", 0: "正常", 1: "综合故障" }, // Bit 8
+    { name: "执行器工作模式", 0: "就地", 1: "远程" },     // Bit 9
+    { name: "阀门ESD状态", 0: "", 1: "关阀" },       // Bit 10
+    { name: "阀门ESD状态", 0: "", 1: "关阀" },       // Bit 10
+    { name: "ESD保位", 0: "", 1: "保位" },           // Bit 11 (推测补全，因截图有16行位置)
+    { name: "阀门正在关", 0: "", 1: "正在关" },         // Bit 12
+    { name: "阀门正在开", 0: "", 1: "正在开" },         // Bit 13
+    { name: "控制模式", 0: "开关量控制", 1: "总线控制" } // Bit 14/15 (截图最后一行)
+  ];
+  const nums = decTo16BitBinFormatted(+s)
+  const numArray = nums.split("")
+
+  const tmp = []
+  for (let index = 0; index < strictValveStatus.length; index++) {
+    const item = strictValveStatus[index];
+    const value = item[numArray[index]]
+    if (value) {
+      tmp.push({
+        name: item.name,
+        value: value
+      })
+    }
+  }
+  return tmp
+}
+// 转换为16位二进制
+function decTo16BitBinFormatted(decimalNum) {
+
+  // 1. 检查数值是否在 16 位无符号整数范围内 (0 ~ 65535)
+  if (!Number.isInteger(decimalNum) || decimalNum < 0 || decimalNum > 65535) {
+    throw new Error("输入的数字必须是 0 到 65535 之间的整数。");
+  }
+
+  // 2. 将十进制转换为二进制字符串 (toString(2))
+  const binStr = decimalNum.toString(2);
+
+  // 3. 在左侧补 '0'，直到字符串长度达到 16 位 (padStart)
+  return binStr.padStart(16, '0');
 }
 
 function loadData(options) {
@@ -840,61 +905,37 @@ function removeLine() {
   }
 }
 
-// function updateModel() {
-//   removeLine()
-//   createLine()
-// }
-
-function create1() {
-
-  const points = linePoints1.map(it => new THREE.Vector3(it.x, it.y, it.z))
-
-  // 2. 实例化流动线
-  const line = new FlowLine(points, {
-    color: 0xff0000,     // 青色流光
-    radius: 1.0,         // 管道粗细
-    speed: 3.0,          // 流动速度 (数值越大越快)
-    dashCount: 10,       // 流光的段数 (密度)
-    showBaseLine: false   // 是否显示底层管道
-  });
+// 绘制精灵图片
+function createSprite(list=[]) {
 
 
-  flowLines.push(line)
-
-  console.log(flowLines)
-
-  // 3. 添加到场景
-  scene.add(line);
-
-  return
-
-
-  // 1. 定义路径点 (比如从 A 点到 B 点到 C 点)
-
-  for (let index = 0; index < linePoints.length; index++) {
-    const tmpPoints = linePoints[index];
-
-    const points = tmpPoints.map(it => new THREE.Vector3(it.x, it.y, it.z))
-
-    // 2. 实例化流动线
-    const line = new FlowLine(points, {
-      color: 0xff0000,     // 青色流光
-      radius: 1.0,         // 管道粗细
-      speed: 3.0,          // 流动速度 (数值越大越快)
-      dashCount: 10,       // 流光的段数 (密度)
-      showBaseLine: false   // 是否显示底层管道
+const textureLoader = new THREE.TextureLoader();
+const texture = textureLoader.load('./static/img/red.png'); // 替换为你的图片路径
+  for (let index = 0; index < list.length; index++) {
+    const options = list[index];
+    
+    const { x, y, z } = options
+    // 2. 创建精灵材质
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true // 如果图片有透明背景，务必开启此项
     });
 
-
-    flowLines.push(line)
-
-    console.log(flowLines)
-
-    // 3. 添加到场景
-    scene.add(line);
+    // 3. 创建精灵并设置位置
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.position.set(x, y, z); // 设置标记点的 3D 坐标
+    sprite.scale.set(1, 1, 1);    // 设置精灵的宽高
+    spriteList.push(sprite)
+    // 4. 添加到场景
+    scene.add(sprite);
   }
-
-
+}
+function removeSprite() {
+  for (let index = 0; index < spriteList.length; index++) {
+    const item = spriteList[index];
+    scene.remove(item)
+  }
+  spriteList = []
 }
 
 // --- 4. 动画循环 ---
@@ -904,7 +945,6 @@ function animate() {
   animationId = requestAnimationFrame(animate);
   const time = clock.getElapsedTime();
   updateTooltipPosition()
-
   // 更新所有流动线路
   if (flowLines && flowLines.length) {
     for (let index = 0; index < flowLines.length; index++) {
