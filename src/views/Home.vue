@@ -1078,7 +1078,7 @@ const dryingTowerData = reactive({
   energy: [
     { label: '瞬时功率', value: '42.6', unit: 'kW', status: '正常' },
     { label: '今日耗电', value: '318', unit: 'kWh', status: '节能' },
-    { label: '燃气流量', value: '21.4', unit: 'm³/h', status: '正常' },
+    { label: '管道温度', value: '65', unit: ' °C', status: '正常' },
     { label: '告警数量', value: '0', unit: '条', status: '正常' }
   ],
   videos: [
@@ -2236,7 +2236,8 @@ function bindDryingOverview(data) {
   dryingTowerData.energy.splice(0, dryingTowerData.energy.length, ...[
     readMetric(energyAlarm.instantPower, '瞬时功率', 'kW', energyConsumption.instantPower ?? 86.4),
     readMetric(energyAlarm.todayPowerConsumption, '今日耗电', 'kWh', energyConsumption.todayPowerConsumption ?? 1286, energyAlarm.todayPowerConsumption?.tag || '节能'),
-    readMetric(energyAlarm.gasFlowRate, '燃气流量', 'm³/h', energyConsumption.gasFlowRate ?? 42.8),
+    // readMetric(energyAlarm.gasFlowRate, '燃气流量', '°C', energyConsumption.gasFlowRate ?? 65),
+    readMetric(energyAlarm.gasFlowRate, '管道温度', '°C',  65),
     readMetric(energyAlarm.outletGrainCount, '出粮量', 't', energyConsumption.outletGrainCount ?? 38.6)
   ])
 
