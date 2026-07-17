@@ -13,12 +13,12 @@
   </button>
   <div>
     <template v-if="currentModalStatus">
-      <div style="position: fixed; top: 200px; left: 300px;z-index: 1000; background:#fff;padding: 10px">
-        <div style="font-size: 20px;font-weight: 500">名称： {{currentModalName}}</div>
+      <div style="position: fixed; top: 200px; left: 300px; z-index: 1000; min-width: 320px; max-width: 420px; background: rgba(255, 255, 255, 0.96); padding: 16px; border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); color: #333; backdrop-filter: blur(6px);">
+        <div style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #eeeeee; font-size: 20px; font-weight: 600; line-height: 1.4; color: #1f2937;">名称： {{currentModalName}}</div>
         <template v-if="currentModalList.length">
-          <div v-for="(item, key) in currentModalList" :key="key" class="modal-info" style="display: flex; justify-content: space-between; border: 1px solid #f8f8f8; padding: 4px 8px;font-size: 16px">
-            <div class="modal-info-name" style="width: 160px">{{item.name}}：</div>
-            <div class="modal-info-value" style="width: 120px">{{item.value}}</div>
+          <div v-for="(item, key) in currentModalList" :key="key" class="modal-info" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 2px; border-bottom: 1px solid #f3f4f6; font-size: 15px; line-height: 1.5;">
+            <div class="modal-info-name" style="width: 160px; color: #6b7280; word-break: break-all;">{{item.name}}：</div>
+            <div class="modal-info-value" style="flex: 1; min-width: 120px; color: #111827; font-weight: 500; text-align: right; word-break: break-all;">{{item.value}}</div>
           </div>
         </template>
       </div>
@@ -83,6 +83,33 @@ const currentModalList = ref([])
 const currentModalStatus = ref(false)
 
 let spriteList = markRaw([])
+const clickableMarkerKeys = [
+  '水泵站',
+  'shuini001',
+  'shuini007',
+  'shuini005',
+  '柱体003/虫情测报仪',
+  'Cylinder002011_1/气象站',
+  '土壤监测站',
+  '视频监控器',
+  '虫情测报仪001',
+  '电子水尺',
+  '围栏',
+  '水井/Scene',
+  '水井001/Scene',
+  '水井002/Scene',
+  '水井003/Scene'
+]
+const clickableMarkerRules = [
+  { type: 'pumpStation', keywords: ['水泵站'] },
+  { type: 'well', keywords: ['水井', 'shuini'] },
+  { type: 'pest', keywords: ['虫情', '测报'] },
+  { type: 'weather', keywords: ['气象', '围栏', 'weather'] },
+  { type: 'soil', keywords: ['土壤', 'soil'] },
+  { type: 'camera', keywords: ['视频监控器'] },
+  { type: 'waterLevel', keywords: ['电子水尺'] }
+]
+let clickableMarkerTexture = null
 
 const defaultPumpConfig = {
   url: './static/glb/水泵.glb',
@@ -355,6 +382,7 @@ async function renderModel(obj) {
       GLOBAL[key].scene.scale.set(gltf.scale, gltf.scale, gltf.scale);
       GLOBAL[key].scene.position.set(gltf.x, gltf.y, gltf.z);
     }
+    createClickableObjectSprites()
   }
 }
 function getModelById(id) {
@@ -456,12 +484,14 @@ function hideFieldModels() {
   pageModels.forEach(model => {
     if (model?.scene) model.scene.visible = false
   })
+  setClickableMarkersVisible(false)
 }
 
 function showFieldModels() {
   pageModels.forEach(model => {
     if (model?.scene) model.scene.visible = true
   })
+  setClickableMarkersVisible(true)
 }
 
 function removeTooltip() {
@@ -903,6 +933,109 @@ function removeLine() {
     }
     flowLines = []
   }
+}
+
+function createClickableObjectSprites() {
+  const markerTargets = new Map()
+  pageModels.forEach(model => {
+    if (!model?.scene) return
+    model.scene.updateMatrixWorld(true)
+    model.scene.traverse((object) => {
+      const namePath = getObjectNamePath(object)
+      const markerKey = getClickableMarkerKey(namePath)
+      if (!markerKey || markerTargets.has(markerKey)) return
+      markerTargets.set(markerKey, object)
+    })
+  })
+
+  markerTargets.forEach(object => {
+    createClickableMarkerSprite(object)
+  })
+}
+
+function getClickableMarkerKey(namePath = '') {
+  const lowerNamePath = namePath.toLowerCase()
+  for (let index = 0; index < clickableMarkerKeys.length; index++) {
+    const key = clickableMarkerKeys[index]
+    if (namePath.indexOf(key) > -1 || lowerNamePath.indexOf(key.toLowerCase()) > -1) {
+      return key
+    }
+  }
+
+  for (let index = 0; index < clickableMarkerRules.length; index++) {
+    const rule = clickableMarkerRules[index]
+    const matchedName = getMatchedMarkerName(namePath, rule.keywords)
+    if (matchedName) {
+      return `${rule.type}:${matchedName}`
+    }
+  }
+
+  return ''
+}
+
+function getMatchedMarkerName(namePath, keywords) {
+  const names = namePath.split('/').filter(Boolean)
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index]
+    const lowerName = name.toLowerCase()
+    if (keywords.some(keyword => name.indexOf(keyword) > -1 || lowerName.indexOf(keyword.toLowerCase()) > -1)) {
+      return name
+    }
+  }
+  return ''
+}
+
+function getClickableMarkerTexture() {
+  if (!clickableMarkerTexture) {
+    clickableMarkerTexture = new THREE.TextureLoader().load('./static/img/red.png')
+  }
+  return clickableMarkerTexture
+}
+
+function getClickableMarkerPlacement(object) {
+  object.updateWorldMatrix(true, true)
+  const box = new THREE.Box3().setFromObject(object)
+  if (!box.isEmpty()) {
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+    const maxSize = Math.max(size.x, size.y, size.z)
+    const lift = Math.max(size.y * 0.18, 1)
+    return {
+      position: new THREE.Vector3(center.x, box.max.y + lift, center.z),
+      scale: THREE.MathUtils.clamp(maxSize * 0.18, 1.2, 8)
+    }
+  }
+
+  return {
+    position: object.getWorldPosition(new THREE.Vector3()),
+    scale: 2
+  }
+}
+
+function createClickableMarkerSprite(object) {
+  const { position, scale } = getClickableMarkerPlacement(object)
+  const spriteMaterial = new THREE.SpriteMaterial({
+    map: getClickableMarkerTexture(),
+    transparent: true,
+    depthTest: false,
+    depthWrite: false
+  })
+  const sprite = new THREE.Sprite(spriteMaterial)
+  sprite.position.copy(position)
+  sprite.scale.set(scale, scale, 1)
+  sprite.renderOrder = 999
+  sprite.userData.isClickableMarker = true
+  sprite.raycast = () => {}
+  spriteList.push(sprite)
+  scene.add(sprite)
+}
+
+function setClickableMarkersVisible(visible) {
+  spriteList.forEach(sprite => {
+    if (sprite?.userData?.isClickableMarker) {
+      sprite.visible = visible
+    }
+  })
 }
 
 // 绘制精灵图片
