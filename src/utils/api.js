@@ -196,13 +196,13 @@ export const getInsectDevicesLocal = (params={}) => {
  * } params 
  * @returns 
  */
-export const getInsectDataList = (params={}) => {
-  const optionns = objectToUrlParams(params)
-  const url =`${BASE_URL}/api/insect/data/list?${optionns}`
-  return axios.get(url, params).then((res) => {
-    return res.data
-  });
-}
+// export const getInsectDataList = (params={}) => {
+//   const optionns = objectToUrlParams(params)
+//   const url =`${BASE_URL}/api/insect/data/list?${optionns}`
+//   return axios.get(url, params).then((res) => {
+//     return res.data
+//   });
+// }
 
 // 获取系统总览数据
 /**
@@ -318,6 +318,23 @@ export const getDeviceValues= (params={}) => {
     return res.data
   });
 }
+
+// 获取虫情列表详情
+/**
+ * 
+ * @param {
+ * } params 
+ * @returns 
+ */
+export const getInsectDataList= (params={}) => {
+    params.token=divicesToken
+    const optionns = objectToUrlParams(params)
+    const url =`${BASE_URL}/api/insect/data/list?${optionns}`
+    return axios.get(url, params).then((res) => {
+      return res.data
+    });
+}
+
 function objectToUrlParams(obj) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(obj)) {

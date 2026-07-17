@@ -13,16 +13,42 @@
   </button>
   <div>
     <template v-if="currentModalStatus">
-      <div style="position: fixed; top: 200px; left: 300px; z-index: 1000; min-width: 320px; max-width: 420px; background: rgba(255, 255, 255, 0.96); padding: 16px; border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); color: #333; backdrop-filter: blur(6px);">
+      <div class="farm-modal-card" style="position: fixed; top: 200px; left: 300px; z-index: 1000; min-width: 320px; max-width: 420px; background: rgba(255, 255, 255, 0.96); padding: 16px; border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); color: #333; backdrop-filter: blur(6px);">
         <div style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #eeeeee; font-size: 20px; font-weight: 600; line-height: 1.4; color: #1f2937;">名称： {{currentModalName}}</div>
-        <template v-if="currentModalList.length">
+        <template v-if="currentModalType === 'insect'">
+          <div v-if="currentModalList.length" class="farm-insect-grid">
+            <div
+              v-for="(item, key) in currentModalList"
+              :key="`${item.date}-${key}`"
+              class="farm-insect-card"
+              :class="{ 'farm-insect-card-clickable': item.imageUrl }"
+              @click.stop="openInsectImagePreview(item)"
+            >
+              <div class="farm-insect-image-wrap">
+                <img v-if="item.imageUrl" class="farm-insect-image" :src="item.imageUrl" :alt="`${currentModalName} ${item.date}`">
+                <div v-else class="farm-insect-empty-image">暂无图片</div>
+              </div>
+              <div class="farm-insect-date">{{ item.date || '暂无日期' }}</div>
+            </div>
+          </div>
+          <div v-else class="farm-modal-empty">暂无虫情图片</div>
+        </template>
+        <template v-else-if="currentModalList.length">
           <div v-for="(item, key) in currentModalList" :key="key" class="modal-info" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 2px; border-bottom: 1px solid #f3f4f6; font-size: 15px; line-height: 1.5;">
             <div class="modal-info-name" style="width: 160px; color: #6b7280; word-break: break-all;">{{item.name}}：</div>
             <div class="modal-info-value" style="flex: 1; min-width: 120px; color: #111827; font-weight: 500; text-align: right; word-break: break-all;">{{item.value}}</div>
           </div>
         </template>
+        <div v-else class="farm-modal-empty">暂无数据</div>
       </div>
     </template>
+  </div>
+  <div v-if="previewInsectImage" class="farm-image-preview" @click.stop="closeInsectImagePreview">
+    <button class="farm-image-preview-close" type="button" @click.stop="closeInsectImagePreview">×</button>
+    <div class="farm-image-preview-content" @click.stop>
+      <img class="farm-image-preview-img" :src="previewInsectImage.imageUrl" :alt="`${currentModalName} ${previewInsectImage.date}`">
+      <div class="farm-image-preview-date">{{ previewInsectImage.date || '暂无日期' }}</div>
+    </div>
   </div>
 </template>
 
@@ -38,7 +64,7 @@ import ThreeEvents from '@/utils/ThreeEvents.js'
 import FlowLine from '@/utils/FlowLine.js'; // 引入上面封装的类
 import GLOBAL from '@/utils/GLOBAL.js'
 import { useAppStore } from '@/store/modules/app';
-import { getDeviceValues, getListAllDevices } from '@/utils/api.js'
+import { getDeviceValues, getListAllDevices, getInsectDataList } from '@/utils/api.js'
 const appStore = useAppStore();
 
 
@@ -81,6 +107,8 @@ const pumpVisible = ref(false)
 const currentModalName = ref()
 const currentModalList = ref([])
 const currentModalStatus = ref(false)
+const currentModalType = ref('')
+const previewInsectImage = ref(null)
 
 let spriteList = markRaw([])
 const clickableMarkerKeys = [
@@ -177,6 +205,7 @@ function updateModel() {
 onMounted(() => {
   ThreeEvents.add('LEFT_CLICK', onClick)
   ThreeEvents.add('LEFT_CLICK', onGetInfo)
+  window.addEventListener('keydown', onFarmKeydown)
 })
 
 
@@ -185,6 +214,7 @@ onUnmounted(() => {
   mixers = []
   ThreeEvents.off('LEFT_CLICK', onClick)
   ThreeEvents.off('LEFT_CLICK', onGetInfo)
+  window.removeEventListener('keydown', onFarmKeydown)
 
   remove()
   if (animationId) {
@@ -196,6 +226,12 @@ onUnmounted(() => {
 function onGetInfo(e) {
   const position = camera.position;
   console.log('视角信息', position)
+}
+
+function onFarmKeydown(e) {
+  if (e.key === 'Escape' && previewInsectImage.value) {
+    closeInsectImagePreview()
+  }
 }
 
 function remove() {
@@ -602,6 +638,17 @@ function closeModal() {
   currentModalStatus.value = false
   currentModalList.value = []
   currentModalName.value = ''
+  currentModalType.value = ''
+  closeInsectImagePreview()
+}
+
+function openInsectImagePreview(item) {
+  if (!item?.imageUrl) return
+  previewInsectImage.value = item
+}
+
+function closeInsectImagePreview() {
+  previewInsectImage.value = null
 }
 
 
@@ -647,7 +694,7 @@ async function showTooltip(model, point) {
     },  // 水渠1
     "柱体003/虫情测报仪": {
       name: "虫情测报仪",
-      id: ""
+      id: "ft202603010"
     },
     "Cylinder002011_1/气象站": {
       name: "气象监测",
@@ -667,7 +714,7 @@ async function showTooltip(model, point) {
     // 红耕农场
     "虫情测报仪001": {
       name: "虫情测报仪",
-      id: ""
+      id: "ft202604001"
     },
     "电子水尺": {
       name: "水位计",
@@ -704,12 +751,44 @@ async function showTooltip(model, point) {
   }
   if (!obj) {
     currentModalStatus.value = false
+    currentModalType.value = ''
     return
   }
 
   const isCameraDevice = name.indexOf("视频监控器") > -1
 
-  if (isCameraDevice) {
+  const isInsectDevice = name.indexOf("虫情测报仪") > -1
+  if (isInsectDevice) {
+    // 虫情设备
+    const params = {
+      imei: obj.id,
+      page: 1,
+      size: 10,
+      _t: new Date().getTime()
+      
+    }
+    return getInsectDataList(params).then(res => {
+      if (currentTooltipRequestId !== tooltipRequestId) return
+      const records = Array.isArray(res?.data?.records) ? res.data.records : []
+      const list = records.map(item => {
+        return {
+          date: formatInsectRecordTime(item.recordTime || item.captureTime || item.createTime || item.updateTime),
+          imageUrl: getInsectImageUrl(item)
+        }
+      })
+      currentModalType.value = 'insect'
+      currentModalList.value = list
+      currentModalName.value = obj.name
+      currentModalStatus.value = true
+    }).catch(e => {
+      console.warn('获取虫情图片列表失败', e)
+      if (currentTooltipRequestId !== tooltipRequestId) return
+      currentModalType.value = 'insect'
+      currentModalList.value = []
+      currentModalName.value = obj.name
+      currentModalStatus.value = true
+    })
+  } else if (isCameraDevice) {
     const tooltip = document.createElement('div');
     tooltip.className = 'tooltip';
     const anchorPoint = point?.clone?.() ?? model.getWorldPosition(new THREE.Vector3())
@@ -745,7 +824,6 @@ async function showTooltip(model, point) {
     }
     return label
   } else {
-    currentModalStatus.value = true
     const params = {
       deviceId: obj.id
     }
@@ -802,10 +880,27 @@ async function showTooltip(model, point) {
         }
       }
     }
+
+    currentModalStatus.value = true
+    currentModalType.value = ''
     currentModalList.value = list
     currentModalName.value = obj.name
 
   }
+}
+
+function getInsectImageUrl(item = {}) {
+  return item.plotImageUrl
+    || item.imageUrl
+    || item.imgUrl
+    || item.pictureUrl
+    || item.fileUrl
+    || ''
+}
+
+function formatInsectRecordTime(value) {
+  if (!value) return ''
+  return String(value).replace('T', ' ').replace(/\.\d+Z?$/, '').trim()
 }
 
 function getStatusLabel(s) {
@@ -1112,5 +1207,131 @@ animate();
 
 .farm-back-btn:hover {
   background: rgba(39, 174, 96, 0.9);
+}
+
+.farm-modal-card {
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.farm-insect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.farm-insect-card {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.farm-insect-card-clickable {
+  cursor: zoom-in;
+}
+
+.farm-insect-card-clickable:hover {
+  border-color: #16a34a;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.16);
+}
+
+.farm-insect-image-wrap {
+  height: 112px;
+  background: #eef2f7;
+}
+
+.farm-insect-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.farm-insect-empty-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.farm-insect-date {
+  padding: 8px 10px;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  word-break: break-all;
+  background: #ffffff;
+}
+
+.farm-modal-empty {
+  padding: 18px 0 6px;
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+}
+
+.farm-image-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: rgba(0, 0, 0, 0.72);
+  cursor: zoom-out;
+}
+
+.farm-image-preview-content {
+  position: relative;
+  max-width: min(86vw, 1080px);
+  max-height: 86vh;
+  cursor: default;
+}
+
+.farm-image-preview-img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(86vh - 44px);
+  border-radius: 8px;
+  background: #111827;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  object-fit: contain;
+}
+
+.farm-image-preview-date {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  color: #f9fafb;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  background: rgba(17, 24, 39, 0.88);
+}
+
+.farm-image-preview-close {
+  position: fixed;
+  top: 28px;
+  right: 34px;
+  z-index: 20001;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  background: rgba(17, 24, 39, 0.72);
+  color: #ffffff;
+  font-size: 28px;
+  line-height: 34px;
+  cursor: pointer;
+}
+
+.farm-image-preview-close:hover {
+  background: rgba(22, 163, 74, 0.9);
 }
 </style>
