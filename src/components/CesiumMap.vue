@@ -5,9 +5,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, reactive, shallowRef, markRaw  } from 'vue'
+import { ref, onMounted, onUnmounted, markRaw  } from 'vue'
 import GLOBAL from '@/utils/GLOBAL.js'
-import viewerEvents from '@/utils/ViewerEvents.js'
+import ViewerEvents from '@/utils/ViewerEvents.js'
 const props = defineProps({
   ionToken: {
     type: String,
@@ -77,6 +77,8 @@ async function initCesium() {
       navigationHelpButton: false,
       creditContainer: document.createElement('div'),
       enableMouseEvent: true,
+      targetFrameRate: 30,
+      useBrowserRecommendedResolution: true,
       // terrain: Cesium.Terrain.fromWorldTerrain(),
       skyBox: new Cesium.SkyBox({
         show: false
@@ -335,9 +337,17 @@ onUnmounted(() => {
     mapClickHandler = null
   }
   if (viewer) {
-    // emit('initSuccess', false)
-    // viewer.destroy()
-    // viewer = null
+    const viewerToDestroy = viewer
+    if (GLOBAL.viewer === viewerToDestroy) GLOBAL.viewer = null
+    viewer = null
+    emit('initSuccess', false)
+    window.setTimeout(() => {
+      try {
+        if (!viewerToDestroy.isDestroyed?.()) viewerToDestroy.destroy()
+      } catch (e) {
+        console.warn('[CesiumMap] destroy viewer failed:', e)
+      }
+    }, 0)
   }
 })
 </script>

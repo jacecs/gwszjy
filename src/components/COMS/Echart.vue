@@ -7,7 +7,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import { BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, TitleComponent, TooltipComponent } from 'echarts/components'
+import { init, use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+
+use([BarChart, LineChart, GridComponent, TitleComponent, TooltipComponent, CanvasRenderer])
 
 const props = defineProps({
   title: {
@@ -48,7 +53,7 @@ const initChart = () => {
     chartInstance.dispose()
   }
 
-  chartInstance = echarts.init(chartRef.value)
+  chartInstance = init(chartRef.value)
 
   // 设置初始配置
   updateChart()

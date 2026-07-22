@@ -69,7 +69,7 @@ async function initThree() {
   renderer = markRaw(new THREE.WebGLRenderer({ antialias: true, alpha: false }))
   renderer.setClearColor(0x020408, 1)
   renderer.setSize(container.value.clientWidth, container.value.clientHeight)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
   container.value.appendChild(renderer.domElement)
 
   raycaster = markRaw(new THREE.Raycaster())
@@ -110,7 +110,7 @@ async function initThree() {
 
   // 1. 初始化 CSS2DRenderer
   labelRenderer = markRaw(new CSS2DRenderer())
-  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(container.value.clientWidth, container.value.clientHeight);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = '0px';
   labelRenderer.domElement.style.pointerEvents = 'none'; // 让鼠标事件穿透，不影响 Three.js 点击
@@ -375,8 +375,14 @@ function onMouseClick(event) {
   }
 }
 
-function animate() {
+const MAX_RENDER_FPS = 30
+const FRAME_INTERVAL = 1000 / MAX_RENDER_FPS
+let lastFrameAt = 0
+
+function animate(timestamp = 0) {
   animationId = requestAnimationFrame(animate)
+  if (document.hidden || timestamp - lastFrameAt < FRAME_INTERVAL) return
+  lastFrameAt = timestamp
 
   controls.update()
 
@@ -401,6 +407,7 @@ function onResize() {
   camera.aspect = container.value.clientWidth / container.value.clientHeight
   camera.updateProjectionMatrix()
   renderer.setSize(container.value.clientWidth, container.value.clientHeight)
+  labelRenderer?.setSize(container.value.clientWidth, container.value.clientHeight)
 }
 
 function getScene() { return scene }

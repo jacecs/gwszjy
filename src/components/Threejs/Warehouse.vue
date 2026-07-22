@@ -409,7 +409,7 @@ function createTooltipVideoPlayer(video, url) {
     {
       lazyLoad: true,
       fixAudioTimestampGap: false,
-      enableWorker: false,
+      enableWorker: true,
       enableStashBuffer: false,
       stashInitialSize: 128
     }
@@ -967,8 +967,13 @@ function createLine() {
 // --- 4. 动画循环 ---
 const clock = new THREE.Clock();
 let animationId = null;
-function animate() {
+const MAX_RENDER_FPS = 30;
+const FRAME_INTERVAL = 1000 / MAX_RENDER_FPS;
+let lastFrameAt = 0;
+function animate(timestamp = 0) {
   animationId = requestAnimationFrame(animate);
+  if (document.hidden || timestamp - lastFrameAt < FRAME_INTERVAL) return;
+  lastFrameAt = timestamp;
   const time = clock.getElapsedTime();
   updateTooltipPosition()
 

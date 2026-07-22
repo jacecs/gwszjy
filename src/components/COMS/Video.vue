@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onBeforeUnmount, watch, nextTick } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import mpegts from 'mpegts.js'
 
 const props = defineProps({
@@ -88,7 +88,7 @@ function createFlvPlayer(video, url) {
     {
       lazyLoad: true,
       fixAudioTimestampGap: false,
-      enableWorker: false,
+      enableWorker: true,
       enableStashBuffer: false,
       stashInitialSize: 128
     }
@@ -157,8 +157,20 @@ watch(streamUrl, loadStream,
   }
 )
 
+function handleVisibilityChange() {
+  if (document.hidden) {
+    destroyPlayer()
+    return
+  }
+  loadStream()
+}
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   destroyPlayer()
 })
 </script>

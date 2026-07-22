@@ -12,7 +12,8 @@
         </div>
       </div> -->
       <div class="data-chart">
-        <Echart :data="list" :echartOptions="echartOptions"></Echart>
+        <Echart v-if="chartReady" :data="list" :echartOptions="echartOptions" />
+        <div v-else class="chart-placeholder">图表加载中...</div>
       </div>
     </div>
   </div>
@@ -20,11 +21,11 @@
 
 <script setup>
 
-import { ref, reactive, onMounted, onUnmounted, getCurrentInstance, watch } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAppStore } from '@/store/modules/app';
-import { insectStatistic, getInsectStatistics } from '@/utils/api'
+import { getInsectStatistics } from '@/utils/api'
 
-import Echart from './COMS/Echart.vue'
+const Echart = defineAsyncComponent(() => import('./COMS/Echart.vue'))
 const props = defineProps({
   title: String,
   data: Array
@@ -32,6 +33,8 @@ const props = defineProps({
 
 const list = ref([])
 const echartOptions = ref({})
+const chartReady = ref(false)
+let idleTimer = null
 
 function setChartData(data = []) {
   if (!data.length) return
@@ -73,6 +76,7 @@ watch(() => props.data, (data) => {
 })
 
 onMounted(() => {
+  deferChartLoad()
   if (props.data && props.data.length) return
   const appStore = useAppStore();
   const params = {
@@ -123,6 +127,31 @@ onMounted(() => {
 
     }
   })
+})
+
+function deferChartLoad() {
+  if (typeof window === 'undefined') {
+    chartReady.value = true
+    return
+  }
+  if ('requestIdleCallback' in window) {
+    idleTimer = window.requestIdleCallback(() => {
+      chartReady.value = true
+    }, { timeout: 1800 })
+    return
+  }
+  idleTimer = window.setTimeout(() => {
+    chartReady.value = true
+  }, 800)
+}
+
+onBeforeUnmount(() => {
+  if (!idleTimer || typeof window === 'undefined') return
+  if ('cancelIdleCallback' in window) {
+    window.cancelIdleCallback(idleTimer)
+  } else {
+    window.clearTimeout(idleTimer)
+  }
 })
 
 </script>
@@ -222,6 +251,17 @@ onMounted(() => {
   display: flex;
   align-items: flex-end;
   gap: 3px; */
+}
+
+.chart-placeholder {
+  height: 100%;
+  border-radius: 6px;
+  background: #f2f6f4;
+  color: #6f7d75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
 }
 
 .chart-bar {

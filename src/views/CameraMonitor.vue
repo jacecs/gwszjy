@@ -275,6 +275,16 @@ const fsVideoRef = ref(null)
 let fsPlayer = null
 
 function setVideoRef(el, id) {
+  if (!el) {
+    const oldVideo = videoRefs.value[id]
+    if (oldVideo && videoObserver) videoObserver.unobserve(oldVideo)
+    if (mpegtsPlayers.value[id]) {
+      destroyPlayer(mpegtsPlayers.value[id])
+      delete mpegtsPlayers.value[id]
+    }
+    delete videoRefs.value[id]
+    return
+  }
   if (el) {
     videoRefs.value[id] = el
     el.dataset.deviceId = id
@@ -310,7 +320,7 @@ function createFlvPlayer(video, url) {
     {
       lazyLoad: true,
       fixAudioTimestampGap: false,
-      enableWorker: false,
+      enableWorker: true,
       enableStashBuffer: false,
       stashInitialSize: 128
     }
@@ -389,6 +399,13 @@ function startGridVideos() {
 function destroyAllGridVideos() {
   Object.values(mpegtsPlayers.value).forEach(destroyPlayer)
   mpegtsPlayers.value = {}
+}
+
+function observeMountedVideos() {
+  initVideoObserver()
+  Object.values(videoRefs.value).forEach(video => {
+    if (video) videoObserver.observe(video)
+  })
 }
 
 // 启动全屏视频
@@ -501,6 +518,7 @@ onMounted(() => {
   }, 1000)
 
   window.addEventListener('keydown', onKeyDown)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   fetchDevices()
 })
@@ -514,7 +532,24 @@ onBeforeUnmount(() => {
   destroyAllGridVideos()
   if (fsPlayer) destroyPlayer(fsPlayer)
   window.removeEventListener('keydown', onKeyDown)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
+
+function handleVisibilityChange() {
+  if (document.hidden) {
+    destroyAllGridVideos()
+    if (fsPlayer) {
+      destroyPlayer(fsPlayer)
+      fsPlayer = null
+    }
+    return
+  }
+  if (fullscreenDevice.value) {
+    startFsVideo(fullscreenDevice.value)
+    return
+  }
+  nextTick(observeMountedVideos)
+}
 
 function onKeyDown(e) {
   if (e.key === 'Escape' && fullscreenDevice.value) {

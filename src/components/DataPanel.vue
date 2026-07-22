@@ -13,7 +13,8 @@
         {{ item.value }}<span class="data-unit">{{ item.unit }}</span>
       </div>
       <div v-if="item.chart" class="data-chart">
-        <Echart :data="item.chart" ></Echart>
+        <Echart v-if="chartReady" :data="item.chart" />
+        <div v-else class="chart-placeholder">图表加载中...</div>
         <!-- <div 
           v-for="(h, i) in item.chart" 
           :key="i" 
@@ -27,12 +28,41 @@
 
 <script setup>
 
-import { useAppStore } from '@/store/modules/app';
-const appStore = useAppStore();
-import Echart from './COMS/Echart.vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+const Echart = defineAsyncComponent(() => import('./COMS/Echart.vue'))
 defineProps({
   title: String,
   data: Array
+})
+
+const chartReady = ref(false)
+let idleTimer = null
+
+function deferChartLoad() {
+  if (typeof window === 'undefined') {
+    chartReady.value = true
+    return
+  }
+  if ('requestIdleCallback' in window) {
+    idleTimer = window.requestIdleCallback(() => {
+      chartReady.value = true
+    }, { timeout: 1800 })
+    return
+  }
+  idleTimer = window.setTimeout(() => {
+    chartReady.value = true
+  }, 800)
+}
+
+onMounted(deferChartLoad)
+
+onBeforeUnmount(() => {
+  if (!idleTimer || typeof window === 'undefined') return
+  if ('cancelIdleCallback' in window) {
+    window.cancelIdleCallback(idleTimer)
+  } else {
+    window.clearTimeout(idleTimer)
+  }
 })
 
 function hasDisplayStatus(status) {
@@ -134,6 +164,17 @@ function getStatusClass(status) {
   display: flex;
   align-items: flex-end;
   gap: 3px; */
+}
+
+.chart-placeholder {
+  height: 100%;
+  border-radius: 6px;
+  background: #f2f6f4;
+  color: #6f7d75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
 }
 
 .chart-bar {

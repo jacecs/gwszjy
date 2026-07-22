@@ -1,24 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
-import AlertDetail from '../views/AlertDetail.vue'
-import CameraMonitor from '../views/CameraMonitor.vue'
-import { useAppStore } from '@/store/modules/app';
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: () => import('../views/Home.vue')
   },
   {
     path: '/alert-detail',
     name: 'AlertDetail',
-    component: AlertDetail
+    component: () => import('../views/AlertDetail.vue')
   },
   {
     path: '/camera-monitor',
     name: 'CameraMonitor',
-    component: CameraMonitor
+    component: () => import('../views/CameraMonitor.vue')
   }
 ]
 

@@ -216,36 +216,33 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAppStore } from '@/store/modules/app';
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay, Pagination } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/pagination'
-const appStore = useAppStore();
 const router = useRouter();
 
-import CesiumMap from '@/components/CesiumMap.vue'
-import ThreeScene from '@/components/ThreeScene.vue'
 import DataPanel from '@/components/DataPanel.vue'
-import DataPest from '@/components/DataPest.vue'
-import DataVideo from '@/components/DataVideo.vue'
 import DevicePanel from '@/components/DevicePanel.vue'
 import SceneHeader from '@/components/SceneHeader.vue'
 import BubblePopup from '@/components/BubblePopup.vue'
-import Main from '@/components/Cesium/Main.vue'
-import Models from '@/components/Cesium/Models.vue'
-import Farm from '@/components/Cesium/Farm.vue'
-import Warehouse from '@/components/Cesium/Warehouse.vue'
-import ThreeWarehouse from '@/components/Threejs/Warehouse.vue'
-import ThreeFarm from '@/components/Threejs/Farm.vue'
-import ThreeWorkshop from '@/components/Threejs/Workshop.vue'
-const instance = getCurrentInstance();
 import GLOBAL from '@/utils/GLOBAL.js'
 import { getOverview, getTestfieldSensors, getDryingSensors, getStorageSensors } from '@/utils/api.js'
-const viewer = GLOBAL.viewer;
-// const viewer = instance.appContext.config.globalProperties.$viewer;
+
+const CesiumMap = defineAsyncComponent(() => import('@/components/CesiumMap.vue'))
+const DataPest = defineAsyncComponent(() => import('@/components/DataPest.vue'))
+const DataVideo = defineAsyncComponent(() => import('@/components/DataVideo.vue'))
+const Main = defineAsyncComponent(() => import('@/components/Cesium/Main.vue'))
+const Models = defineAsyncComponent(() => import('@/components/Cesium/Models.vue'))
+const Farm = defineAsyncComponent(() => import('@/components/Cesium/Farm.vue'))
+const Warehouse = defineAsyncComponent(() => import('@/components/Cesium/Warehouse.vue'))
+const ThreeScene = defineAsyncComponent(() => import('@/components/ThreeScene.vue'))
+const ThreeWarehouse = defineAsyncComponent(() => import('@/components/Threejs/Warehouse.vue'))
+const ThreeFarm = defineAsyncComponent(() => import('@/components/Threejs/Farm.vue'))
+const ThreeWorkshop = defineAsyncComponent(() => import('@/components/Threejs/Workshop.vue'))
+
 const cesiumMap = ref(null)
 const threeScene = ref(null)
 

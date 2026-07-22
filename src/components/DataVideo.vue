@@ -8,14 +8,17 @@
           <option :value="index" v-bind:key="index" v-for="(item,index) in streams">{{item.name}}</option>
         </select>
       </div>
-      <Video :streams="selStream"></Video>
+      <Video v-if="videoReady" :streams="selStream"></Video>
+      <div v-else class="video-placeholder">视频加载中...</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
-import Video from './COMS/Video.vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+const Video = defineAsyncComponent(() => import('./COMS/Video.vue'))
+
 const props = defineProps({
   title: {
     type: String,
@@ -27,6 +30,8 @@ const props = defineProps({
 const defaultStreams = []
 
 const selectedStreamIndex = ref(0)
+const videoReady = ref(false)
+let idleTimer = null
 
 const streams = computed(() => {
   return props.data && props.data.length ? props.data : defaultStreams
@@ -46,6 +51,33 @@ watch(streams, (newStreams) => {
   }
 }, {
   immediate: true
+})
+
+function deferVideoPlayerLoad() {
+  if (typeof window === 'undefined') {
+    videoReady.value = true
+    return
+  }
+  if ('requestIdleCallback' in window) {
+    idleTimer = window.requestIdleCallback(() => {
+      videoReady.value = true
+    }, { timeout: 1800 })
+    return
+  }
+  idleTimer = window.setTimeout(() => {
+    videoReady.value = true
+  }, 800)
+}
+
+onMounted(deferVideoPlayerLoad)
+
+onBeforeUnmount(() => {
+  if (!idleTimer || typeof window === 'undefined') return
+  if ('cancelIdleCallback' in window) {
+    window.cancelIdleCallback(idleTimer)
+  } else {
+    window.clearTimeout(idleTimer)
+  }
 })
 
 </script>
@@ -155,5 +187,16 @@ watch(streams, (newStreams) => {
   justify-content: space-between;
   font-size: 14px;
   color: #333;
+}
+
+.video-placeholder {
+  height: 160px;
+  border-radius: 8px;
+  background: #f2f6f4;
+  color: #6f7d75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
 }
 </style>
